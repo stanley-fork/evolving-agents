@@ -1,0 +1,1 @@
+I need a system that can analyze a patient's symptoms, provide a preliminary diagnosis for lupus-like conditions, and then research the latest immunosuppressant treatments available. The system should include appropriate medical disclaimers and be HIPAA compliant.

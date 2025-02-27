@@ -1,0 +1,47 @@
+scenario_name: "Medical Diagnosis and Research"
+domain: "medical"
+description: "Performs a preliminary diagnosis for a patient with lupus-like symptoms and researches treatments"
+
+# Additional disclaimers specific to this scenario
+additional_disclaimers:
+  - "This is an automated preliminary assessment only."
+  - "Diagnosis should be confirmed by laboratory tests."
+
+# Tool and agent definitions
+steps:
+  - type: "DEFINE"
+    item_type: "TOOL"
+    name: "MedicalDiagnosisTool"
+    from_existing_snippet: "generic_llm_classification_tool"
+    evolve_changes:
+      docstring_update: "Evolved tool specialized in medical diagnosis."
+      disclaimers: "Always include disclaimers in docstrings and responses."
+    description: "Tool that takes a patient's data and returns a preliminary diagnosis."
+
+  - type: "DEFINE"
+    item_type: "TOOL"
+    name: "DeepResearchTool"
+    from_existing_snippet: "deep_research_smolagent"
+    reuse_as_is: true
+    description: "Tool that performs advanced web/data analysis for references."
+
+  - type: "DEFINE"
+    item_type: "AGENT"
+    name: "MedicalDiagnosisAndResearchAgent"
+    agent_type: "BeeReActAgent"
+    description: "A Bee ReAct agent that provides quick diagnosis and looks up immunosuppressant treatments."
+    disclaimers_in_docstring: true
+    required_tools:
+      - "MedicalDiagnosisTool"
+      - "DeepResearchTool"
+
+  - type: "CREATE"
+    item_type: "AGENT"
+    name: "MedicalDiagnosisAndResearchAgent"
+
+  - type: "EXECUTE"
+    item_type: "AGENT"
+    name: "MedicalDiagnosisAndResearchAgent"
+    user_input: |
+      "I have a 35-year-old patient with lupus-like symptoms.
+      Please provide a diagnosis and the latest immunosuppressant research."
