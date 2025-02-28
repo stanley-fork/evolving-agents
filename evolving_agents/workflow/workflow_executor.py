@@ -1,19 +1,20 @@
-import yaml
+# evolving_agents/workflow/workflow_executor.py
+
 import logging
+import yaml
 from typing import Dict, List, Any, Optional
 
 from evolving_agents.smart_library.library_manager import SmartLibrary
-from evolving_agents.smart_library.record import RecordType, RecordStatus, LibraryRecord
 from evolving_agents.core.llm_service import LLMService
 from evolving_agents.agents.agent_factory import AgentFactory
 from evolving_agents.tools.tool_factory import ToolFactory
-from evolving_agents.smart_library.record_validator import validate_record
+from evolving_agents.smart_library.record import LibraryRecord, RecordType, RecordStatus
 
 logger = logging.getLogger(__name__)
 
 class WorkflowExecutor:
     """
-    Executes workflow YAML by retrieving, evolving, or creating agents and tools.
+    Executes YAML workflows by instantiating and running agents and tools.
     """
     def __init__(
         self, 
@@ -27,9 +28,9 @@ class WorkflowExecutor:
         self.agent_factory = agent_factory
         self.tool_factory = tool_factory
         
-        # Runtime registry for the current workflow
+        # Runtime registry
         self.active_items = {}
-        
+    
     async def execute_workflow(self, workflow_yaml: str) -> Dict[str, Any]:
         """
         Execute a workflow from YAML.
@@ -38,30 +39,28 @@ class WorkflowExecutor:
             workflow_yaml: YAML string defining the workflow
             
         Returns:
-            Dictionary with workflow results
+            Execution results
         """
+        logger.info("Executing workflow")
+        
         # Parse YAML
         try:
             workflow = yaml.safe_load(workflow_yaml)
-        except yaml.YAMLError as e:
-            logger.error(f"Error parsing workflow YAML: {e}")
-            return {"status": "error", "message": f"Invalid YAML: {str(e)}"}
+        except Exception as e:
+            error = f"Error parsing workflow YAML: {str(e)}"
+            logger.error(error)
+            return {"status": "error", "message": error}
         
-        # Extract workflow metadata
+        # Extract metadata
         scenario_name = workflow.get("scenario_name", "Unnamed Scenario")
         domain = workflow.get("domain", "general")
-        description = workflow.get("description", "")
         disclaimers = workflow.get("additional_disclaimers", [])
         
-        logger.info(f"Executing workflow: {scenario_name} ({domain})")
+        logger.info(f"Executing scenario: {scenario_name} in domain: {domain}")
         
-        # Get firmware for the domain
+        # Get firmware for this domain
         firmware_record = await self.library.get_firmware(domain)
-        if not firmware_record:
-            logger.warning(f"No firmware found for domain {domain}, using empty firmware")
-            firmware_content = ""
-        else:
-            firmware_content = firmware_record.code_snippet
+        firmware_content = firmware_record.code_snippet if firmware_record else ""
         
         # Execute steps
         results = {"steps": [], "scenario_name": scenario_name, "domain": domain}
@@ -70,63 +69,67 @@ class WorkflowExecutor:
             step_type = step.get("type", "").upper()
             logger.info(f"Executing step {i+1}: {step_type}")
             
-            if step_type == "DEFINE":
-                step_result = await self._execute_define_step(step, domain, firmware_content, disclaimers)
-            elif step_type == "CREATE":
-                step_result = await self._execute_create_step(step, domain, firmware_content)
-            elif step_type == "EXECUTE":
-                step_result = await self._execute_execute_step(step)
-            else:
-                step_result = {"status": "error", "message": f"Unknown step type: {step_type}"}
-                
+            step_result = {"type": step_type, "status": "pending"}
+            
+            try:
+                if step_type == "DEFINE":
+                    step_result = await self._execute_define_step(
+                        step, domain, firmware_content, disclaimers
+                    )
+                elif step_type == "CREATE":
+                    step_result = await self._execute_create_step(
+                        step, domain, firmware_content
+                    )
+                elif step_type == "EXECUTE":
+                    step_result = await self._execute_execute_step(step)
+                else:
+                    step_result = {"status": "error", "message": f"Unknown step type: {step_type}"}
+            except Exception as e:
+                logger.error(f"Error executing step {i+1}: {str(e)}")
+                step_result = {"status": "error", "message": f"Error: {str(e)}"}
+            
             results["steps"].append(step_result)
             
-            # Stop if a step fails
+            # Stop if step failed
             if step_result.get("status") == "error":
                 logger.warning(f"Workflow execution stopped due to error in step {i+1}")
+                results["status"] = "error"
+                results["message"] = f"Failed at step {i+1}: {step_result.get('message')}"
                 break
-                
-        logger.info(f"Workflow execution completed: {scenario_name}")
+        
+        if "status" not in results:
+            results["status"] = "success"
+            results["message"] = f"Successfully executed workflow '{scenario_name}'"
+        
         return results
     
     async def _execute_define_step(
-        self, 
-        step: Dict[str, Any], 
-        domain: str, 
+        self,
+        step: Dict[str, Any],
+        domain: str,
         firmware_content: str,
         disclaimers: List[str]
     ) -> Dict[str, Any]:
-        """
-        Execute a DEFINE step, which defines an agent or tool by reusing or evolving.
-        
-        Args:
-            step: Step configuration
-            domain: Domain for the step
-            firmware_content: Firmware content for the domain
-            disclaimers: Additional disclaimers
-            
-        Returns:
-            Dictionary with step results
-        """
+        """Execute a DEFINE step to define an agent or tool."""
         item_type = step.get("item_type", "").upper()
         name = step.get("name")
         description = step.get("description", "")
         
-        # Check if this is reusing or evolving an existing item
+        logger.info(f"Defining {item_type} '{name}'")
+        
+        # Check if we need to reuse or evolve an existing item
         if "from_existing_snippet" in step:
             source_name = step.get("from_existing_snippet")
             source_record = await self.library.find_record_by_name(source_name)
             
             if not source_record:
                 return {"status": "error", "message": f"Source item not found: {source_name}"}
-                
-            reuse_as_is = step.get("reuse_as_is", False)
             
-            if reuse_as_is:
+            if step.get("reuse_as_is", False):
                 # Reuse the existing item as is
                 logger.info(f"Reusing {source_name} as {name}")
                 
-                # Create a new record with the same code but different metadata
+                # Create a new record with the same code
                 new_record = LibraryRecord(
                     name=name,
                     record_type=RecordType(item_type),
@@ -134,25 +137,21 @@ class WorkflowExecutor:
                     description=description or source_record.description,
                     code_snippet=source_record.code_snippet,
                     version="1.0.0",
-                    embedding=source_record.embedding.copy() if source_record.embedding else None,
                     status=RecordStatus.ACTIVE,
                     metadata={
                         "reused_from": source_record.id,
-                        "original_name": source_record.name,
                         "disclaimers": disclaimers
-                    },
-                    tags=source_record.tags.copy() if source_record.tags else []
+                    }
                 )
                 
                 # Save to library
-                await self.library.save_record(new_record)
+                record_id = await self.library.save_record(new_record)
                 
                 return {
                     "status": "success",
                     "action": "reuse",
-                    "record_id": new_record.id,
-                    "name": name,
-                    "message": f"Reused {source_name} as {name}"
+                    "message": f"Reused {source_name} as {name}",
+                    "record_id": record_id
                 }
             else:
                 # Evolve the existing item
@@ -161,8 +160,8 @@ class WorkflowExecutor:
                 evolve_changes = step.get("evolve_changes", {})
                 docstring_update = evolve_changes.get("docstring_update", "")
                 
-                # Create evolution prompt
-                evolution_prompt = f"""
+                # Generate evolved code
+                evolve_prompt = f"""
                 {firmware_content}
                 
                 ORIGINAL CODE:
@@ -170,147 +169,74 @@ class WorkflowExecutor:
                 {source_record.code_snippet}
                 ```
                 
-                REQUESTED CHANGES:
+                REQUIRED CHANGES:
                 - New name: {name}
-                - New description: {description or source_record.description}
+                - Description: {description or source_record.description}
                 - Docstring update: {docstring_update}
+                
+                DOMAIN REQUIREMENTS:
+                - Domain: {domain}
                 
                 REQUIRED DISCLAIMERS:
                 {chr(10).join(disclaimers)}
                 
-                Please evolve the code to implement these changes while maintaining its core functionality.
-                Ensure all firmware rules are followed and disclaimers are included.
+                Evolve the code to implement these changes while maintaining core functionality.
+                Include all required disclaimers and follow domain guidelines.
                 
-                RETURN ONLY THE EVOLVED CODE:
+                EVOLVED CODE:
                 """
                 
-                # Generate evolved code
-                evolved_code = await self.llm.generate(evolution_prompt)
+                evolved_code = await self.llm.generate(evolve_prompt)
                 
-                # Validate the evolved code
-                validation_result = validate_record(
-                    code=evolved_code,
+                # Create a new evolved record
+                new_record = LibraryRecord(
+                    name=name,
                     record_type=RecordType(item_type),
                     domain=domain,
-                    firmware_content=firmware_content,
-                    required_disclaimers=disclaimers
-                )
-                
-                if not validation_result["valid"]:
-                    # Try one more time with the validation feedback
-                    issues = chr(10).join(validation_result["issues"])
-                    retry_prompt = f"""
-                    {firmware_content}
-                    
-                    Your previous code had the following issues:
-                    {issues}
-                    
-                    Please fix these issues in the code:
-                    ```
-                    {evolved_code}
-                    ```
-                    
-                    Ensure all firmware rules are followed and required disclaimers are included.
-                    
-                    RETURN ONLY THE FIXED CODE:
-                    """
-                    
-                    evolved_code = await self.llm.generate(retry_prompt)
-                    validation_result = validate_record(
-                        code=evolved_code,
-                        record_type=RecordType(item_type),
-                        domain=domain,
-                        firmware_content=firmware_content,
-                        required_disclaimers=disclaimers
-                    )
-                
-                # Create a new record with the evolved code
-                new_record = await self.library.evolve_record(
-                    parent_id=source_record.id,
-                    new_code_snippet=evolved_code,
                     description=description or source_record.description,
-                    status=RecordStatus.ACTIVE if validation_result["valid"] else RecordStatus.PENDING
+                    code_snippet=evolved_code,
+                    version="1.0.0",
+                    status=RecordStatus.ACTIVE,
+                    metadata={
+                        "evolved_from": source_record.id,
+                        "evolution_changes": evolve_changes,
+                        "disclaimers": disclaimers
+                    }
                 )
                 
-                # Add evolution metadata
-                new_record.name = name  # Override the name
-                new_record.metadata["evolution_type"] = "workflow_evolution"
-                new_record.metadata["evolution_changes"] = evolve_changes
-                new_record.metadata["validation_result"] = validation_result
-                
-                # Re-save with updated metadata
-                await self.library.save_record(new_record)
+                # Save to library
+                record_id = await self.library.save_record(new_record)
                 
                 return {
                     "status": "success",
                     "action": "evolve",
-                    "record_id": new_record.id,
-                    "name": name,
-                    "validation": validation_result,
-                    "message": f"Evolved {source_name} to {name}"
+                    "message": f"Evolved {source_name} to {name}",
+                    "record_id": record_id
                 }
         else:
             # Create a new item from scratch
-            logger.info(f"Defining new {item_type} {name} from scratch")
+            logger.info(f"Creating new {item_type} {name}")
             
-            creation_prompt = f"""
+            # Generate code for the new item
+            create_prompt = f"""
             {firmware_content}
             
             CREATE A NEW {item_type}:
             Name: {name}
             Description: {description}
             
+            DOMAIN: {domain}
+            
             REQUIRED DISCLAIMERS:
             {chr(10).join(disclaimers)}
             
-            Please generate code for a new {item_type.lower()} that fulfills the description.
-            Ensure all firmware rules are followed and disclaimers are included.
+            Generate complete code for this {item_type.lower()} that follows all guidelines.
+            Include proper docstrings and all required disclaimers.
             
-            RETURN ONLY THE CODE:
+            CODE:
             """
             
-            # Generate new code
-            new_code = await self.llm.generate(creation_prompt)
-            
-            # Validate the new code
-            validation_result = validate_record(
-                code=new_code,
-                record_type=RecordType(item_type),
-                domain=domain,
-                firmware_content=firmware_content,
-                required_disclaimers=disclaimers
-            )
-            
-            if not validation_result["valid"]:
-                # Try one more time with the validation feedback
-                issues = chr(10).join(validation_result["issues"])
-                retry_prompt = f"""
-                {firmware_content}
-                
-                Your previous code had the following issues:
-                {issues}
-                
-                Please fix these issues in the code:
-                ```
-                {new_code}
-                ```
-                
-                Ensure all firmware rules are followed and required disclaimers are included.
-                
-                RETURN ONLY THE FIXED CODE:
-                """
-                
-                new_code = await self.llm.generate(retry_prompt)
-                validation_result = validate_record(
-                    code=new_code,
-                    record_type=RecordType(item_type),
-                    domain=domain,
-                    firmware_content=firmware_content,
-                    required_disclaimers=disclaimers
-                )
-            
-            # Create embedding for the new code
-            embedding = await self.llm.embed(new_code + " " + description)
+            new_code = await self.llm.generate(create_prompt)
             
             # Create a new record
             new_record = LibraryRecord(
@@ -320,64 +246,46 @@ class WorkflowExecutor:
                 description=description,
                 code_snippet=new_code,
                 version="1.0.0",
-                embedding=embedding,
-                status=RecordStatus.ACTIVE if validation_result["valid"] else RecordStatus.PENDING,
+                status=RecordStatus.ACTIVE,
                 metadata={
-                    "created_from": "workflow_definition",
-                    "validation_result": validation_result,
+                    "created_from": "workflow",
                     "disclaimers": disclaimers
                 }
             )
             
             # Save to library
-            await self.library.save_record(new_record)
+            record_id = await self.library.save_record(new_record)
             
             return {
                 "status": "success",
-                "action": "define_new",
-                "record_id": new_record.id,
-                "name": name,
-                "validation": validation_result,
-                "message": f"Defined new {item_type} {name}"
+                "action": "create",
+                "message": f"Created new {item_type} {name}",
+                "record_id": record_id
             }
     
     async def _execute_create_step(
-        self, 
-        step: Dict[str, Any], 
-        domain: str, 
+        self,
+        step: Dict[str, Any],
+        domain: str,
         firmware_content: str
     ) -> Dict[str, Any]:
-        """
-        Execute a CREATE step, which instantiates an agent or tool.
-        
-        Args:
-            step: Step configuration
-            domain: Domain for the step
-            firmware_content: Firmware content for the domain
-            
-        Returns:
-            Dictionary with step results
-        """
+        """Execute a CREATE step to instantiate an agent or tool."""
         item_type = step.get("item_type", "").upper()
         name = step.get("name")
+        
+        logger.info(f"Creating {item_type} instance '{name}'")
         
         # Find the record
         record = await self.library.find_record_by_name(name)
         
         if not record:
             return {"status": "error", "message": f"Item not found: {name}"}
-            
-        if record.record_type != RecordType(item_type):
-            return {"status": "error", "message": f"Item {name} is not a {item_type}"}
-            
-        if record.status != RecordStatus.ACTIVE:
-            return {
-                "status": "error", 
-                "message": f"Item {name} is not active (status: {record.status.value})"
-            }
         
+        if record.record_type.value != item_type:
+            return {"status": "error", "message": f"Item {name} is not a {item_type}"}
+        
+        # Create instance
         try:
-            # Instantiate the agent or tool
             if item_type == "AGENT":
                 instance = await self.agent_factory.create_agent(
                     record=record,
@@ -398,10 +306,8 @@ class WorkflowExecutor:
             
             return {
                 "status": "success",
-                "action": "create",
-                "record_id": record.id,
-                "name": name,
-                "message": f"Created {item_type} instance {name}"
+                "message": f"Created {item_type} instance {name}",
+                "record_id": record.id
             }
         except Exception as e:
             logger.error(f"Error creating {item_type} {name}: {str(e)}")
@@ -411,29 +317,21 @@ class WorkflowExecutor:
             }
     
     async def _execute_execute_step(self, step: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Execute an EXECUTE step, which runs an agent or tool.
-        
-        Args:
-            step: Step configuration
-            
-        Returns:
-            Dictionary with step results
-        """
+        """Execute an EXECUTE step to run an agent or tool."""
         item_type = step.get("item_type", "").upper()
         name = step.get("name")
         user_input = step.get("user_input", "")
         
-        # Check if the item is active
+        logger.info(f"Executing {item_type} '{name}' with input: {user_input[:50]}...")
+        
+        # Check if item is active
         if name not in self.active_items:
             return {"status": "error", "message": f"{item_type} {name} is not active"}
-            
-        active_item = self.active_items[name]
-        if active_item["type"] != item_type:
-            return {"status": "error", "message": f"Active item {name} is not a {item_type}"}
         
+        active_item = self.active_items[name]
+        
+        # Execute the item
         try:
-            # Execute the agent or tool
             if item_type == "AGENT":
                 result = await self.agent_factory.execute_agent(
                     agent_instance=active_item["instance"],
@@ -445,22 +343,20 @@ class WorkflowExecutor:
                     input_text=user_input
                 )
                 
-            # Update usage statistics
-            await self.library.update_usage_metrics(active_item["record"].id, success=True)
+            # Update usage metrics
+            await self.library.update_usage_metrics(active_item["record"].id, True)
             
             return {
                 "status": "success",
-                "action": "execute",
-                "record_id": active_item["record"].id,
-                "name": name,
+                "message": f"Executed {item_type} {name}",
                 "result": result,
-                "message": f"Executed {item_type} {name}"
+                "record_id": active_item["record"].id
             }
         except Exception as e:
             logger.error(f"Error executing {item_type} {name}: {str(e)}")
             
-            # Update usage statistics with failure
-            await self.library.update_usage_metrics(active_item["record"].id, success=False)
+            # Update usage metrics as failure
+            await self.library.update_usage_metrics(active_item["record"].id, False)
             
             return {
                 "status": "error",

@@ -1,0 +1,9 @@
+# config/system_config.yaml
+
+firmware_files:
+  - "config/firmware/base_firmware.yaml"
+  - "config/firmware/domain_firmware.yaml"
+
+initial_records:
+  - "config/initial_records/base_tools.yaml"
+  - "config/firmware/initial_agents.yaml"
