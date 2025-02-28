@@ -1,47 +1,45 @@
+# examples/medical_diagnosis/medical_scenario.yaml
+
 scenario_name: "Medical Diagnosis and Research"
 domain: "medical"
-description: "Performs a preliminary diagnosis for a patient with lupus-like symptoms and researches treatments"
 
-# Additional disclaimers specific to this scenario
+description: "Analyzes patient symptoms, provides preliminary lupus diagnosis, and researches immunosuppressant treatments"
+
 additional_disclaimers:
-  - "This is an automated preliminary assessment only."
-  - "Diagnosis should be confirmed by laboratory tests."
+  - "# MEDICAL_DISCLAIMER: This output is not a substitute for professional medical advice."
+  - "Always consult with qualified healthcare providers."
+  - "For informational purposes only."
 
-# Tool and agent definitions
 steps:
   - type: "DEFINE"
     item_type: "TOOL"
-    name: "MedicalDiagnosisTool"
-    from_existing_snippet: "generic_llm_classification_tool"
+    name: "LupusDiagnosisTool"
+    description: "Tool that analyzes patient symptoms to determine likelihood of lupus"
+    from_existing_snippet: "MedicalDiagnosisTool"
     evolve_changes:
-      docstring_update: "Evolved tool specialized in medical diagnosis."
-      disclaimers: "Always include disclaimers in docstrings and responses."
-    description: "Tool that takes a patient's data and returns a preliminary diagnosis."
+      docstring_update: "Specialized for lupus diagnosis based on symptoms"
 
   - type: "DEFINE"
     item_type: "TOOL"
-    name: "DeepResearchTool"
-    from_existing_snippet: "deep_research_smolagent"
-    reuse_as_is: true
-    description: "Tool that performs advanced web/data analysis for references."
+    name: "ImmunosuppressantResearchTool"
+    description: "Tool that researches latest immunosuppressant treatments for lupus"
+    from_existing_snippet: "MedicalResearchTool"
+    evolve_changes:
+      docstring_update: "Specialized for immunosuppressant treatment research"
 
   - type: "DEFINE"
     item_type: "AGENT"
-    name: "MedicalDiagnosisAndResearchAgent"
-    agent_type: "BeeReActAgent"
-    description: "A Bee ReAct agent that provides quick diagnosis and looks up immunosuppressant treatments."
-    disclaimers_in_docstring: true
-    required_tools:
-      - "MedicalDiagnosisTool"
-      - "DeepResearchTool"
+    name: "LupusDiagnosisAndTreatmentAgent"
+    description: "Agent that diagnoses lupus and researches treatments with proper disclaimers"
+    from_existing_snippet: "MedicalAgent"
+    evolve_changes:
+      docstring_update: "Specialized for lupus diagnosis and treatment research"
 
   - type: "CREATE"
     item_type: "AGENT"
-    name: "MedicalDiagnosisAndResearchAgent"
+    name: "LupusDiagnosisAndTreatmentAgent"
 
   - type: "EXECUTE"
     item_type: "AGENT"
-    name: "MedicalDiagnosisAndResearchAgent"
-    user_input: |
-      "I have a 35-year-old patient with lupus-like symptoms.
-      Please provide a diagnosis and the latest immunosuppressant research."
+    name: "LupusDiagnosisAndTreatmentAgent"
+    user_input: "My patient has fatigue, joint pain, skin rash, and fever. What's the likelihood of lupus and what are the latest treatment options?"

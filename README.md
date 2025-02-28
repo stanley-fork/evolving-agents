@@ -248,7 +248,7 @@ Contributions are welcome! Please see our [Contributing Guide](CONTRIBUTING.md) 
 
 ## License
 
-[APACHE 2](LICENSE)
+[Apache v 2.0](LICENSE)
 
 ## Acknowledgements
 
