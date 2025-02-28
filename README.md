@@ -11,24 +11,48 @@ A production-grade framework for creating, managing, and evolving AI agents in a
 - **YAML Workflows**: Generated workflows are human-readable and editable
 - **Multi-Agent Orchestration**: Coordinate specialized agents for complex tasks
 
-## Quick Start
+## Installation
 
-### Installation
+### From Source
 
 ```bash
-pip install evolving-agents-framework
+# Clone the repository
+git clone https://github.com/yourusername/evolving-agents-framework.git
+cd evolving-agents-framework
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Install in development mode
+pip install -e .
 ```
 
-### From Natural Language to Working Agent in 5 Lines
+### Dependencies
+
+This framework relies on:
+- beeai-framework
+- PyYAML
+- OpenAI (or another LLM provider of your choice)
+
+## Quick Start
+
+### From Natural Language to Working Agent
 
 ```python
 import asyncio
-from evolving_agents import SystemAgent, SmartLibrary, LLMService
+import logging
+
+from evolving_agents.smart_library.library_manager import SmartLibrary
+from evolving_agents.core.llm_service import LLMService
+from evolving_agents.core.system_agent import SystemAgent
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 
 async def main():
     # Initialize the framework
-    library = SmartLibrary()
-    llm = LLMService()
+    library = SmartLibrary("library.json")
+    llm = LLMService(provider="openai")  # Requires OpenAI API key in environment
     system = SystemAgent(library, llm)
     
     # Initialize with base firmware for medical domain
@@ -194,28 +218,8 @@ results = await system.process_yaml_workflow("workflows/etf_advisor.yaml")
 ### Add a New Domain with Custom Firmware
 
 ```python
-# Add legal domain firmware
-legal_firmware = """
-You are an AI agent operating in the legal domain under strict governance rules:
-
-1. DOMAIN-SPECIFIC REQUIREMENTS:
-- Include legal disclaimers in all responses
-- Note that responses do not constitute legal advice
-- Protect attorney-client privilege where applicable
-- Ensure compliance with jurisdiction-specific regulations
-- Recommend consultation with licensed attorneys
-
-2. CODE GENERATION RULES:
-- All code must include detailed documentation
-- Ensure privacy of legal data
-- Include jurisdiction limitations
-"""
-
-await system.load_firmware(
-    firmware_content=legal_firmware,
-    domain="legal",
-    name="legal_firmware"
-)
+# Load firmware from a YAML file
+await system.firmware_manager.load_firmware_from_yaml("config/firmware/legal_firmware.yaml")
 
 # Now generate a legal agent
 result = await system.process_request(
@@ -232,7 +236,7 @@ The Evolving Agents Framework consists of several key components:
 2. **Smart Library**: Repository that stores all agents, tools, and firmware with usage metrics
 3. **Workflow Generator**: Creates YAML workflows from natural language requirements
 4. **Workflow Executor**: Runs the workflow steps, instantiating and executing agents/tools
-5. **Firmware**: Domain-specific rules injected into all agents and tools
+5. **Firmware Manager**: Loads and manages domain-specific rules injected into all agents and tools
 
 ## Advanced Features
 
@@ -242,15 +246,34 @@ The Evolving Agents Framework consists of several key components:
 - **Human-in-the-Loop**: Support for expert review of generated agents (via pending status)
 - **Embedding-Based Discovery**: Find the most semantically similar components for reuse
 
+## Directory Structure
+
+```
+evolving-agents-framework/
+├── evolving_agents/
+│   ├── agents/             # Agent-related classes
+│   ├── core/               # Core orchestration
+│   ├── firmware/           # Firmware management
+│   ├── smart_library/      # Smart Library components
+│   ├── tools/              # Tool-related classes
+│   ├── utils/              # Utilities
+│   └── workflow/           # Workflow generation and execution
+├── examples/               # Example usage scripts
+├── config/                 # Configuration files
+│   ├── firmware/           # Firmware definition files
+│   └── initial_records/    # Initial library records
+└── tests/                  # Test cases
+```
+
 ## Contributing
 
-Contributions are welcome! Please see our [Contributing Guide](CONTRIBUTING.md) for more information.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-[Apache v 2.0](LICENSE)
+[Apache v2.0](LICENSE)
 
 ## Acknowledgements
 
 - Matias Molinas and Ismael Faro for the original concept and architecture
-- The beeai-framework for inspiration and initial codebase
+- The beeai-framework for inspiration and integration
