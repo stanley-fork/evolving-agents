@@ -1,0 +1,60 @@
+scenario_name: "Lupus Symptom Analysis and Diagnosis"
+domain: "medical"
+description: "This workflow analyzes symptoms of joint pain, fatigue, and skin rash to assess the likelihood of lupus."
+
+additional_disclaimers:
+  - "This workflow is intended for preliminary assessment and is not a substitute for professional medical diagnosis."
+  - "Consult a healthcare provider for a comprehensive evaluation and treatment."
+
+steps:
+  - type: "DEFINE"
+    item_type: "TOOL"
+    name: "General Symptom Parser"
+    from_existing_snippet: "General Symptom Parser"
+    reuse_as_is: true
+    evolve_changes:
+      docstring_update: "No changes needed"
+    description: "Extracts and parses general symptoms from user input for further analysis."
+
+  - type: "DEFINE"
+    item_type: "TOOL"
+    name: "Lupus Symptom Parser"
+    from_existing_snippet: "Lupus Symptom Parser"
+    reuse_as_is: true
+    evolve_changes:
+      docstring_update: "No changes needed"
+    description: "Parses and extracts lupus-related symptoms from user descriptions."
+
+  - type: "DEFINE"
+    item_type: "AGENT"
+    name: "Lupus Assessment Agent"
+    from_existing_snippet: "Lupus Assessment Agent"
+    reuse_as_is: true
+    evolve_changes:
+      docstring_update: "No changes needed"
+    description: "Evaluates symptoms to determine the likelihood of lupus."
+
+  - type: "CREATE"
+    item_type: "AGENT"
+    name: "Lupus Diagnostic Agent"
+    description: "A new agent created to utilize symptom parsing and assessment tools for lupus diagnosis."
+
+  - type: "EXECUTE"
+    item_type: "TOOL"
+    name: "General Symptom Parser"
+    user_input: "User provided symptoms of joint pain, fatigue, and skin rash."
+
+  - type: "EXECUTE"
+    item_type: "TOOL"
+    name: "Lupus Symptom Parser"
+    user_input: "Parsed symptoms from the General Symptom Parser."
+
+  - type: "EXECUTE"
+    item_type: "AGENT"
+    name: "Lupus Assessment Agent"
+    user_input: "Lupus-related symptoms from the Lupus Symptom Parser."
+
+  - type: "EXECUTE"
+    item_type: "AGENT"
+    name: "Lupus Diagnostic Agent"
+    user_input: "Analysis and assessment results from the Lupus Assessment Agent."

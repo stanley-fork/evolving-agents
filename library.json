@@ -1,0 +1,231 @@
+[
+  {
+    "id": "29142eb4-facb-41f5-9953-87f5bc143848",
+    "name": "general_firmware",
+    "record_type": "FIRMWARE",
+    "domain": "general",
+    "description": "Firmware rules for general domain",
+    "code_snippet": "You are an AI agent operating under strict governance rules:\n\n1. ETHICAL CONSTRAINTS:\n- Never generate code or responses that could harm humans\n- Respect privacy and data protection\n- Be transparent about your limitations\n- Always provide truthful information\n\n2. CODE GENERATION RULES:\n- All code must include detailed documentation\n- Never use dangerous imports (os, subprocess, etc.)\n- Include appropriate error handling\n- Follow security best practices\n\n3. BEHAVIORAL GUIDELINES:\n- Always explain your reasoning\n- If unsure, acknowledge uncertainty\n- Stay within your defined scope\n- Request clarification when needed\n\n4. DOMAIN-SPECIFIC REQUIREMENTS:\n- No specific domain requirements for general domain\n\n5. SAFETY PROTOCOLS:\n- Validate all inputs\n- Check for potential security risks\n- Monitor resource usage\n- Report unusual patterns\n\nYou must ALWAYS operate within these constraints.\n",
+    "version": "1.0.0",
+    "usage_count": 0,
+    "success_count": 0,
+    "fail_count": 0,
+    "embedding": [],
+    "status": "active",
+    "last_updated": "2025-03-01T16:02:45.401937",
+    "metadata": {},
+    "parent_id": null,
+    "tags": [
+      "general",
+      "firmware"
+    ]
+  },
+  {
+    "id": "c4ab8895-a349-4a98-8ad5-976075348062",
+    "name": "medical_firmware",
+    "record_type": "FIRMWARE",
+    "domain": "medical",
+    "description": "Firmware rules for medical domain",
+    "code_snippet": "You are an AI agent operating in the medical domain under strict governance rules:\n\n1. ETHICAL CONSTRAINTS:\n- Never generate code or responses that could harm patients\n- Respect patient privacy and confidentiality\n- Be transparent about your limitations\n- Always provide truthful information\n\n2. CODE GENERATION RULES:\n- All code must include detailed documentation\n- Never use dangerous imports (os, subprocess, etc.)\n- Include appropriate error handling\n- Follow security best practices\n\n3. BEHAVIORAL GUIDELINES:\n- Always explain your reasoning\n- If unsure, acknowledge uncertainty\n- Stay within your defined scope\n- Request clarification when needed\n\n4. DOMAIN-SPECIFIC REQUIREMENTS:\n- Include MEDICAL_DISCLAIMER in all responses\n- Ensure HIPAA compliance in all code\n- Protect patient confidentiality\n- Recommend consulting qualified healthcare providers\n- Note that advice is informational only and not a substitute for professional medical care\n\n5. SAFETY PROTOCOLS:\n- Validate all inputs\n- Check for potential security risks\n- Monitor resource usage\n- Report unusual patterns\n\nYou must ALWAYS operate within these constraints.",
+    "version": "1.0.0",
+    "usage_count": 0,
+    "success_count": 0,
+    "fail_count": 0,
+    "embedding": [],
+    "status": "active",
+    "last_updated": "2025-03-01T16:02:45.402804",
+    "metadata": {},
+    "parent_id": null,
+    "tags": [
+      "medical",
+      "firmware"
+    ]
+  },
+  {
+    "id": "7cb03bfc-7017-4e44-9b6d-ac62f45c6f3b",
+    "name": "General Symptom Parser",
+    "record_type": "TOOL",
+    "domain": "medical",
+    "description": "Tool to extract and parse symptoms from user input",
+    "code_snippet": "\n                \"\"\"\n                # MEDICAL_DISCLAIMER: This tool is for informational purposes only and not a substitute for professional medical advice.\n                # Always consult with qualified healthcare providers.\n                \n                A general symptom parser that extracts and categorizes symptoms from user descriptions.\n                \n                This tool follows HIPAA compliance guidelines and medical best practices.\n                \"\"\"\n                \n                def parse_symptoms(input):\n                    \"\"\"\n                    Parse symptoms from user input.\n                    \n                    Args:\n                        input: Dictionary containing user's symptom description\n                        \n                    Returns:\n                        Dictionary with structured symptom information\n                    \"\"\"\n                    text = input.get(\"text\", \"\")\n                    if not text:\n                        return {\"error\": \"No symptom description provided\"}\n                        \n                    # In a real implementation, this would use NLP to extract symptoms\n                    # For now, we'll return a simple structured response\n                    return {\n                        \"parsed_symptoms\": [\n                            {\"symptom\": \"joint pain\", \"severity\": \"moderate\", \"duration\": \"unknown\"},\n                            {\"symptom\": \"fatigue\", \"severity\": \"moderate\", \"duration\": \"unknown\"},\n                            {\"symptom\": \"skin rash\", \"severity\": \"mild\", \"duration\": \"unknown\"}\n                        ],\n                        \"disclaimer\": \"This is an automated parsing of symptoms. Medical professionals should verify.\"\n                    }\n                    \n                # Entry point for the tool\n                result = parse_symptoms(input)\n                ",
+    "version": "1.0.0",
+    "usage_count": 0,
+    "success_count": 0,
+    "fail_count": 0,
+    "embedding": [],
+    "status": "active",
+    "last_updated": "2025-03-01T16:02:45.403752",
+    "metadata": {},
+    "parent_id": null,
+    "tags": [
+      "medical",
+      "symptoms",
+      "parser"
+    ]
+  },
+  {
+    "id": "60bd7a61-802d-4e28-bbaf-92274b36a7f0",
+    "name": "Decision Tree Template",
+    "record_type": "TOOL",
+    "domain": "medical",
+    "description": "A template for creating medical decision trees",
+    "code_snippet": "\n                \"\"\"\n                # MEDICAL_DISCLAIMER: This tool is for informational purposes only and not a substitute for professional medical advice.\n                # Always consult with qualified healthcare providers.\n                \n                A decision tree template for medical assessments.\n                \n                This tool follows HIPAA compliance guidelines and medical best practices.\n                \"\"\"\n                \n                def evaluate_decision_tree(input):\n                    \"\"\"\n                    Evaluate a set of inputs against a decision tree.\n                    \n                    Args:\n                        input: Dictionary containing data to evaluate\n                        \n                    Returns:\n                        Dictionary with assessment results\n                    \"\"\"\n                    symptoms = input.get(\"symptoms\", [])\n                    if not symptoms:\n                        return {\"error\": \"No symptoms provided for evaluation\"}\n                        \n                    # In a real implementation, this would use a proper decision tree\n                    # For now, we'll return a simple assessment\n                    return {\n                        \"assessment\": {\n                            \"condition\": \"Unspecified condition\",\n                            \"likelihood\": \"Medium\",\n                            \"confidence\": 0.7,\n                            \"recommended_actions\": [\"Consult with a specialist\", \"Further testing\"]\n                        },\n                        \"disclaimer\": \"This is an automated assessment only. Medical professionals should make the final diagnosis.\"\n                    }\n                    \n                # Entry point for the tool\n                result = evaluate_decision_tree(input)\n                ",
+    "version": "1.0.0",
+    "usage_count": 0,
+    "success_count": 0,
+    "fail_count": 0,
+    "embedding": [],
+    "status": "active",
+    "last_updated": "2025-03-01T16:02:45.404558",
+    "metadata": {},
+    "parent_id": null,
+    "tags": [
+      "medical",
+      "decision tree",
+      "template"
+    ]
+  },
+  {
+    "id": "c88f5eb6-329d-43b6-ab1d-b57f21efbfa3",
+    "name": "Lupus Assessment Agent",
+    "record_type": "AGENT",
+    "domain": "medical",
+    "description": "Agent that evaluates symptoms to determine the likelihood of lupus",
+    "code_snippet": "\n                \"\"\"\n                # MEDICAL_DISCLAIMER: This output is not a substitute for professional medical advice.\n                # Always consult with qualified healthcare providers.\n                # For informational purposes only.\n                \n                A lupus assessment agent that evaluates symptoms to determine the likelihood of lupus.\n                \n                This agent follows HIPAA compliance guidelines and medical best practices.\n                \"\"\"\n                \n                from beeai_framework.agents.bee.agent import BeeAgent\n                from beeai_framework.agents.types import AgentMeta\n                \n                class LupusAssessmentAgent(BeeAgent):\n                    \"\"\"\n                    A specialized agent for assessing the likelihood of lupus based on symptoms.\n                    \n                    This agent should always:\n                    1. Include medical disclaimers\n                    2. Avoid making definitive diagnoses\n                    3. Suggest consulting healthcare professionals\n                    4. Consider multiple possible explanations for symptoms\n                    5. Recommend appropriate tests for confirmation\n                    \"\"\"\n                    \n                    def __init__(self, llm, tools, memory):\n                        \"\"\"Initialize the lupus assessment agent.\"\"\"\n                        meta = AgentMeta(\n                            name=\"Lupus Assessment Agent\",\n                            description=\"An agent that evaluates symptoms to determine the likelihood of lupus while maintaining HIPAA compliance.\",\n                            tools=tools\n                        )\n                        super().__init__(llm=llm, tools=tools, memory=memory, meta=meta)\n                ",
+    "version": "1.0.0",
+    "usage_count": 1,
+    "success_count": 1,
+    "fail_count": 0,
+    "embedding": [],
+    "status": "active",
+    "last_updated": "2025-03-01T16:02:54.888299",
+    "metadata": {},
+    "parent_id": null,
+    "tags": [
+      "medical",
+      "lupus",
+      "assessment",
+      "agent"
+    ]
+  },
+  {
+    "id": "d2e015f3-cbf0-443d-905a-96d0c841103f",
+    "name": "Lupus Symptom Parser",
+    "record_type": "TOOL",
+    "domain": "medical",
+    "description": "Parses and extracts lupus-related symptoms from user descriptions",
+    "code_snippet": "\n                \"\"\"\n                # MEDICAL_DISCLAIMER: This tool is for informational purposes only and not a substitute for professional medical advice.\n                # Always consult with qualified healthcare providers.\n                \n                A general symptom parser that extracts and categorizes symptoms from user descriptions.\n                \n                This tool follows HIPAA compliance guidelines and medical best practices.\n                \"\"\"\n                \n                def parse_symptoms(input):\n                    \"\"\"\n                    Parse symptoms from user input.\n                    \n                    Args:\n                        input: Dictionary containing user's symptom description\n                        \n                    Returns:\n                        Dictionary with structured symptom information\n                    \"\"\"\n                    text = input.get(\"text\", \"\")\n                    if not text:\n                        return {\"error\": \"No symptom description provided\"}\n                        \n                    # In a real implementation, this would use NLP to extract symptoms\n                    # For now, we'll return a simple structured response\n                    return {\n                        \"parsed_symptoms\": [\n                            {\"symptom\": \"joint pain\", \"severity\": \"moderate\", \"duration\": \"unknown\"},\n                            {\"symptom\": \"fatigue\", \"severity\": \"moderate\", \"duration\": \"unknown\"},\n                            {\"symptom\": \"skin rash\", \"severity\": \"mild\", \"duration\": \"unknown\"}\n                        ],\n                        \"disclaimer\": \"This is an automated parsing of symptoms. Medical professionals should verify.\"\n                    }\n                    \n                # Entry point for the tool\n                result = parse_symptoms(input)\n                ",
+    "version": "1.0.0",
+    "usage_count": 1,
+    "success_count": 1,
+    "fail_count": 0,
+    "embedding": [],
+    "status": "active",
+    "last_updated": "2025-03-01T16:02:45.413955",
+    "metadata": {
+      "reused_from": "7cb03bfc-7017-4e44-9b6d-ac62f45c6f3b",
+      "disclaimers": [
+        "This analysis is not a substitute for medical advice. Consult a healthcare professional for a proper diagnosis.",
+        "Symptom analysis may not account for all unique patient conditions and variability."
+      ]
+    },
+    "parent_id": null,
+    "tags": []
+  },
+  {
+    "id": "7c09e816-8272-4f92-a662-b87dad74ceca",
+    "name": "Lupus Assessment Agent",
+    "record_type": "AGENT",
+    "domain": "medical",
+    "description": "Evaluates symptoms to determine the likelihood of lupus",
+    "code_snippet": "\n                \"\"\"\n                # MEDICAL_DISCLAIMER: This output is not a substitute for professional medical advice.\n                # Always consult with qualified healthcare providers.\n                # For informational purposes only.\n                \n                A lupus assessment agent that evaluates symptoms to determine the likelihood of lupus.\n                \n                This agent follows HIPAA compliance guidelines and medical best practices.\n                \"\"\"\n                \n                from beeai_framework.agents.bee.agent import BeeAgent\n                from beeai_framework.agents.types import AgentMeta\n                \n                class LupusAssessmentAgent(BeeAgent):\n                    \"\"\"\n                    A specialized agent for assessing the likelihood of lupus based on symptoms.\n                    \n                    This agent should always:\n                    1. Include medical disclaimers\n                    2. Avoid making definitive diagnoses\n                    3. Suggest consulting healthcare professionals\n                    4. Consider multiple possible explanations for symptoms\n                    5. Recommend appropriate tests for confirmation\n                    \"\"\"\n                    \n                    def __init__(self, llm, tools, memory):\n                        \"\"\"Initialize the lupus assessment agent.\"\"\"\n                        meta = AgentMeta(\n                            name=\"Lupus Assessment Agent\",\n                            description=\"An agent that evaluates symptoms to determine the likelihood of lupus while maintaining HIPAA compliance.\",\n                            tools=tools\n                        )\n                        super().__init__(llm=llm, tools=tools, memory=memory, meta=meta)\n                ",
+    "version": "1.0.0",
+    "usage_count": 0,
+    "success_count": 0,
+    "fail_count": 0,
+    "embedding": [],
+    "status": "active",
+    "last_updated": "2025-03-01T16:02:45.414840",
+    "metadata": {
+      "reused_from": "c88f5eb6-329d-43b6-ab1d-b57f21efbfa3",
+      "disclaimers": [
+        "This analysis is not a substitute for medical advice. Consult a healthcare professional for a proper diagnosis.",
+        "Symptom analysis may not account for all unique patient conditions and variability."
+      ]
+    },
+    "parent_id": null,
+    "tags": []
+  },
+  {
+    "id": "d1a62241-15c9-4e0a-b4cf-e8204ad526ae",
+    "name": "General Symptom Parser",
+    "record_type": "TOOL",
+    "domain": "medical",
+    "description": "Extracts and parses general symptoms from user input for further analysis.",
+    "code_snippet": "\n                \"\"\"\n                # MEDICAL_DISCLAIMER: This tool is for informational purposes only and not a substitute for professional medical advice.\n                # Always consult with qualified healthcare providers.\n                \n                A general symptom parser that extracts and categorizes symptoms from user descriptions.\n                \n                This tool follows HIPAA compliance guidelines and medical best practices.\n                \"\"\"\n                \n                def parse_symptoms(input):\n                    \"\"\"\n                    Parse symptoms from user input.\n                    \n                    Args:\n                        input: Dictionary containing user's symptom description\n                        \n                    Returns:\n                        Dictionary with structured symptom information\n                    \"\"\"\n                    text = input.get(\"text\", \"\")\n                    if not text:\n                        return {\"error\": \"No symptom description provided\"}\n                        \n                    # In a real implementation, this would use NLP to extract symptoms\n                    # For now, we'll return a simple structured response\n                    return {\n                        \"parsed_symptoms\": [\n                            {\"symptom\": \"joint pain\", \"severity\": \"moderate\", \"duration\": \"unknown\"},\n                            {\"symptom\": \"fatigue\", \"severity\": \"moderate\", \"duration\": \"unknown\"},\n                            {\"symptom\": \"skin rash\", \"severity\": \"mild\", \"duration\": \"unknown\"}\n                        ],\n                        \"disclaimer\": \"This is an automated parsing of symptoms. Medical professionals should verify.\"\n                    }\n                    \n                # Entry point for the tool\n                result = parse_symptoms(input)\n                ",
+    "version": "1.0.0",
+    "usage_count": 0,
+    "success_count": 0,
+    "fail_count": 0,
+    "embedding": [],
+    "status": "active",
+    "last_updated": "2025-03-01T16:03:10.298521",
+    "metadata": {
+      "reused_from": "7cb03bfc-7017-4e44-9b6d-ac62f45c6f3b",
+      "disclaimers": [
+        "This workflow is intended for preliminary assessment and is not a substitute for professional medical diagnosis.",
+        "Consult a healthcare provider for a comprehensive evaluation and treatment."
+      ]
+    },
+    "parent_id": null,
+    "tags": []
+  },
+  {
+    "id": "0c1a441f-3737-4bf0-84ae-0312e125161f",
+    "name": "Lupus Symptom Parser",
+    "record_type": "TOOL",
+    "domain": "medical",
+    "description": "Parses and extracts lupus-related symptoms from user descriptions.",
+    "code_snippet": "\n                \"\"\"\n                # MEDICAL_DISCLAIMER: This tool is for informational purposes only and not a substitute for professional medical advice.\n                # Always consult with qualified healthcare providers.\n                \n                A general symptom parser that extracts and categorizes symptoms from user descriptions.\n                \n                This tool follows HIPAA compliance guidelines and medical best practices.\n                \"\"\"\n                \n                def parse_symptoms(input):\n                    \"\"\"\n                    Parse symptoms from user input.\n                    \n                    Args:\n                        input: Dictionary containing user's symptom description\n                        \n                    Returns:\n                        Dictionary with structured symptom information\n                    \"\"\"\n                    text = input.get(\"text\", \"\")\n                    if not text:\n                        return {\"error\": \"No symptom description provided\"}\n                        \n                    # In a real implementation, this would use NLP to extract symptoms\n                    # For now, we'll return a simple structured response\n                    return {\n                        \"parsed_symptoms\": [\n                            {\"symptom\": \"joint pain\", \"severity\": \"moderate\", \"duration\": \"unknown\"},\n                            {\"symptom\": \"fatigue\", \"severity\": \"moderate\", \"duration\": \"unknown\"},\n                            {\"symptom\": \"skin rash\", \"severity\": \"mild\", \"duration\": \"unknown\"}\n                        ],\n                        \"disclaimer\": \"This is an automated parsing of symptoms. Medical professionals should verify.\"\n                    }\n                    \n                # Entry point for the tool\n                result = parse_symptoms(input)\n                ",
+    "version": "1.0.0",
+    "usage_count": 0,
+    "success_count": 0,
+    "fail_count": 0,
+    "embedding": [],
+    "status": "active",
+    "last_updated": "2025-03-01T16:03:10.300435",
+    "metadata": {
+      "reused_from": "d2e015f3-cbf0-443d-905a-96d0c841103f",
+      "disclaimers": [
+        "This workflow is intended for preliminary assessment and is not a substitute for professional medical diagnosis.",
+        "Consult a healthcare provider for a comprehensive evaluation and treatment."
+      ]
+    },
+    "parent_id": null,
+    "tags": []
+  },
+  {
+    "id": "ad3a1753-4652-4699-8c53-a527d17bae05",
+    "name": "Lupus Assessment Agent",
+    "record_type": "AGENT",
+    "domain": "medical",
+    "description": "Evaluates symptoms to determine the likelihood of lupus.",
+    "code_snippet": "\n                \"\"\"\n                # MEDICAL_DISCLAIMER: This output is not a substitute for professional medical advice.\n                # Always consult with qualified healthcare providers.\n                # For informational purposes only.\n                \n                A lupus assessment agent that evaluates symptoms to determine the likelihood of lupus.\n                \n                This agent follows HIPAA compliance guidelines and medical best practices.\n                \"\"\"\n                \n                from beeai_framework.agents.bee.agent import BeeAgent\n                from beeai_framework.agents.types import AgentMeta\n                \n                class LupusAssessmentAgent(BeeAgent):\n                    \"\"\"\n                    A specialized agent for assessing the likelihood of lupus based on symptoms.\n                    \n                    This agent should always:\n                    1. Include medical disclaimers\n                    2. Avoid making definitive diagnoses\n                    3. Suggest consulting healthcare professionals\n                    4. Consider multiple possible explanations for symptoms\n                    5. Recommend appropriate tests for confirmation\n                    \"\"\"\n                    \n                    def __init__(self, llm, tools, memory):\n                        \"\"\"Initialize the lupus assessment agent.\"\"\"\n                        meta = AgentMeta(\n                            name=\"Lupus Assessment Agent\",\n                            description=\"An agent that evaluates symptoms to determine the likelihood of lupus while maintaining HIPAA compliance.\",\n                            tools=tools\n                        )\n                        super().__init__(llm=llm, tools=tools, memory=memory, meta=meta)\n                ",
+    "version": "1.0.0",
+    "usage_count": 0,
+    "success_count": 0,
+    "fail_count": 0,
+    "embedding": [],
+    "status": "active",
+    "last_updated": "2025-03-01T16:03:10.301660",
+    "metadata": {
+      "reused_from": "c88f5eb6-329d-43b6-ab1d-b57f21efbfa3",
+      "disclaimers": [
+        "This workflow is intended for preliminary assessment and is not a substitute for professional medical diagnosis.",
+        "Consult a healthcare provider for a comprehensive evaluation and treatment."
+      ]
+    },
+    "parent_id": null,
+    "tags": []
+  }
+]
