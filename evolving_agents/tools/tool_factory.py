@@ -1,47 +1,68 @@
 # evolving_agents/tools/tool_factory.py
 
 import logging
-import importlib.util
-import sys
-import os
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Type
+from pydantic import BaseModel, Field
 
 from beeai_framework.backend.chat import ChatModel
 from beeai_framework.tools.tool import Tool
+from beeai_framework.emitter.emitter import Emitter
+from beeai_framework.utils.strings import to_safe_word
 
 from evolving_agents.smart_library.library_manager import SmartLibrary
 from evolving_agents.smart_library.record import LibraryRecord
 
 logger = logging.getLogger(__name__)
 
-class CustomTool(Tool):
-    """A simple tool implementation that wraps dynamic code execution."""
+class SimpleTool(Tool):
+    """A simple tool implementation compatible with beeai-framework."""
     
-    def __init__(self, name: str, description: str, code_snippet: str):
-        super().__init__(name=name, description=description)
+    class SimpleToolInput(BaseModel):
+        text: str = Field(description="Input text to process")
+    
+    def __init__(self, name: str, description: str, code_snippet: str, options: Optional[Dict[str, Any]] = None):
+        # First initialize the parent with only the options parameter
+        super().__init__(options=options)
+        
+        # Then store our tool-specific attributes
+        self._name = name
+        self._description = description
         self.code_snippet = code_snippet
-        self._compiled_code = None
         
-        try:
-            # Compile but don't execute the code yet
-            self._compiled_code = compile(code_snippet, f"<tool_{name}>", "exec")
-        except Exception as e:
-            logger.error(f"Error compiling tool {name}: {str(e)}")
+        # Initialize emitter (similar to OpenMeteoTool example)
+        self.emitter = Emitter.root().child(
+            namespace=["tool", "simple", to_safe_word(self._name)],
+            creator=self,
+        )
     
-    def run(self, input: Dict[str, Any]) -> Any:
-        """Execute the tool with provided input."""
-        if not self._compiled_code:
-            return {"error": "Tool code could not be compiled"}
+    @property
+    def name(self) -> str:
+        return self._name
         
-        # Create a local scope with the input
-        local_scope = {"input": input, "result": None}
-        
+    @property
+    def description(self) -> str:
+        return self._description
+    
+    @property
+    def input_schema(self) -> Type[BaseModel]:
+        return self.SimpleToolInput
+    
+    def _run(self, input: Any, options: Optional[Dict[str, Any]] = None) -> Any:
+        """Run the tool with the provided input."""
         try:
+            # Create a local scope with the input
+            local_scope = {"input": input, "result": None}
+            
             # Execute the code with the local scope
-            exec(self._compiled_code, {}, local_scope)
-            return local_scope.get("result", {"error": "Tool did not produce a result"})
+            exec(self.code_snippet, {}, local_scope)
+            
+            # Return the result
+            if "result" in local_scope:
+                return local_scope.get("result")
+            else:
+                return {"error": "Tool did not produce a result"}
         except Exception as e:
-            logger.error(f"Error executing tool {self.name}: {str(e)}")
+            logger.error(f"Error executing tool {self._name}: {str(e)}")
             return {"error": f"Execution error: {str(e)}"}
 
 class ToolFactory:
@@ -70,17 +91,18 @@ class ToolFactory:
         """
         logger.info(f"Creating tool {record.name} from record {record.id}")
         
-        # For simplicity, we'll create a CustomTool that wraps the code
-        # In a real implementation, you would parse and execute the code properly
-        
-        tool = CustomTool(
+        tool = SimpleTool(
             name=record.name,
             description=record.description,
             code_snippet=record.code_snippet
         )
         
         # Store in active tools
-        self.active_tools[record.id] = tool
+        self.active_tools[record.name] = {
+            "record": record,
+            "instance": tool,
+            "type": "TOOL"
+        }
         
         return tool
     
@@ -104,7 +126,8 @@ class ToolFactory:
             
             # Convert result to string
             if isinstance(result, dict):
-                return str(result)
+                import json
+                return json.dumps(result, indent=2)
             return str(result)
         except Exception as e:
             logger.error(f"Error executing tool: {str(e)}")
