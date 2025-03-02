@@ -30,7 +30,6 @@ pip install -e .
 ### Dependencies
 
 This framework relies on:
-- beeai-framework
 - PyYAML
 - OpenAI (or another LLM provider of your choice)
 
@@ -42,39 +41,44 @@ This framework relies on:
 import asyncio
 import logging
 
-from evolving_agents.smart_library.library_manager import SmartLibrary
+from evolving_agents.smart_library.smart_library import SmartLibrary
 from evolving_agents.core.llm_service import LLMService
 from evolving_agents.core.system_agent import SystemAgent
+from evolving_agents.workflow.workflow_generator import WorkflowGenerator
+from evolving_agents.workflow.workflow_processor import WorkflowProcessor
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
 async def main():
-    # Initialize the framework
+    # Initialize the framework components
     library = SmartLibrary("library.json")
-    llm = LLMService(provider="openai")  # Requires OpenAI API key in environment
+    llm = LLMService()
     system = SystemAgent(library, llm)
+    generator = WorkflowGenerator(llm, library)
+    processor = WorkflowProcessor(system)
     
-    # Initialize with base firmware for medical domain
-    await system.initialize_system("config/system_config.yaml")
-    
-    # Generate and execute a workflow from natural language requirements
-    result = await system.process_request(
-        request="Create an agent that can analyze a patient's symptoms, provide a preliminary diagnosis for lupus, and research the latest immunosuppressant treatments. Include medical disclaimers.",
+    # Generate a workflow from natural language
+    workflow_yaml = await generator.generate_workflow(
+        requirements="Create an agent that can analyze a patient's symptoms, provide a preliminary diagnosis for lupus, and research the latest immunosuppressant treatments. Include medical disclaimers.",
         domain="medical"
     )
     
-    # View the results
-    print(f"Generated workflow:\n{result['workflow_yaml']}\n")
-    print("Execution results:")
-    for step in result["execution"]["steps"]:
-        print(f"- {step['message']}")
+    # Execute the workflow
+    results = await processor.process_workflow(workflow_yaml)
     
-    # If the workflow had an EXECUTE step with results, display them
-    if any("result" in step for step in result["execution"]["steps"]):
-        final_step = [step for step in result["execution"]["steps"] if "result" in step][-1]
-        print("\nAgent response:")
-        print(final_step["result"])
+    # View the results
+    print(f"Generated workflow:\n{workflow_yaml}\n")
+    print("Execution results:")
+    for step in results["steps"]:
+        print(f"- {step.get('message', 'No message')}")
+    
+    # Print final result if available
+    for step in reversed(results["steps"]):
+        if "result" in step:
+            print("\nAgent response:")
+            print(step["result"])
+            break
 
 if __name__ == "__main__":
     asyncio.run(main())
@@ -97,44 +101,24 @@ steps:
   - type: "DEFINE"
     item_type: "TOOL"
     name: "LupusDiagnosisTool"
-    from_existing_snippet: "MedicalDiagnosisTool"
+    from_existing_snippet: "SymptomParser"
     evolve_changes:
       docstring_update: "Specialized for lupus diagnosis based on symptoms"
     description: "Analyzes patient symptoms to determine likelihood of lupus"
 
-  - type: "DEFINE"
-    item_type: "TOOL"
-    name: "ImmunosuppressantResearchTool"
-    from_existing_snippet: "MedicalResearchTool"
-    evolve_changes:
-      docstring_update: "Specialized for immunosuppressant treatment research"
-    description: "Researches latest immunosuppressant treatments for lupus"
-
-  - type: "DEFINE"
-    item_type: "AGENT"
-    name: "LupusDiagnosisAndTreatmentAgent"
-    agent_type: "MedicalReActAgent"
-    description: "Agent that diagnoses lupus and researches treatments with proper disclaimers"
-    required_tools:
-      - "LupusDiagnosisTool"
-      - "ImmunosuppressantResearchTool"
-    disclaimers_in_docstring: true
-
   - type: "CREATE"
-    item_type: "AGENT"
-    name: "LupusDiagnosisAndTreatmentAgent"
+    item_type: "TOOL"
+    name: "LupusDiagnosisTool"
 
   - type: "EXECUTE"
-    item_type: "AGENT"
-    name: "LupusDiagnosisAndTreatmentAgent"
+    item_type: "TOOL"
+    name: "LupusDiagnosisTool"
     user_input: "My patient has fatigue, joint pain, skin rash, and fever. What's the likelihood of lupus and what are the latest treatment options?"
 
 Execution results:
-- Evolved MedicalDiagnosisTool to LupusDiagnosisTool, injecting firmware for domain 'medical'.
-- Evolved MedicalResearchTool to ImmunosuppressantResearchTool, injecting firmware for domain 'medical'.
-- Defined new AGENT LupusDiagnosisAndTreatmentAgent
-- Created AGENT instance LupusDiagnosisAndTreatmentAgent
-- Executed AGENT LupusDiagnosisAndTreatmentAgent
+- Evolved SymptomParser to LupusDiagnosisTool, injecting firmware for domain 'medical'.
+- Created TOOL instance LupusDiagnosisTool
+- Executed TOOL LupusDiagnosisTool
 
 Agent response:
 # MEDICAL_DISCLAIMER: This output is not a substitute for professional medical advice.
@@ -162,69 +146,113 @@ Based on the symptoms described (fatigue, joint pain, skin rash, and fever), the
 
 Recent advances in lupus treatment include:
 
-1. **Belimumab (Benlysta)** - FDA-approved monoclonal antibody that targets B-lymphocyte stimulator (BLyS)
-   - Recent studies show efficacy in reducing disease activity and flares
-   - Available in both IV and subcutaneous formulations
-
+1. **Belimumab (Benlysta)** - FDA-approved monoclonal antibody
 2. **Anifrolumab (Saphnelo)** - FDA-approved in 2021
-   - Type I interferon receptor antagonist
-   - Demonstrated significant reduction in disease activity across multiple organ systems
-
 3. **Voclosporin (Lupkynis)** - Approved January 2021
-   - Calcineurin inhibitor specifically for lupus nephritis
-   - Shows improved renal response compared to standard therapy
+4. **JAK inhibitors** (Baricitinib, Tofacitinib) - Under investigation
 
-4. **Obinutuzumab** - Currently in Phase III trials
-   - Anti-CD20 monoclonal antibody showing promise for lupus nephritis
-
-5. **JAK inhibitors** (Baricitinib, Tofacitinib) - Under investigation
-   - Early studies show potential benefit in skin and joint manifestations
-
-Please consult with a rheumatologist to determine the most appropriate treatment based on disease severity, organ involvement, and patient-specific factors.
+Please consult with a rheumatologist for appropriate treatment options.
 ```
 
 ## More Advanced Use Cases
 
-### Smart Selection from the Library
-
-The framework can automatically find and use the most relevant agent from your library:
+### Direct Decision Logic (Reuse, Evolve, Create)
 
 ```python
-# Find the best matching agent and execute it directly
-result = await system.semantic_find_and_execute(
-    query="Need an agent that can diagnose lupus from symptoms",
-    input_text="Patient has butterfly rash, joint pain, and fatigue",
-    domain="medical"
+# Process a request using the decision logic from Article 3.1
+result = await system.decide_and_act(
+    request="I need a tool that can analyze lupus symptoms from patient descriptions",
+    domain="medical",
+    record_type="TOOL"
 )
 
-print(f"Selected agent: {result['name']}")
-print(f"Result: {result['result']}")
+print(f"Action: {result['action']}")  # Will be "reuse", "evolve", or "create"
+print(f"Message: {result['message']}")
+
+# Execute the resulting tool
+if result["action"] in ["reuse", "evolve", "create"]:
+    execution_result = await system.execute_item(
+        result["record"]["name"],
+        "Patient has joint pain, fatigue, and a butterfly-shaped rash on face."
+    )
+    print(f"Result: {execution_result['result']}")
 ```
 
-### Generate Custom Workflow and Save for Later
+### Custom YAML Workflow Processing
 
 ```python
-# Generate a workflow without executing it
-workflow_yaml = await system.workflow_generator.generate_workflow(
-    requirements="Create a financial advisor that recommends ETFs based on risk tolerance",
+# Define a workflow in YAML
+medical_workflow = """
+scenario_name: "Medical Symptom Analysis"
+domain: "medical"
+description: "Analyze symptoms for potential lupus diagnosis"
+
+additional_disclaimers:
+  - "# MEDICAL_DISCLAIMER: This output is not a substitute for professional medical advice."
+  - "Always consult with qualified healthcare providers."
+
+steps:
+  - type: "DEFINE"
+    item_type: "TOOL"
+    name: "SymptomAnalysisTool"
+    description: "Analyzes symptoms to determine likelihood of lupus"
+
+  - type: "CREATE"
+    item_type: "TOOL"
+    name: "SymptomAnalysisTool"
+
+  - type: "EXECUTE"
+    item_type: "TOOL"
+    name: "SymptomAnalysisTool"
+    user_input: "Patient has joint pain, fatigue, and a butterfly-shaped rash on face."
+"""
+
+# Process the workflow
+results = await workflow_processor.process_workflow(medical_workflow)
+
+# Display the results
+for step in results["steps"]:
+    print(step["message"])
+```
+
+### Load a Custom Domain Firmware
+
+```python
+# Define a new domain with custom firmware rules
+financial_firmware = """
+You are an AI agent operating under strict financial compliance rules:
+
+1. REGULATORY COMPLIANCE:
+- Never provide specific investment advice without disclaimers
+- Adhere to SEC regulations
+- Maintain transparency about hypothetical returns
+
+2. DATA PRIVACY:
+- Handle all financial information confidentially
+- Do not retain personally identifiable financial information
+- Anonymize all examples
+
+3. DISCLAIMERS:
+- Always include disclaimers about financial risks
+- State that past performance does not guarantee future results
+- Recommend consulting with financial professionals
+
+Follow these rules at all times when generating financial information or code.
+"""
+
+# Create a firmware record in the library
+await library.create_record(
+    name="FinancialFirmware",
+    record_type="FIRMWARE",
     domain="finance",
-    output_path="workflows/etf_advisor.yaml"
+    description="Firmware for financial domain with regulatory compliance",
+    code_snippet=financial_firmware
 )
 
-# Later, execute the saved workflow
-results = await system.process_yaml_workflow("workflows/etf_advisor.yaml")
-```
-
-### Add a New Domain with Custom Firmware
-
-```python
-# Load firmware from a YAML file
-await system.firmware_manager.load_firmware_from_yaml("config/firmware/legal_firmware.yaml")
-
-# Now generate a legal agent
-result = await system.process_request(
-    request="Create an agent that can analyze contracts for common liability issues",
-    domain="legal"
+# Now generate a financial workflow
+finance_workflow = await generator.generate_workflow(
+    requirements="Create an agent that can recommend ETF investments based on risk tolerance",
+    domain="finance"
 )
 ```
 
@@ -232,37 +260,65 @@ result = await system.process_request(
 
 The Evolving Agents Framework consists of several key components:
 
-1. **System Agent**: Central orchestrator that processes requests and coordinates workflows
-2. **Smart Library**: Repository that stores all agents, tools, and firmware with usage metrics
-3. **Workflow Generator**: Creates YAML workflows from natural language requirements
-4. **Workflow Executor**: Runs the workflow steps, instantiating and executing agents/tools
-5. **Firmware Manager**: Loads and manages domain-specific rules injected into all agents and tools
+1. **System Agent**: Central orchestrator that implements the decision logic (reuse, evolve, create)
+2. **Smart Library**: Simple dictionary-based repository for storing and retrieving components
+3. **Firmware**: Injects governance rules into every agent and tool
+4. **Workflow Processor**: Executes YAML-based workflows step by step
+5. **Workflow Generator**: Creates YAML workflows from natural language requirements
 
-## Advanced Features
+## Core Components
 
-- **Semantic Evolution**: Agents and tools evolve based on similarity analysis
-- **Usage Metrics**: The library tracks success/failure for each component
-- **Validation**: Generated code is validated against firmware requirements
-- **Human-in-the-Loop**: Support for expert review of generated agents (via pending status)
-- **Embedding-Based Discovery**: Find the most semantically similar components for reuse
+### 1. Smart Library
+
+Stores all components (agents, tools, firmware) as dictionary records with:
+- Unified structure for all record types
+- Built-in semantic search
+- Usage metrics tracking
+- Version management
+
+### 2. Firmware
+
+Injects governance rules into agents and tools:
+- Base rules for all domains
+- Domain-specific rules (medical, finance, etc.)
+- Automatic prompt construction
+
+### 3. System Agent
+
+Implements the core decision logic:
+- If similarity >= 0.8: Reuse existing component
+- If 0.4 <= similarity < 0.8: Evolve an existing component
+- If similarity < 0.4: Create a new component
+
+### 4. Workflow Management
+
+Process workflows defined in YAML:
+- DEFINE: Create or evolve a component
+- CREATE: Instantiate a component
+- EXECUTE: Run a component with user input
 
 ## Directory Structure
 
 ```
 evolving-agents-framework/
 ├── evolving_agents/
-│   ├── agents/             # Agent-related classes
-│   ├── core/               # Core orchestration
-│   ├── firmware/           # Firmware management
-│   ├── smart_library/      # Smart Library components
-│   ├── tools/              # Tool-related classes
-│   ├── utils/              # Utilities
-│   └── workflow/           # Workflow generation and execution
-├── examples/               # Example usage scripts
-├── config/                 # Configuration files
-│   ├── firmware/           # Firmware definition files
-│   └── initial_records/    # Initial library records
-└── tests/                  # Test cases
+│   ├── core/
+│   │   ├── llm_service.py
+│   │   └── system_agent.py
+│   ├── firmware/
+│   │   └── firmware.py
+│   ├── smart_library/
+│   │   └── smart_library.py
+│   ├── workflow/
+│   │   ├── workflow_generator.py
+│   │   └── workflow_processor.py
+│   └── utils/
+│       └── embeddings.py
+├── examples/
+│   └── medical_diagnosis_example.py
+├── config/
+│   └── firmware/
+└── tests/
 ```
 
 ## Contributing
@@ -271,9 +327,8 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-[Apache v2.0](LICENSE)
+Apache v2.0
 
 ## Acknowledgements
 
 - Matias Molinas and Ismael Faro for the original concept and architecture
-- The beeai-framework for inspiration and integration

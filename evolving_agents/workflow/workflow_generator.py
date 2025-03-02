@@ -2,11 +2,10 @@
 
 import logging
 import os
-from typing import Dict, List, Any, Optional
+from typing import Dict, Any, Optional
 
 from evolving_agents.core.llm_service import LLMService
-from evolving_agents.smart_library.library_manager import SmartLibrary
-from evolving_agents.smart_library.record import RecordType
+from evolving_agents.smart_library.smart_library import SmartLibrary
 
 logger = logging.getLogger(__name__)
 
@@ -17,10 +16,11 @@ class WorkflowGenerator:
     def __init__(self, llm_service: LLMService, smart_library: SmartLibrary):
         self.llm = llm_service
         self.library = smart_library
+        logger.info("Workflow Generator initialized")
     
     async def generate_workflow(
-        self, 
-        requirements: str, 
+        self,
+        requirements: str,
         domain: str,
         output_path: Optional[str] = None
     ) -> str:
@@ -39,23 +39,23 @@ class WorkflowGenerator:
         
         # Get firmware for this domain
         firmware_record = await self.library.get_firmware(domain)
-        firmware_content = firmware_record.code_snippet if firmware_record else ""
+        firmware_content = firmware_record["code_snippet"] if firmware_record else ""
         
         # Get available records for this domain
-        domain_agents = await self.library.find_records_by_domain(domain, RecordType.AGENT)
-        domain_tools = await self.library.find_records_by_domain(domain, RecordType.TOOL)
+        domain_agents = await self.library.find_records_by_domain(domain, "AGENT")
+        domain_tools = await self.library.find_records_by_domain(domain, "TOOL")
         
         # Format available components for the prompt
         available_components = ""
         if domain_agents:
             available_components += "Available Agents:\n"
             for agent in domain_agents:
-                available_components += f"- {agent.name}: {agent.description}\n"
+                available_components += f"- {agent['name']}: {agent['description']}\n"
         
         if domain_tools:
             available_components += "\nAvailable Tools:\n"
             for tool in domain_tools:
-                available_components += f"- {tool.name}: {tool.description}\n"
+                available_components += f"- {tool['name']}: {tool['description']}\n"
         
         # Generate workflow with LLM
         prompt = f"""

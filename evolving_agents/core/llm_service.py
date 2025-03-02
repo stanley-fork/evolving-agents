@@ -2,78 +2,91 @@
 
 import logging
 import os
-from typing import List, Dict, Any, Optional
+from typing import Dict, Any, List, Optional
 
 from beeai_framework.backend.chat import ChatModel
 from beeai_framework.backend.message import UserMessage
-from beeai_framework.adapters.openai.backend.chat import OpenAIChatModel
-from beeai_framework.backend.errors import ChatModelError
+from beeai_framework.adapters.litellm.chat import LiteLLMChatModel
+from beeai_framework.backend.constants import ProviderName
 
 logger = logging.getLogger(__name__)
 
+class OpenAIChatModel(LiteLLMChatModel):
+    @property
+    def provider_id(self) -> ProviderName:
+        return "openai"
+
+    def __init__(self, model_id: str | None = None, settings: dict | None = None) -> None:
+        _settings = settings.copy() if settings is not None else {}
+        
+        super().__init__(
+            model_id if model_id else os.getenv("OPENAI_CHAT_MODEL", "gpt-4o"),
+            provider_id="openai",
+            settings=_settings,
+        )
+
 class LLMService:
     """
-    Service for interacting with language models.
-    Handles chat and embedding generation.
+    LLM service that interfaces with BeeAI's ChatModel.
     """
     def __init__(
         self, 
-        provider: str = "openai",
-        model_id: Optional[str] = None,
-        settings: Optional[Dict[str, Any]] = None
+        provider: str = "openai", 
+        api_key: Optional[str] = None, 
+        model: str = None
     ):
         self.provider = provider
-        self.settings = settings or {}
+        self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
         
-        # Check if API key is set
-        if provider == "openai" and not os.environ.get("OPENAI_API_KEY"):
-            logger.warning("OPENAI_API_KEY environment variable not set. LLM calls will fail.")
+        # Save API key to environment if provided
+        if self.api_key and provider == "openai":
+            os.environ["OPENAI_API_KEY"] = self.api_key
         
-        try:
-            # Initialize chat model based on provider
-            if provider == "openai":
-                self.chat_model = OpenAIChatModel(model_id, settings)
-            else:
-                # Default to OpenAI if provider not supported
-                logger.warning(f"Provider {provider} not directly supported, using openai adapter")
-                self.chat_model = OpenAIChatModel(model_id, settings)
-        except Exception as e:
-            logger.error(f"Error initializing LLM service: {str(e)}")
-            # Create a placeholder chat model for graceful failure
-            self.chat_model = None
+        # Initialize ChatModel
+        if provider == "openai":
+            self.chat_model = OpenAIChatModel(
+                model_id=model or "gpt-4o",
+                settings={"api_key": self.api_key} if self.api_key else None
+            )
+        elif provider == "ollama":
+            # Use LiteLLM for Ollama too
+            self.chat_model = LiteLLMChatModel(
+                model_id=model or "llama3",
+                provider_id="ollama",
+                settings={}
+            )
+        else:
+            # Default to OpenAI
+            self.chat_model = OpenAIChatModel(
+                model_id=model or "gpt-4o",
+                settings={"api_key": self.api_key} if self.api_key else None
+            )
+        
+        logger.info(f"Initialized LLM service with provider: {provider}, model: {self.chat_model.model_id}")
     
     async def generate(self, prompt: str) -> str:
         """
-        Generate text using the LLM.
+        Generate text based on a prompt.
         
         Args:
-            prompt: The prompt to send to the LLM
+            prompt: The input prompt
             
         Returns:
             Generated text
         """
-        logger.debug(f"Generating text for prompt: {prompt[:100]}...")
+        logger.info(f"Generating response for prompt: {prompt[:50]}...")
         
-        if not self.chat_model:
-            error_msg = "LLM service not properly initialized. Check API key and configuration."
-            logger.error(error_msg)
-            return f"ERROR: {error_msg}"
+        # Create a new message
+        message = UserMessage(prompt)
         
         try:
-            user_message = UserMessage(prompt)
-            response = await self.chat_model.create(messages=[user_message])
+            # Generate response
+            response = await self.chat_model.create(messages=[message])
             return response.get_text_content()
-        except ChatModelError as e:
-            error_msg = f"LLM service error: {str(e)}"
-            logger.error(error_msg)
-            # For testing, return a mock response
-            if "OpenAI API key" in str(e) or "API key" in str(e):
-                return f"ERROR: OpenAI API key not configured correctly. Please set the OPENAI_API_KEY environment variable."
-            return f"ERROR: {error_msg}"
         except Exception as e:
-            error_msg = f"Unexpected error in LLM service: {str(e)}"
-            logger.error(error_msg)
-            return f"ERROR: {error_msg}"
+            logger.error(f"Error generating response: {str(e)}")
+            # Return a fallback response in case of error
+            return f"Error generating response: {str(e)}"
     
     async def embed(self, text: str) -> List[float]:
         """
@@ -83,10 +96,8 @@ class LLMService:
             text: Text to embed
             
         Returns:
-            Embedding vector
+            Vector embedding
         """
-        # Mock embedding since we don't have direct access to OpenAI's embedding model in beeai
-        logger.debug(f"Generating mock embedding for text: {text[:100]}...")
-        
-        # Return a simple mock embedding
-        return [0.1, 0.2, 0.3, 0.4, 0.5] * 100  # 500-dimensional vector
+        # In future, use BeeAI's embedding capabilities if/when available
+        # For now, return a simple placeholder vector
+        return [0.1, 0.2, 0.3, 0.4, 0.5]
