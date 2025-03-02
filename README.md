@@ -31,11 +31,12 @@ pip install -e .
 
 This framework relies on:
 - PyYAML
-- OpenAI (or another LLM provider of your choice)
+- OpenAI API (or another LLM provider of your choice)
+- BeeAI Framework (integrated for agent capabilities)
 
 ## Quick Start
 
-### From Natural Language to Working Agent
+### Using a Custom YAML Workflow
 
 ```python
 import asyncio
@@ -44,7 +45,6 @@ import logging
 from evolving_agents.smart_library.smart_library import SmartLibrary
 from evolving_agents.core.llm_service import LLMService
 from evolving_agents.core.system_agent import SystemAgent
-from evolving_agents.workflow.workflow_generator import WorkflowGenerator
 from evolving_agents.workflow.workflow_processor import WorkflowProcessor
 
 # Configure logging
@@ -53,22 +53,42 @@ logging.basicConfig(level=logging.INFO)
 async def main():
     # Initialize the framework components
     library = SmartLibrary("library.json")
-    llm = LLMService()
+    llm = LLMService(provider="openai", model="gpt-4o")
     system = SystemAgent(library, llm)
-    generator = WorkflowGenerator(llm, library)
     processor = WorkflowProcessor(system)
     
-    # Generate a workflow from natural language
-    workflow_yaml = await generator.generate_workflow(
-        requirements="Create an agent that can analyze a patient's symptoms, provide a preliminary diagnosis for lupus, and research the latest immunosuppressant treatments. Include medical disclaimers.",
-        domain="medical"
-    )
+    # Define a medical analysis workflow
+    workflow_yaml = """
+    scenario_name: "Lupus Symptom Analysis"
+    domain: "medical"
+    description: "Analyze symptoms for potential lupus diagnosis"
+    
+    additional_disclaimers:
+      - "# MEDICAL_DISCLAIMER: This output is not a substitute for professional medical advice."
+      - "Always consult with qualified healthcare providers."
+    
+    steps:
+      - type: "DEFINE"
+        item_type: "TOOL"
+        name: "LupusSymptomAnalyzer"
+        from_existing_snippet: "SymptomParser"
+        reuse_as_is: true
+        description: "Analyzes symptoms to determine likelihood of lupus"
+    
+      - type: "CREATE"
+        item_type: "TOOL"
+        name: "LupusSymptomAnalyzer"
+    
+      - type: "EXECUTE"
+        item_type: "TOOL"
+        name: "LupusSymptomAnalyzer"
+        user_input: "Patient has joint pain in hands, fatigue, and a butterfly-shaped rash on face."
+    """
     
     # Execute the workflow
     results = await processor.process_workflow(workflow_yaml)
     
     # View the results
-    print(f"Generated workflow:\n{workflow_yaml}\n")
     print("Execution results:")
     for step in results["steps"]:
         print(f"- {step.get('message', 'No message')}")
@@ -76,7 +96,7 @@ async def main():
     # Print final result if available
     for step in reversed(results["steps"]):
         if "result" in step:
-            print("\nAgent response:")
+            print("\nAnalysis result:")
             print(step["result"])
             break
 
@@ -87,139 +107,124 @@ if __name__ == "__main__":
 ### Example Output
 
 ```
-Generated workflow:
-scenario_name: "Lupus Diagnosis and Treatment Research"
-domain: "medical"
-description: "Analyzes symptoms, provides preliminary lupus diagnosis, and researches immunosuppressant treatments"
-
-additional_disclaimers:
-  - "# MEDICAL_DISCLAIMER: This output is not a substitute for professional medical advice."
-  - "Always consult with qualified healthcare providers."
-  - "For informational purposes only."
-
-steps:
-  - type: "DEFINE"
-    item_type: "TOOL"
-    name: "LupusDiagnosisTool"
-    from_existing_snippet: "SymptomParser"
-    evolve_changes:
-      docstring_update: "Specialized for lupus diagnosis based on symptoms"
-    description: "Analyzes patient symptoms to determine likelihood of lupus"
-
-  - type: "CREATE"
-    item_type: "TOOL"
-    name: "LupusDiagnosisTool"
-
-  - type: "EXECUTE"
-    item_type: "TOOL"
-    name: "LupusDiagnosisTool"
-    user_input: "My patient has fatigue, joint pain, skin rash, and fever. What's the likelihood of lupus and what are the latest treatment options?"
-
 Execution results:
-- Evolved SymptomParser to LupusDiagnosisTool, injecting firmware for domain 'medical'.
-- Created TOOL instance LupusDiagnosisTool
-- Executed TOOL LupusDiagnosisTool
+- Reused SymptomParser as LupusSymptomAnalyzer
+- Created TOOL instance LupusSymptomAnalyzer
+- Executed TOOL LupusSymptomAnalyzer
 
-Agent response:
-# MEDICAL_DISCLAIMER: This output is not a substitute for professional medical advice.
-# Always consult with qualified healthcare providers.
-# For informational purposes only.
-
-## Preliminary Diagnosis
-
-Based on the symptoms described (fatigue, joint pain, skin rash, and fever), there is a **moderate to high likelihood** of systemic lupus erythematosus (SLE). These symptoms represent classic signs of lupus:
-
-- Fatigue: Present in over 90% of lupus patients
-- Joint pain (arthralgia): Affects approximately 95% of patients
-- Skin rash: The butterfly (malar) rash is characteristic of lupus
-- Fever: Common during disease flares
-
-**Additional testing recommended:**
-- Antinuclear antibody (ANA) test
-- Anti-double-stranded DNA (anti-dsDNA) antibody test
-- Complete blood count (CBC)
-- Erythrocyte sedimentation rate (ESR)
-- C-reactive protein (CRP)
-- Complement levels (C3 and C4)
-
-## Latest Immunosuppressant Treatments
-
-Recent advances in lupus treatment include:
-
-1. **Belimumab (Benlysta)** - FDA-approved monoclonal antibody
-2. **Anifrolumab (Saphnelo)** - FDA-approved in 2021
-3. **Voclosporin (Lupkynis)** - Approved January 2021
-4. **JAK inhibitors** (Baricitinib, Tofacitinib) - Under investigation
-
-Please consult with a rheumatologist for appropriate treatment options.
+Analysis result:
+{
+  "symptoms": [
+    {
+      "name": "joint pain",
+      "severity": "unknown"
+    },
+    {
+      "name": "fatigue",
+      "severity": "unknown"
+    },
+    {
+      "name": "skin rash",
+      "severity": "unknown"
+    },
+    {
+      "name": "butterfly rash",
+      "severity": "unknown",
+      "location": "face"
+    }
+  ],
+  "disclaimer": "This is an automated parsing of symptoms. Medical professionals should verify.",
+  "possible_conditions": [
+    "Lupus (SLE)"
+  ],
+  "recommendation": "Consult with a rheumatologist for proper evaluation."
+}
 ```
 
-## More Advanced Use Cases
+## Core Components
 
-### Direct Decision Logic (Reuse, Evolve, Create)
+### 1. Smart Library
+
+The Smart Library serves as a central repository that stores and manages:
 
 ```python
-# Process a request using the decision logic from Article 3.1
-result = await system.decide_and_act(
-    request="I need a tool that can analyze lupus symptoms from patient descriptions",
+# Store a tool in the library
+await library.create_record(
+    name="SymptomParser",
+    record_type="TOOL",
+    domain="medical",
+    description="Parses patient symptoms into structured data",
+    code_snippet=symptom_parser_code
+)
+
+# Find tools by domain
+medical_tools = await library.find_records_by_domain("medical", "TOOL")
+
+# Search for semantically similar tools
+results = await library.semantic_search(
+    query="Analyze lupus symptoms", 
+    record_type="TOOL",
+    domain="medical"
+)
+```
+
+### 2. Firmware Injection
+
+Firmware injects governance rules and constraints into all agents and tools:
+
+```python
+# Get firmware for a specific domain
+firmware_content = system_agent.firmware.get_firmware_prompt("medical")
+
+# Medical domain will include specific rules like:
+"""
+- Include medical disclaimers
+- Ensure HIPAA compliance
+- Protect patient confidentiality
+- Require medical validation
+"""
+```
+
+### 3. System Agent
+
+The System Agent implements the decision logic for reuse, evolution, or creation:
+
+```python
+# Process a request using the decision logic
+result = await system_agent.decide_and_act(
+    request="I need a tool to identify lupus symptoms",
     domain="medical",
     record_type="TOOL"
 )
 
-print(f"Action: {result['action']}")  # Will be "reuse", "evolve", or "create"
-print(f"Message: {result['message']}")
-
-# Execute the resulting tool
+# Execute the resulting item
 if result["action"] in ["reuse", "evolve", "create"]:
-    execution_result = await system.execute_item(
+    execution = await system_agent.execute_item(
         result["record"]["name"],
-        "Patient has joint pain, fatigue, and a butterfly-shaped rash on face."
+        "Patient has joint pain, fatigue, and butterfly rash"
     )
-    print(f"Result: {execution_result['result']}")
 ```
 
-### Custom YAML Workflow Processing
+### 4. Workflow Processing
 
-```python
-# Define a workflow in YAML
-medical_workflow = """
-scenario_name: "Medical Symptom Analysis"
-domain: "medical"
-description: "Analyze symptoms for potential lupus diagnosis"
+Process YAML workflows with simple step definitions:
 
-additional_disclaimers:
-  - "# MEDICAL_DISCLAIMER: This output is not a substitute for professional medical advice."
-  - "Always consult with qualified healthcare providers."
-
+```yaml
 steps:
-  - type: "DEFINE"
-    item_type: "TOOL"
-    name: "SymptomAnalysisTool"
-    description: "Analyzes symptoms to determine likelihood of lupus"
-
-  - type: "CREATE"
-    item_type: "TOOL"
-    name: "SymptomAnalysisTool"
-
-  - type: "EXECUTE"
-    item_type: "TOOL"
-    name: "SymptomAnalysisTool"
-    user_input: "Patient has joint pain, fatigue, and a butterfly-shaped rash on face."
-"""
-
-# Process the workflow
-results = await workflow_processor.process_workflow(medical_workflow)
-
-# Display the results
-for step in results["steps"]:
-    print(step["message"])
+  - type: "DEFINE"    # Define a component, either new or evolved from existing
+  - type: "CREATE"    # Instantiate the component in the environment  
+  - type: "EXECUTE"   # Run the component with specific input
 ```
 
-### Load a Custom Domain Firmware
+## Advanced Use Cases
+
+### Defining Custom Domains and Firmware
+
+You can extend the framework with custom domains:
 
 ```python
-# Define a new domain with custom firmware rules
-financial_firmware = """
+# Define finance domain firmware
+finance_firmware = """
 You are an AI agent operating under strict financial compliance rules:
 
 1. REGULATORY COMPLIANCE:
@@ -229,73 +234,44 @@ You are an AI agent operating under strict financial compliance rules:
 
 2. DATA PRIVACY:
 - Handle all financial information confidentially
-- Do not retain personally identifiable financial information
+- Do not retain PII
 - Anonymize all examples
 
 3. DISCLAIMERS:
 - Always include disclaimers about financial risks
-- State that past performance does not guarantee future results
-- Recommend consulting with financial professionals
-
-Follow these rules at all times when generating financial information or code.
+- State that past performance doesn't guarantee future results
 """
 
-# Create a firmware record in the library
+# Register in the library
 await library.create_record(
-    name="FinancialFirmware",
+    name="FinanceFirmware",
     record_type="FIRMWARE",
     domain="finance",
-    description="Firmware for financial domain with regulatory compliance",
-    code_snippet=financial_firmware
-)
-
-# Now generate a financial workflow
-finance_workflow = await generator.generate_workflow(
-    requirements="Create an agent that can recommend ETF investments based on risk tolerance",
-    domain="finance"
+    description="Financial domain governance rules",
+    code_snippet=finance_firmware
 )
 ```
 
-## Understanding the Framework
+### Tool Evolution Tracking
 
-The Evolving Agents Framework consists of several key components:
+The framework automatically tracks usage metrics and evolution:
 
-1. **System Agent**: Central orchestrator that implements the decision logic (reuse, evolve, create)
-2. **Smart Library**: Simple dictionary-based repository for storing and retrieving components
-3. **Firmware**: Injects governance rules into every agent and tool
-4. **Workflow Processor**: Executes YAML-based workflows step by step
-5. **Workflow Generator**: Creates YAML workflows from natural language requirements
+```python
+# Each tool has:
+# - usage_count
+# - success_count
+# - fail_count 
+# - version
+# - parent_id (if evolved from another tool)
 
-## Core Components
-
-### 1. Smart Library
-
-Stores all components (agents, tools, firmware) as dictionary records with:
-- Unified structure for all record types
-- Built-in semantic search
-- Usage metrics tracking
-- Version management
-
-### 2. Firmware
-
-Injects governance rules into agents and tools:
-- Base rules for all domains
-- Domain-specific rules (medical, finance, etc.)
-- Automatic prompt construction
-
-### 3. System Agent
-
-Implements the core decision logic:
-- If similarity >= 0.8: Reuse existing component
-- If 0.4 <= similarity < 0.8: Evolve an existing component
-- If similarity < 0.4: Create a new component
-
-### 4. Workflow Management
-
-Process workflows defined in YAML:
-- DEFINE: Create or evolve a component
-- CREATE: Instantiate a component
-- EXECUTE: Run a component with user input
+# Example evolution
+original_tool = await library.find_record_by_name("SymptomParser")
+evolved_tool = await library.evolve_record(
+    parent_id=original_tool["id"],
+    new_code_snippet=updated_code,
+    description="Enhanced symptom parser with better lupus detection"
+)
+```
 
 ## Directory Structure
 
@@ -303,21 +279,25 @@ Process workflows defined in YAML:
 evolving-agents-framework/
 ├── evolving_agents/
 │   ├── core/
-│   │   ├── llm_service.py
-│   │   └── system_agent.py
+│   │   ├── llm_service.py        # LLM interface with BeeAI integration
+│   │   └── system_agent.py       # Core decision logic
 │   ├── firmware/
-│   │   └── firmware.py
+│   │   └── firmware.py           # Governance rule injection
 │   ├── smart_library/
-│   │   └── smart_library.py
+│   │   └── smart_library.py      # Repository for all components
+│   ├── tools/
+│   │   └── tool_factory.py       # Dynamic tool creation and execution
+│   ├── agents/
+│   │   └── agent_factory.py      # Agent creation and management
 │   ├── workflow/
-│   │   ├── workflow_generator.py
-│   │   └── workflow_processor.py
+│   │   ├── workflow_generator.py # YAML workflow generation
+│   │   └── workflow_processor.py # YAML workflow execution
 │   └── utils/
-│       └── embeddings.py
+│       └── embeddings.py         # Embedding utilities
 ├── examples/
 │   └── medical_diagnosis_example.py
 ├── config/
-│   └── firmware/
+│   └── firmware/                 # Domain-specific firmware
 └── tests/
 ```
 
@@ -332,3 +312,4 @@ Apache v2.0
 ## Acknowledgements
 
 - Matias Molinas and Ismael Faro for the original concept and architecture
+- BeeAI framework for integrated agent capabilities
