@@ -3,9 +3,7 @@
 import logging
 import yaml
 import uuid
-from typing import Dict, Any, List, Optional
-
-from beeai_framework.tools.tool import Tool
+from typing import Dict, Any, List, Optional, Tuple
 
 from evolving_agents.core.system_agent import SystemAgent
 
@@ -13,9 +11,15 @@ logger = logging.getLogger(__name__)
 
 class WorkflowProcessor:
     """
-    Processes YAML-based workflows as described in Article 3.2.
+    Processes YAML-based workflows with support for multiple agent frameworks.
     """
     def __init__(self, system_agent: SystemAgent):
+        """
+        Initialize the workflow processor.
+        
+        Args:
+            system_agent: System agent for creating and executing components
+        """
         self.system_agent = system_agent
         logger.info("Workflow Processor initialized")
     
@@ -55,8 +59,8 @@ class WorkflowProcessor:
             "steps": []
         }
         
-        # Keep track of defined tools for agent creation
-        defined_tools = {}
+        # Track created items and their dependencies
+        created_items = {}
         
         for i, step in enumerate(workflow.get("steps", [])):
             step_type = step.get("type", "").upper()
@@ -64,33 +68,39 @@ class WorkflowProcessor:
             
             try:
                 if step_type == "DEFINE":
-                    step_result = await self._process_define_step(step, domain, firmware_content, disclaimers)
+                    step_result = await self._process_define_step(
+                        step, domain, firmware_content, disclaimers
+                    )
                     
-                    # Keep track of defined tools
-                    if step.get("item_type") == "TOOL":
-                        defined_tools[step.get("name")] = step_result.get("record_id")
-                        
                 elif step_type == "CREATE":
-                    # If creating an agent, collect required tools
-                    tools_to_use = []
-                    if step.get("item_type") == "AGENT":
-                        agent_name = step.get("name")
-                        agent_record = await self.system_agent.library.find_record_by_name(agent_name)
-                        
-                        if agent_record and "required_tools" in agent_record.get("metadata", {}):
-                            required_tool_names = agent_record["metadata"]["required_tools"]
-                            for tool_name in required_tool_names:
-                                if tool_name in self.system_agent.active_items:
-                                    tools_to_use.append(self.system_agent.active_items[tool_name]["instance"])
+                    # Find required tools/dependencies for this item
+                    tools = await self._resolve_dependencies(step, created_items)
                     
-                    step_result = await self._process_create_step(step, domain, firmware_content, tools_to_use)
+                    step_result = await self._process_create_step(
+                        step, domain, firmware_content, tools
+                    )
+                    
+                    # Track created item
+                    if step_result.get("status") == "success":
+                        item_name = step.get("name")
+                        created_items[item_name] = {
+                            "type": step.get("item_type", "").upper(),
+                            "record_id": step_result.get("record_id")
+                        }
                     
                 elif step_type == "EXECUTE":
                     step_result = await self._process_execute_step(step)
+                    
                 else:
-                    step_result = {"status": "error", "message": f"Unknown step type: {step_type}"}
+                    step_result = {
+                        "status": "error", 
+                        "message": f"Unknown step type: {step_type}"
+                    }
+                    
             except Exception as e:
                 logger.error(f"Error executing step {i+1}: {str(e)}")
+                import traceback
+                logger.error(traceback.format_exc())
                 step_result = {"status": "error", "message": f"Error: {str(e)}"}
             
             results["steps"].append(step_result)
@@ -107,6 +117,87 @@ class WorkflowProcessor:
             results["message"] = f"Successfully executed workflow '{scenario_name}'"
         
         return results
+    
+    async def _resolve_dependencies(
+        self, 
+        step: Dict[str, Any], 
+        created_items: Dict[str, Dict[str, Any]]
+    ) -> List[Any]:
+        """
+        Resolve dependencies for an item.
+        
+        Args:
+            step: Step definition
+            created_items: Dictionary of already created items
+            
+        Returns:
+            List of tool instances required by this item
+        """
+        item_type = step.get("item_type", "").upper()
+        name = step.get("name")
+        
+        # Only agents need tool dependencies
+        if item_type != "AGENT":
+            return []
+        
+        # Find the record to check for required tools
+        record = await self.system_agent.library.find_record_by_name(name)
+        if not record:
+            logger.warning(f"Record not found for {item_type} '{name}'")
+            return []
+        
+        # Get required tools from metadata
+        metadata = record.get("metadata", {})
+        required_tool_names = metadata.get("required_tools", [])
+        
+        # No dependencies
+        if not required_tool_names:
+            return []
+        
+        logger.info(f"Resolving dependencies for {item_type} '{name}': {required_tool_names}")
+        
+        # Collect tool instances
+        tools = []
+        
+        for tool_name in required_tool_names:
+            # Check if the tool has already been created in this workflow
+            if tool_name in created_items and created_items[tool_name]["type"] == "TOOL":
+                # Tool exists in active items
+                if tool_name in self.system_agent.active_items:
+                    tool_info = self.system_agent.active_items[tool_name]
+                    tools.append(tool_info["instance"])
+                    logger.info(f"Using active tool: {tool_name}")
+                else:
+                    # Tool is defined but not created yet in active items
+                    logger.warning(f"Tool '{tool_name}' is defined but not active")
+            else:
+                # Tool doesn't exist yet, check if it's in the library
+                tool_record = await self.system_agent.library.find_record_by_name(tool_name)
+                if tool_record:
+                    logger.info(f"Creating dependency tool: {tool_name}")
+                    # Create the tool instance
+                    try:
+                        tool_instance = await self.system_agent.tool_factory.create_tool(tool_record)
+                        tools.append(tool_instance)
+                        
+                        # Add to active items
+                        self.system_agent.active_items[tool_name] = {
+                            "record": tool_record,
+                            "instance": tool_instance,
+                            "type": "TOOL"
+                        }
+                        
+                        # Add to created items
+                        created_items[tool_name] = {
+                            "type": "TOOL",
+                            "record_id": tool_record["id"]
+                        }
+                    except Exception as e:
+                        logger.error(f"Error creating dependency tool '{tool_name}': {str(e)}")
+                else:
+                    logger.warning(f"Required tool '{tool_name}' not found in library")
+        
+        return tools
     
     async def _process_define_step(
         self,
@@ -146,6 +237,11 @@ class WorkflowProcessor:
                 message = f"Reused {source_name} as {name}"
                 logger.info(message)
                 
+                # Extract framework from source if present
+                framework = None
+                if item_type == "AGENT" and source_record.get("metadata", {}).get("framework"):
+                    framework = source_record["metadata"]["framework"]
+                
                 # Just copy with a new name
                 new_record = source_record.copy()
                 new_record["id"] = str(uuid.uuid4())
@@ -154,6 +250,10 @@ class WorkflowProcessor:
                 new_record["metadata"] = source_record.get("metadata", {}).copy()
                 new_record["metadata"]["reused_from"] = source_record["id"]
                 new_record["metadata"]["disclaimers"] = disclaimers
+                
+                # Preserve framework if specified
+                if framework:
+                    new_record["metadata"]["framework"] = framework
                 
                 # Add required_tools if specified for agents
                 if item_type == "AGENT" and "required_tools" in step:
@@ -174,6 +274,11 @@ class WorkflowProcessor:
                 
                 message = f"Evolved {source_name} to {name}, injecting firmware for domain '{domain}'."
                 logger.info(message)
+                
+                # Extract framework from source if present
+                framework = None
+                if item_type == "AGENT" and source_record.get("metadata", {}).get("framework"):
+                    framework = source_record["metadata"]["framework"]
                 
                 # Generate evolved code
                 evolve_prompt = f"""
@@ -210,6 +315,10 @@ class WorkflowProcessor:
                     "disclaimers": disclaimers
                 }
                 
+                # Preserve framework if specified
+                if framework:
+                    metadata["framework"] = framework
+                
                 # Add required_tools if specified for agents
                 if item_type == "AGENT" and "required_tools" in step:
                     metadata["required_tools"] = step["required_tools"]
@@ -233,6 +342,9 @@ class WorkflowProcessor:
             # Create new from scratch
             message = f"Created new {item_type} '{name}' from scratch"
             logger.info(message)
+            
+            # Check for framework specification
+            framework = step.get("framework")
             
             # Generate code
             create_prompt = f"""
@@ -261,6 +373,10 @@ class WorkflowProcessor:
                 "disclaimers": disclaimers
             }
             
+            # Add framework if specified
+            if framework:
+                metadata["framework"] = framework
+            
             # Add required_tools if specified for agents
             if item_type == "AGENT" and "required_tools" in step:
                 metadata["required_tools"] = step["required_tools"]
@@ -287,7 +403,7 @@ class WorkflowProcessor:
         step: Dict[str, Any], 
         domain: str, 
         firmware_content: str,
-        tools: Optional[List[Tool]] = None
+        tools: Optional[List[Any]] = None
     ) -> Dict[str, Any]:
         """
         Process a CREATE step to instantiate an agent or tool.
@@ -316,13 +432,18 @@ class WorkflowProcessor:
         if record["record_type"] != item_type:
             return {"status": "error", "message": f"Item {name} is not a {item_type}"}
         
-        # Create instance based on record type
         try:
+            # Get framework and config from step or record
+            config = step.get("config", {})
+            
+            # Create instance based on record type
             if item_type == "AGENT":
+                # Create the agent with tools if available
                 instance = await self.system_agent.agent_factory.create_agent(
                     record=record,
                     firmware_content=firmware_content,
-                    tools=tools
+                    tools=tools,
+                    config=config
                 )
             else:  # TOOL
                 instance = await self.system_agent.tool_factory.create_tool(
@@ -344,6 +465,8 @@ class WorkflowProcessor:
             }
         except Exception as e:
             logger.error(f"Error creating {item_type} {name}: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
             return {
                 "status": "error",
                 "message": f"Error creating {item_type} {name}: {str(e)}"
@@ -362,19 +485,38 @@ class WorkflowProcessor:
         item_type = step.get("item_type", "").upper()
         name = step.get("name")
         user_input = step.get("user_input", "")
+        execution_config = step.get("execution_config", {})
         
         message = f"Executed {item_type} {name}"
         logger.info(message)
         
-        # Execute using system agent's execute_item method
-        result = await self.system_agent.execute_item(name, user_input)
+        # For agents, use the agent_factory for execution
+        if item_type == "AGENT":
+            # Execute with execution config if provided
+            result = await self.system_agent.agent_factory.execute_agent(
+                name, user_input, execution_config
+            )
+        else:
+            # Execute using system agent's execute_item method for tools
+            result = await self.system_agent.execute_item(name, user_input)
         
         if result["status"] == "success":
+            # Include details about the runtime environment
+            execution_details = {}
+            
+            if name in self.system_agent.active_items:
+                item_info = self.system_agent.active_items[name]
+                if "framework" in item_info:
+                    execution_details["framework"] = item_info["framework"]
+                if "provider_id" in item_info:
+                    execution_details["provider"] = item_info["provider_id"]
+            
             return {
                 "status": "success",
                 "message": message,
                 "result": result["result"],
-                "record_id": self.system_agent.active_items.get(name, {}).get("record", {}).get("id")
+                "record_id": self.system_agent.active_items.get(name, {}).get("record", {}).get("id"),
+                "execution_details": execution_details
             }
         else:
             return {
