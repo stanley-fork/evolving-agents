@@ -1,6 +1,6 @@
 # Evolving Agents Framework
 
-A production-grade framework for creating, managing, and evolving AI agents in a controlled environment. The framework allows you to generate complete agent workflows from natural language requirements and intelligently reuse or evolve existing components.
+A production-grade framework for creating, managing, and evolving AI agents in a controlled environment. The framework allows you to generate complete agent workflows from natural language requirements and intelligently reuse or evolve existing components, with support for multiple agent frameworks.
 
 ## Features
 
@@ -10,6 +10,8 @@ A production-grade framework for creating, managing, and evolving AI agents in a
 - **Semantic Evolution**: Intelligently reuse or adapt existing agents and tools
 - **YAML Workflows**: Generated workflows are human-readable and editable
 - **Multi-Agent Orchestration**: Coordinate specialized agents for complex tasks
+- **Multi-Framework Support**: Seamlessly integrate agents from different frameworks (BeeAI, OpenAI, etc.)
+- **Provider Architecture**: Extensible design for adding support for new agent frameworks
 
 ## Installation
 
@@ -46,6 +48,8 @@ from evolving_agents.smart_library.smart_library import SmartLibrary
 from evolving_agents.core.llm_service import LLMService
 from evolving_agents.core.system_agent import SystemAgent
 from evolving_agents.workflow.workflow_processor import WorkflowProcessor
+from evolving_agents.providers.registry import ProviderRegistry
+from evolving_agents.providers.beeai_provider import BeeAIProvider
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -54,7 +58,13 @@ async def main():
     # Initialize the framework components
     library = SmartLibrary("library.json")
     llm = LLMService(provider="openai", model="gpt-4o")
-    system = SystemAgent(library, llm)
+    
+    # Initialize provider registry with desired frameworks
+    provider_registry = ProviderRegistry()
+    provider_registry.register_provider(BeeAIProvider(llm))
+    
+    # Initialize system agent with provider registry
+    system = SystemAgent(library, llm, provider_registry=provider_registry)
     processor = WorkflowProcessor(system)
     
     # Define a medical analysis workflow
@@ -104,46 +114,105 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-### Example Output
+### Example: Smart Insulin Management System
 
-```
-Execution results:
-- Reused SymptomParser as LupusSymptomAnalyzer
-- Created TOOL instance LupusSymptomAnalyzer
-- Executed TOOL LupusSymptomAnalyzer
+Here's an example that creates an AI agent using the BeeAI framework to monitor glucose levels and adjust insulin dosage:
 
-Analysis result:
-{
-  "symptoms": [
-    {
-      "name": "joint pain",
-      "severity": "unknown"
-    },
-    {
-      "name": "fatigue",
-      "severity": "unknown"
-    },
-    {
-      "name": "skin rash",
-      "severity": "unknown"
-    },
-    {
-      "name": "butterfly rash",
-      "severity": "unknown",
-      "location": "face"
-    }
-  ],
-  "disclaimer": "This is an automated parsing of symptoms. Medical professionals should verify.",
-  "possible_conditions": [
-    "Lupus (SLE)"
-  ],
-  "recommendation": "Consult with a rheumatologist for proper evaluation."
-}
+```python
+# Define a healthcare workflow using BeeAI framework
+workflow_yaml = """
+scenario_name: "Smart Insulin Management System"
+domain: "medical"
+description: "Monitor glucose levels and automatically adjust insulin dosage"
+
+additional_disclaimers:
+  - "# MEDICAL_DISCLAIMER: This is not a substitute for professional medical advice."
+  - "# Always consult with qualified healthcare providers for medical decisions."
+
+steps:
+  # Define tools
+  - type: "DEFINE"
+    item_type: "TOOL"
+    name: "HealthDataMonitor"
+    description: "Fetches health data from smartwatch and CGM"
+    
+  - type: "DEFINE"
+    item_type: "TOOL"
+    name: "InsulinDosageCalculator"
+    description: "Calculates appropriate insulin dosage based on health metrics"
+    
+  - type: "DEFINE"
+    item_type: "TOOL"
+    name: "InsulinPumpController"
+    description: "Controls the smart insulin pump to deliver insulin doses"
+    
+  # Define a BeeAI agent that uses these tools
+  - type: "DEFINE"
+    item_type: "AGENT"
+    name: "InsulinManagementAgent"
+    description: "Agent that monitors glucose and manages insulin dosing"
+    framework: "beeai"  # Specify the framework to use
+    required_tools:     # List tools the agent needs
+      - "HealthDataMonitor"
+      - "InsulinDosageCalculator"
+      - "InsulinPumpController"
+    
+  # Create and execute the components
+  - type: "CREATE"
+    item_type: "TOOL"
+    name: "HealthDataMonitor"
+    
+  - type: "CREATE"
+    item_type: "TOOL"
+    name: "InsulinDosageCalculator"
+    
+  - type: "CREATE"
+    item_type: "TOOL"
+    name: "InsulinPumpController"
+    
+  - type: "CREATE"
+    item_type: "AGENT"
+    name: "InsulinManagementAgent"
+    config:
+      memory_type: "token"  # Framework-specific configuration
+    
+  - type: "EXECUTE"
+    item_type: "AGENT"
+    name: "InsulinManagementAgent"
+    user_input: "My glucose is 180 mg/dL, I've been sitting at my desk all morning"
+    execution_config:       # Execution-specific configuration
+      max_iterations: 15
+      enable_observability: true
+"""
 ```
 
 ## Core Components
 
-### 1. Smart Library
+### 1. Provider Architecture
+
+The framework supports multiple agent frameworks through a provider system:
+
+```python
+# Register a new provider
+provider_registry = ProviderRegistry()
+provider_registry.register_provider(BeeAIProvider(llm_service))
+
+# Create an agent with a specific framework
+await agent_factory.create_agent(
+    record=agent_record,
+    tools=tools,
+    firmware_content=firmware_content,
+    config={"memory_type": "token"}  # Framework-specific config
+)
+
+# Get available frameworks
+frameworks = agent_factory.get_available_frameworks()
+
+# Get configuration schema for a framework
+config_schema = agent_factory.get_agent_creation_schema("beeai")
+```
+
+### 2. Smart Library
 
 The Smart Library serves as a central repository that stores and manages:
 
@@ -154,7 +223,8 @@ await library.create_record(
     record_type="TOOL",
     domain="medical",
     description="Parses patient symptoms into structured data",
-    code_snippet=symptom_parser_code
+    code_snippet=symptom_parser_code,
+    metadata={"framework": "beeai"}  # Optional framework specification
 )
 
 # Find tools by domain
@@ -168,7 +238,7 @@ results = await library.semantic_search(
 )
 ```
 
-### 2. Firmware Injection
+### 3. Firmware Injection
 
 Firmware injects governance rules and constraints into all agents and tools:
 
@@ -185,7 +255,7 @@ firmware_content = system_agent.firmware.get_firmware_prompt("medical")
 """
 ```
 
-### 3. System Agent
+### 4. System Agent
 
 The System Agent implements the decision logic for reuse, evolution, or creation:
 
@@ -205,7 +275,7 @@ if result["action"] in ["reuse", "evolve", "create"]:
     )
 ```
 
-### 4. Workflow Processing
+### 5. Workflow Processing
 
 Process YAML workflows with simple step definitions:
 
@@ -217,6 +287,46 @@ steps:
 ```
 
 ## Advanced Use Cases
+
+### Creating a BeeAI Agent with Custom Tools
+
+```python
+# Define a BeeAI agent that uses custom tools
+await library.create_record(
+    name="DataAnalysisAgent",
+    record_type="AGENT",
+    domain="data_science",
+    description="Agent that analyzes complex datasets",
+    code_snippet=agent_code,
+    metadata={
+        "framework": "beeai",
+        "required_tools": ["DataLoader", "StatisticalAnalyzer", "ChartGenerator"]
+    }
+)
+
+# Create agent with specific framework configuration
+await agent_factory.create_agent(
+    record=agent_record,
+    tools=tools,
+    config={
+        "memory_type": "token",
+        "execution": {
+            "max_iterations": 20,
+            "max_retries_per_step": 3
+        }
+    }
+)
+
+# Execute with observability enabled
+result = await agent_factory.execute_agent(
+    "DataAnalysisAgent", 
+    "Analyze this customer churn dataset and identify key factors",
+    {
+        "enable_observability": True,
+        "max_iterations": 25
+    }
+)
+```
 
 ### Defining Custom Domains and Firmware
 
@@ -252,37 +362,20 @@ await library.create_record(
 )
 ```
 
-### Tool Evolution Tracking
-
-The framework automatically tracks usage metrics and evolution:
-
-```python
-# Each tool has:
-# - usage_count
-# - success_count
-# - fail_count 
-# - version
-# - parent_id (if evolved from another tool)
-
-# Example evolution
-original_tool = await library.find_record_by_name("SymptomParser")
-evolved_tool = await library.evolve_record(
-    parent_id=original_tool["id"],
-    new_code_snippet=updated_code,
-    description="Enhanced symptom parser with better lupus detection"
-)
-```
-
 ## Directory Structure
 
 ```
 evolving-agents-framework/
 ├── evolving_agents/
 │   ├── core/
-│   │   ├── llm_service.py        # LLM interface with BeeAI integration
+│   │   ├── llm_service.py        # LLM interface with provider support
 │   │   └── system_agent.py       # Core decision logic
 │   ├── firmware/
 │   │   └── firmware.py           # Governance rule injection
+│   ├── providers/
+│   │   ├── base.py               # Base provider interface
+│   │   ├── registry.py           # Provider registry
+│   │   └── beeai_provider.py     # BeeAI framework provider
 │   ├── smart_library/
 │   │   └── smart_library.py      # Repository for all components
 │   ├── tools/
@@ -295,7 +388,8 @@ evolving-agents-framework/
 │   └── utils/
 │       └── embeddings.py         # Embedding utilities
 ├── examples/
-│   └── medical_diagnosis_example.py
+│   ├── medical_diagnosis_example.py
+│   └── smart_insulin_management_example.py
 ├── config/
 │   └── firmware/                 # Domain-specific firmware
 └── tests/
