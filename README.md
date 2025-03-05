@@ -1,17 +1,20 @@
 # Evolving Agents Framework
 
-A production-grade framework for creating, managing, and evolving AI agents with agent-to-agent communication capabilities. The framework allows you to generate complete agent workflows from natural language requirements and intelligently reuse or evolve existing components, with support for multiple agent frameworks.
+A production-grade framework for creating, managing, and evolving AI agents with intelligent agent-to-agent communication. The framework enables you to build collaborative agent ecosystems that can semantically understand requirements, evolve based on past experiences, and communicate effectively to solve complex tasks.
+
+![Evolving Agents](evolving-agents-logo.png)
 
 ## Key Features
 
-- **Agent-to-Agent Communication**: Enable specialized agents to collaborate on complex tasks through structured communication protocols
-- **Semantic Evolution**: Intelligently reuse or adapt existing agents and tools based on semantic similarity
-- **Smart Library with OpenAI Embeddings**: Powerful semantic search capabilities to find the most relevant components
+- **Intelligent Agent Evolution**: Reuse, adapt, or create agents based on semantic similarity to existing components
+- **Agent-to-Agent Communication**: Enable specialized agents to delegate tasks and collaborate on complex problems
+- **Smart Library with Semantic Search**: Find the most relevant tools and agents using OpenAI embeddings
+- **Self-improving System**: Agents get better over time through continuous evolution and learning
+- **Human-readable YAML Workflows**: Define complex agent collaborations with simple, version-controlled YAML
 - **Multi-Framework Support**: Seamlessly integrate agents from different frameworks (BeeAI, OpenAI, etc.)
-- **Firmware Injection**: Enforce domain-specific governance rules across all agents
-- **YAML Workflows**: Human-readable, version-controlled agent workflows
+- **Governance through Firmware**: Enforce domain-specific rules across all agents
 
-## Installation
+## Quick Start
 
 ```bash
 # Clone the repository
@@ -21,220 +24,132 @@ cd evolving-agents-framework
 # Install dependencies
 pip install -r requirements.txt
 pip install -e .
+
+# Run the comprehensive example
+python examples/simplified_agent_communication.py
 ```
 
-## Quick Start: Using the System Agent's Decision Logic
+## Example: Agent Collaboration and Evolution
 
-This example demonstrates how the SystemAgent dynamically decides whether to reuse, evolve, or create components based on semantic similarity:
+The framework lets you create agent ecosystems where specialized agents communicate and evolve:
 
 ```python
 import asyncio
-import logging
 from evolving_agents.smart_library.smart_library import SmartLibrary
 from evolving_agents.core.llm_service import LLMService
 from evolving_agents.core.system_agent import SystemAgent
-from evolving_agents.providers.registry import ProviderRegistry
-from evolving_agents.providers.beeai_provider import BeeAIProvider
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
 
 async def main():
-    # Initialize components
+    # Initialize the framework components
     library = SmartLibrary("agent_library.json")
     llm = LLMService(provider="openai", model="gpt-4o")
-    provider_registry = ProviderRegistry()
-    provider_registry.register_provider(BeeAIProvider(llm))
+    system = SystemAgent(library, llm)
     
-    # Initialize the System Agent
-    system = SystemAgent(library, llm, provider_registry=provider_registry)
-    
-    # Use the System Agent to process a request for an invoice processor
-    print("Requesting an invoice processing agent...")
+    # 1. Ask the System Agent for an invoice analysis agent
+    # The System Agent will decide whether to reuse, evolve, or create one
     result = await system.decide_and_act(
-        request="I need an agent that can analyze invoices and extract total amounts",
+        request="I need an agent that can analyze invoices and extract the total amount",
         domain="document_processing",
         record_type="AGENT"
     )
     
-    print(f"Decision: {result['action']}")
-    print(f"Selected/Created: {result['record']['name']}")
+    print(f"Decision: {result['action']}")  # 'reuse', 'evolve', or 'create'
+    print(f"Agent: {result['record']['name']}")
     
-    if 'similarity' in result:
-        print(f"Similarity score: {result['similarity']:.2f}")
-    
-    # Execute the chosen agent with a sample invoice
+    # 2. Execute the agent with an invoice document
     invoice_text = """
     INVOICE #12345
     Date: 2023-05-15
     Vendor: TechSupplies Inc.
-    
-    Items:
-    1. Laptop Computer - $1,200.00 (2 units)
-    2. Wireless Mouse - $25.00 (5 units)
-    
-    Subtotal: $1,680.00
-    Tax (8.5%): $142.80
     Total Due: $1,822.80
     """
     
-    # Execute the agent/tool that was selected or created
-    execution_result = await system.execute_item(
+    execution = await system.execute_item(
         result['record']['name'], 
         invoice_text
     )
     
-    print("\nExecution Result:")
-    print(execution_result['result'])
+    print("\nInvoice Analysis Result:")
+    print(execution["result"])
 
 if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-This example shows how the SystemAgent:
-1. Decides whether to reuse an existing agent, evolve one, or create a new one
-2. Makes this decision based on semantic similarity to existing components
-3. Executes the chosen agent automatically
+## Comprehensive Example Walkthrough
 
-## Agent-to-Agent Communication Example
+The framework includes a comprehensive example (`examples/simplified_agent_communication.py`) that demonstrates four key capabilities:
 
-This example shows how agents can communicate with each other through a workflow:
+### 1. System Agent's Intelligent Decision Logic
 
-```python
-import asyncio
-import logging
-from evolving_agents.smart_library.smart_library import SmartLibrary
-from evolving_agents.core.llm_service import LLMService
-from evolving_agents.core.system_agent import SystemAgent
-from evolving_agents.workflow.workflow_processor import WorkflowProcessor
-from evolving_agents.providers.registry import ProviderRegistry
-from evolving_agents.providers.beeai_provider import BeeAIProvider
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-
-async def main():
-    # Initialize components
-    library = SmartLibrary("agent_library.json")
-    llm = LLMService(provider="openai", model="gpt-4o")
-    provider_registry = ProviderRegistry()
-    provider_registry.register_provider(BeeAIProvider(llm))
-    system = SystemAgent(library, llm, provider_registry=provider_registry)
-    processor = WorkflowProcessor(system)
-    
-    # Define a document processing workflow
-    workflow_yaml = """
-    scenario_name: "Document Processing System"
-    domain: "document_processing"
-    description: "Process documents by delegating specialized tasks to expert agents"
-    
-    steps:
-      # Create the tools from the library
-      - type: "CREATE"
-        item_type: "TOOL"
-        name: "DocumentAnalyzer"
-    
-      - type: "CREATE"
-        item_type: "TOOL"
-        name: "AgentCommunicator"
-    
-      # Create the agents from the library
-      - type: "CREATE"
-        item_type: "AGENT"
-        name: "SpecialistAgent"
-        config:
-          memory_type: "token"
-    
-      - type: "CREATE"
-        item_type: "AGENT"
-        name: "CoordinatorAgent"
-        config:
-          memory_type: "token"
-    
-      # Execute the workflow with an invoice document
-      - type: "EXECUTE"
-        item_type: "AGENT"
-        name: "CoordinatorAgent"
-        user_input: "Process this document: [Your document text here]"
-        execution_config:
-          max_iterations: 15
-          enable_observability: true
-    """
-    
-    # Execute the workflow
-    results = await processor.process_workflow(workflow_yaml)
-    
-    # Print results
-    for step in results["steps"]:
-        print(f"- {step.get('message', 'No message')}")
-        if "result" in step:
-            print(f"\nResult:\n{step['result']}")
-
-if __name__ == "__main__":
-    asyncio.run(main())
-```
-
-## Core Components
-
-### System Agent Decision Logic
-
-The System Agent implements the core decision logic for agent reuse or evolution:
+The System Agent implements a sophisticated decision mechanism:
+- If similarity ≥ 0.8: Reuse an existing agent/tool
+- If 0.4 ≤ similarity < 0.8: Evolve an existing agent/tool 
+- If similarity < 0.4: Create a new agent/tool
 
 ```python
-# If similarity >= 0.8: Reuse existing agent/tool
-# If 0.4 <= similarity < 0.8: Evolve existing agent/tool
-# If similarity < 0.4: Create new agent/tool
-
-result = await system_agent.decide_and_act(
-    request="I need a tool to extract invoice data",
+# The System Agent dynamically decides what to do based on your request
+invoice_agent_result = await system_agent.decide_and_act(
+    request="I need an agent that can analyze invoices and extract the total amount",
     domain="document_processing",
-    record_type="TOOL"
+    record_type="AGENT"
 )
 
-# Result will contain the action taken (reuse/evolve/create)
-# and the resulting record
+print(f"System Agent Decision: {invoice_agent_result['action']}")  # 'evolve'
+print(f"Similarity Score: {invoice_agent_result['similarity']:.4f}")  # e.g., 0.4364
 ```
 
-### Smart Library with Semantic Search
+### 2. Agent-to-Agent Communication with Workflows
 
-The Smart Library stores agents and tools, with powerful semantic search capabilities:
+The framework enables specialized agents to communicate:
 
 ```python
-# Search for semantically similar tools using OpenAI embeddings
-results = await library.semantic_search(
-    query="I need an agent that can understand and analyze documents",
-    record_type="AGENT",
-    threshold=0.3  # Only return results with similarity above 0.3
-)
+# Define a workflow where agents communicate with each other
+workflow_yaml = """
+scenario_name: "Document Processing with Agent Communication"
+domain: "document_processing"
+description: "Process documents by delegating specialized tasks to expert agents"
 
-# Print search results
-for record, score in results:
-    print(f"Match: {record['name']} (Score: {score:.4f})")
-    print(f"Description: {record['description']}")
+steps:
+  # Create the tools from the library
+  - type: "CREATE"
+    item_type: "TOOL"
+    name: "DocumentAnalyzer"
+
+  - type: "CREATE"
+    item_type: "TOOL"
+    name: "AgentCommunicator"
+
+  # Create the agents from the library
+  - type: "CREATE"
+    item_type: "AGENT"
+    name: "SpecialistAgent"
+    config:
+      memory_type: "token"
+
+  # Create the coordinator agent that will communicate with specialists
+  - type: "CREATE"
+    item_type: "AGENT"
+    name: "CoordinatorAgent"
+    config:
+      memory_type: "token"
+
+  # Execute the workflow with a document
+  - type: "EXECUTE"
+    item_type: "AGENT"
+    name: "CoordinatorAgent"
+    user_input: "Process this document: {document_text}"
+"""
 ```
 
-### Agent Communication
+In this workflow, the CoordinatorAgent uses the AgentCommunicator tool to delegate specialized tasks to the SpecialistAgent, demonstrating how agents can collaborate to solve complex problems.
 
-Agents can communicate with each other through a communication tool:
+### 3. Agent Evolution
 
-```python
-# Define a communication request
-request = {
-    "agent_name": "SpecialistAgent",
-    "message": document_text,
-    "data": {"document_type": "invoice"}
-}
-
-# Send the request using the AgentCommunicator tool
-specialist_result = await agent_communicator.execute(json.dumps(request))
-```
-
-### Evolving Agents
-
-Agents can evolve based on new requirements:
+Evolve existing agents to create enhanced versions:
 
 ```python
-# Define evolution workflow
+# Define an evolution workflow
 evolution_workflow = """
 scenario_name: "Enhanced Invoice Processing"
 domain: "document_processing"
@@ -256,25 +171,118 @@ steps:
     name: "EnhancedInvoiceSpecialist"
     config:
       memory_type: "token"
-"""
 
-# Process the evolution workflow
-evolution_results = await processor.process_workflow(evolution_workflow)
+  - type: "EXECUTE"
+    item_type: "AGENT"
+    name: "EnhancedInvoiceSpecialist"
+    user_input: "{document_text}"
+"""
+```
+
+This allows you to create specialized versions of agents that perform better on specific types of tasks.
+
+### 4. Semantic Search with OpenAI Embeddings
+
+Find semantically similar components in the library:
+
+```python
+# Search for agents that can process documents
+search_results = await library.semantic_search(
+    query="agent that can process and understand documents",
+    record_type="AGENT",
+    threshold=0.3  # Minimum similarity threshold
+)
+
+for record, score in search_results:
+    print(f"Match: {record['name']} (Score: {score:.4f})")
+    print(f"Description: {record['description']}")
+```
+
+## Core Components
+
+### Smart Library
+
+The central repository for agents, tools, and firmware:
+
+```python
+# Store a component in the library
+await library.create_record(
+    name="InvoiceAnalyzer",
+    record_type="TOOL",
+    domain="finance",
+    description="Analyzes and extracts data from invoice documents",
+    code_snippet=tool_code,
+    tags=["invoice", "finance", "extraction"]
+)
+
+# Semantic search to find components
+results = await library.semantic_search(
+    query="tool that extracts data from invoices",
+    record_type="TOOL",
+    domain="finance"
+)
+```
+
+### System Agent
+
+The orchestrator that decides whether to reuse, evolve, or create components:
+
+```python
+# Process a request using the system agent
+result = await system_agent.decide_and_act(
+    request="I need a tool to analyze medical records",
+    domain="healthcare",
+    record_type="TOOL"
+)
+
+# Execute the resulting tool or agent
+if result["action"] in ["reuse", "evolve", "create"]:
+    execution = await system_agent.execute_item(
+        result["record"]["name"],
+        "Patient has high blood pressure and diabetes"
+    )
+```
+
+### Workflow Processor
+
+Process YAML-defined agent workflows:
+
+```python
+# Initialize workflow processor
+processor = WorkflowProcessor(system_agent)
+
+# Process a workflow 
+results = await processor.process_workflow(workflow_yaml)
+```
+
+### Provider Architecture
+
+Support for multiple agent frameworks:
+
+```python
+# Register providers
+provider_registry = ProviderRegistry()
+provider_registry.register_provider(BeeAIProvider(llm_service))
+provider_registry.register_provider(OpenAIProvider(llm_service))
+
+# Initialize system agent with providers
+system = SystemAgent(library, llm, provider_registry=provider_registry)
 ```
 
 ## Use Cases
 
-- **Document Processing Systems**: Coordinate multiple specialized agents to analyze, classify, and extract data from documents
-- **Healthcare Workflows**: Medical agents communicating with pharmacy and insurance agents
-- **Customer Service**: Routing agents communicating with specialized support agents
-- **Financial Analysis**: Portfolio management agents communicating with market analysis agents
+- **Document Processing**: Create specialized agents for different document types that collaborate to extract and analyze information
+- **Healthcare**: Medical agents communicating with pharmacy and insurance agents to coordinate patient care
+- **Financial Analysis**: Portfolio management agents collaborating with market analysis agents
+- **Customer Service**: Routing agents delegating to specialized support agents
+- **Multi-step Reasoning**: Break complex problems into components handled by specialized agents
 
 ## Advanced Features
 
-- **Firmware Injection**: Apply governance rules and constraints to all agents
-- **Provider Architecture**: Easily extend to support new agent frameworks 
-- **Workflow Generation**: Convert natural language requirements into executable workflows
-- **Agent Evolution Tracking**: Track the lineage and evolution of agents over time
+- **Firmware Injection**: Enforce governance rules and constraints across all agents
+- **Version Control**: Track the evolution of agents over time
+- **Cross-domain Collaboration**: Enable agents from different domains to work together
+- **Observability**: Monitor agent communications and decision processes
 
 ## Contributing
 

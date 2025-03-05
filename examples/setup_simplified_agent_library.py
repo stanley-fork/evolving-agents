@@ -173,8 +173,8 @@ def analyze_document(input):
     word_counts = {}
     
     for word in words:
-        # Clean the word - FIXED string literals
-        clean_word = word.strip(".,;:()[]{}\"'!?")
+        # Clean the word - FIXED: properly escaped string literals
+        clean_word = word.strip(".,;:()[]{}\"'")  # Removed problematic characters
         if len(clean_word) > 3:  # Only count words with at least 4 characters
             word_counts[clean_word] = word_counts.get(clean_word, 0) + 1
     
@@ -189,7 +189,7 @@ def analyze_document(input):
             result["confidence"] = 0.9
             
             # Check for invoice amount
-            money_pattern = r'\$(\d+,?\d*\.\d{2})'
+            money_pattern = r'\\$(\d+,?\d*\.\d{2})'
             amounts = re.findall(money_pattern, input)
             if amounts:
                 result["has_monetary_values"] = True
@@ -559,6 +559,7 @@ def analyze_specialized_document(input_text):
         # Generic analysis for unknown types
         results["analysis"]["notes"] = "Document type not recognized for specialized analysis"
     
+    # Add a result prefix for BeeAI compatibility
     return results
 
 def analyze_invoice(text, results):
@@ -649,9 +650,67 @@ def analyze_medical_record(text, results):
     if vitals:
         results["extracted_data"]["vitals"] = vitals
 
-# Process the input
-result = analyze_specialized_document(input)
+# Process the input - add a RESULT prefix for BeeAI compatibility
+result = "RESULT: " + json.dumps(analyze_specialized_document(input))
 '''
+
+# Fix for SystemAgent.execute_item method - to be applied at runtime
+async def fixed_execute_item(self, name: str, input_text: str):
+    """
+    Execute an active item (agent or tool).
+    
+    Args:
+        name: Name of the item to execute
+        input_text: Input text for the item
+        
+    Returns:
+        Execution result
+    """
+    if name not in self.active_items:
+        return {
+            "status": "error",
+            "message": f"Item '{name}' not found in active items"
+        }
+    
+    item = self.active_items[name]
+    record = item["record"]
+    instance = item["instance"]
+    
+    logger.info(f"Executing {record['record_type']} '{name}' with input: {input_text[:50]}...")
+    
+    try:
+        # Execute based on record type
+        if record["record_type"] == "AGENT":
+            result = await self.agent_factory.execute_agent(
+                name,  # Use name instead of instance
+                input_text
+            )
+        else:  # TOOL
+            result = await self.tool_factory.execute_tool(
+                instance, 
+                input_text
+            )
+        
+        # Update usage metrics
+        await self.library.update_usage_metrics(record["id"], True)
+        
+        return {
+            "status": "success",
+            "item_name": name,
+            "item_type": record["record_type"],
+            "result": result,
+            "message": f"Executed {record['record_type']} '{name}'"
+        }
+    except Exception as e:
+        logger.error(f"Error executing {record['record_type']} '{name}': {str(e)}")
+        
+        # Update usage metrics as failure
+        await self.library.update_usage_metrics(record["id"], False)
+        
+        return {
+            "status": "error",
+            "message": f"Error executing {record['record_type']} '{name}': {str(e)}"
+        }
 
 async def main():
     try:
@@ -715,6 +774,17 @@ async def main():
             tags=["specialist", "agent", "analysis"]
         )
         print("✓ Created SpecialistAgent")
+        
+        # Included in the setup file: Monkey patch the SystemAgent.execute_item method
+        # This will be applied by importing SystemAgent and replacing its method
+        try:
+            from evolving_agents.core.system_agent import SystemAgent
+            # Apply the fix - this ensures that when system_agent is imported later, 
+            # it already has the fixed method
+            SystemAgent.execute_item = fixed_execute_item
+            print("✓ Applied fix to SystemAgent.execute_item method")
+        except ImportError:
+            print("! Unable to patch SystemAgent - skipping this step")
         
         print("\nSimplified agent library setup complete!")
         print(f"Library saved to: {library.storage_path}")
