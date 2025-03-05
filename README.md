@@ -1,21 +1,17 @@
 # Evolving Agents Framework
 
-A production-grade framework for creating, managing, and evolving AI agents in a controlled environment. The framework allows you to generate complete agent workflows from natural language requirements and intelligently reuse or evolve existing components, with support for multiple agent frameworks.
+A production-grade framework for creating, managing, and evolving AI agents with agent-to-agent communication capabilities. The framework allows you to generate complete agent workflows from natural language requirements and intelligently reuse or evolve existing components, with support for multiple agent frameworks.
 
-## Features
+## Key Features
 
-- **Natural Language to Working Agents**: Convert requirements directly into executable workflows
-- **Smart Library**: Central repository that learns from each execution
-- **Firmware Injection**: Enforce domain-specific governance rules across all agents
-- **Semantic Evolution**: Intelligently reuse or adapt existing agents and tools
-- **YAML Workflows**: Generated workflows are human-readable and editable
-- **Multi-Agent Orchestration**: Coordinate specialized agents for complex tasks
+- **Agent-to-Agent Communication**: Enable specialized agents to collaborate on complex tasks through structured communication protocols
+- **Semantic Evolution**: Intelligently reuse or adapt existing agents and tools based on semantic similarity
+- **Smart Library with OpenAI Embeddings**: Powerful semantic search capabilities to find the most relevant components
 - **Multi-Framework Support**: Seamlessly integrate agents from different frameworks (BeeAI, OpenAI, etc.)
-- **Provider Architecture**: Extensible design for adding support for new agent frameworks
+- **Firmware Injection**: Enforce domain-specific governance rules across all agents
+- **YAML Workflows**: Human-readable, version-controlled agent workflows
 
 ## Installation
-
-### From Source
 
 ```bash
 # Clone the repository
@@ -24,26 +20,89 @@ cd evolving-agents-framework
 
 # Install dependencies
 pip install -r requirements.txt
-
-# Install in development mode
 pip install -e .
 ```
 
-### Dependencies
+## Quick Start: Using the System Agent's Decision Logic
 
-This framework relies on:
-- PyYAML
-- OpenAI API (or another LLM provider of your choice)
-- BeeAI Framework (integrated for agent capabilities)
-
-## Quick Start
-
-### Using a Custom YAML Workflow
+This example demonstrates how the SystemAgent dynamically decides whether to reuse, evolve, or create components based on semantic similarity:
 
 ```python
 import asyncio
 import logging
+from evolving_agents.smart_library.smart_library import SmartLibrary
+from evolving_agents.core.llm_service import LLMService
+from evolving_agents.core.system_agent import SystemAgent
+from evolving_agents.providers.registry import ProviderRegistry
+from evolving_agents.providers.beeai_provider import BeeAIProvider
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+
+async def main():
+    # Initialize components
+    library = SmartLibrary("agent_library.json")
+    llm = LLMService(provider="openai", model="gpt-4o")
+    provider_registry = ProviderRegistry()
+    provider_registry.register_provider(BeeAIProvider(llm))
+    
+    # Initialize the System Agent
+    system = SystemAgent(library, llm, provider_registry=provider_registry)
+    
+    # Use the System Agent to process a request for an invoice processor
+    print("Requesting an invoice processing agent...")
+    result = await system.decide_and_act(
+        request="I need an agent that can analyze invoices and extract total amounts",
+        domain="document_processing",
+        record_type="AGENT"
+    )
+    
+    print(f"Decision: {result['action']}")
+    print(f"Selected/Created: {result['record']['name']}")
+    
+    if 'similarity' in result:
+        print(f"Similarity score: {result['similarity']:.2f}")
+    
+    # Execute the chosen agent with a sample invoice
+    invoice_text = """
+    INVOICE #12345
+    Date: 2023-05-15
+    Vendor: TechSupplies Inc.
+    
+    Items:
+    1. Laptop Computer - $1,200.00 (2 units)
+    2. Wireless Mouse - $25.00 (5 units)
+    
+    Subtotal: $1,680.00
+    Tax (8.5%): $142.80
+    Total Due: $1,822.80
+    """
+    
+    # Execute the agent/tool that was selected or created
+    execution_result = await system.execute_item(
+        result['record']['name'], 
+        invoice_text
+    )
+    
+    print("\nExecution Result:")
+    print(execution_result['result'])
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+This example shows how the SystemAgent:
+1. Decides whether to reuse an existing agent, evolve one, or create a new one
+2. Makes this decision based on semantic similarity to existing components
+3. Executes the chosen agent automatically
+
+## Agent-to-Agent Communication Example
+
+This example shows how agents can communicate with each other through a workflow:
+
+```python
+import asyncio
+import logging
 from evolving_agents.smart_library.smart_library import SmartLibrary
 from evolving_agents.core.llm_service import LLMService
 from evolving_agents.core.system_agent import SystemAgent
@@ -55,345 +114,167 @@ from evolving_agents.providers.beeai_provider import BeeAIProvider
 logging.basicConfig(level=logging.INFO)
 
 async def main():
-    # Initialize the framework components
-    library = SmartLibrary("library.json")
+    # Initialize components
+    library = SmartLibrary("agent_library.json")
     llm = LLMService(provider="openai", model="gpt-4o")
-    
-    # Initialize provider registry with desired frameworks
     provider_registry = ProviderRegistry()
     provider_registry.register_provider(BeeAIProvider(llm))
-    
-    # Initialize system agent with provider registry
     system = SystemAgent(library, llm, provider_registry=provider_registry)
     processor = WorkflowProcessor(system)
     
-    # Define a medical analysis workflow
+    # Define a document processing workflow
     workflow_yaml = """
-    scenario_name: "Lupus Symptom Analysis"
-    domain: "medical"
-    description: "Analyze symptoms for potential lupus diagnosis"
-    
-    additional_disclaimers:
-      - "# MEDICAL_DISCLAIMER: This output is not a substitute for professional medical advice."
-      - "Always consult with qualified healthcare providers."
+    scenario_name: "Document Processing System"
+    domain: "document_processing"
+    description: "Process documents by delegating specialized tasks to expert agents"
     
     steps:
-      - type: "DEFINE"
+      # Create the tools from the library
+      - type: "CREATE"
         item_type: "TOOL"
-        name: "LupusSymptomAnalyzer"
-        from_existing_snippet: "SymptomParser"
-        reuse_as_is: true
-        description: "Analyzes symptoms to determine likelihood of lupus"
+        name: "DocumentAnalyzer"
     
       - type: "CREATE"
         item_type: "TOOL"
-        name: "LupusSymptomAnalyzer"
+        name: "AgentCommunicator"
     
+      # Create the agents from the library
+      - type: "CREATE"
+        item_type: "AGENT"
+        name: "SpecialistAgent"
+        config:
+          memory_type: "token"
+    
+      - type: "CREATE"
+        item_type: "AGENT"
+        name: "CoordinatorAgent"
+        config:
+          memory_type: "token"
+    
+      # Execute the workflow with an invoice document
       - type: "EXECUTE"
-        item_type: "TOOL"
-        name: "LupusSymptomAnalyzer"
-        user_input: "Patient has joint pain in hands, fatigue, and a butterfly-shaped rash on face."
+        item_type: "AGENT"
+        name: "CoordinatorAgent"
+        user_input: "Process this document: [Your document text here]"
+        execution_config:
+          max_iterations: 15
+          enable_observability: true
     """
     
     # Execute the workflow
     results = await processor.process_workflow(workflow_yaml)
     
-    # View the results
-    print("Execution results:")
+    # Print results
     for step in results["steps"]:
         print(f"- {step.get('message', 'No message')}")
-    
-    # Print final result if available
-    for step in reversed(results["steps"]):
         if "result" in step:
-            print("\nAnalysis result:")
-            print(step["result"])
-            break
+            print(f"\nResult:\n{step['result']}")
 
 if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-### Example: Smart Insulin Management System
-
-Here's an example that creates an AI agent using the BeeAI framework to monitor glucose levels and adjust insulin dosage:
-
-```python
-# Define a healthcare workflow using BeeAI framework
-workflow_yaml = """
-scenario_name: "Smart Insulin Management System"
-domain: "medical"
-description: "Monitor glucose levels and automatically adjust insulin dosage"
-
-additional_disclaimers:
-  - "# MEDICAL_DISCLAIMER: This is not a substitute for professional medical advice."
-  - "# Always consult with qualified healthcare providers for medical decisions."
-
-steps:
-  # Define tools
-  - type: "DEFINE"
-    item_type: "TOOL"
-    name: "HealthDataMonitor"
-    description: "Fetches health data from smartwatch and CGM"
-    
-  - type: "DEFINE"
-    item_type: "TOOL"
-    name: "InsulinDosageCalculator"
-    description: "Calculates appropriate insulin dosage based on health metrics"
-    
-  - type: "DEFINE"
-    item_type: "TOOL"
-    name: "InsulinPumpController"
-    description: "Controls the smart insulin pump to deliver insulin doses"
-    
-  # Define a BeeAI agent that uses these tools
-  - type: "DEFINE"
-    item_type: "AGENT"
-    name: "InsulinManagementAgent"
-    description: "Agent that monitors glucose and manages insulin dosing"
-    framework: "beeai"  # Specify the framework to use
-    required_tools:     # List tools the agent needs
-      - "HealthDataMonitor"
-      - "InsulinDosageCalculator"
-      - "InsulinPumpController"
-    
-  # Create and execute the components
-  - type: "CREATE"
-    item_type: "TOOL"
-    name: "HealthDataMonitor"
-    
-  - type: "CREATE"
-    item_type: "TOOL"
-    name: "InsulinDosageCalculator"
-    
-  - type: "CREATE"
-    item_type: "TOOL"
-    name: "InsulinPumpController"
-    
-  - type: "CREATE"
-    item_type: "AGENT"
-    name: "InsulinManagementAgent"
-    config:
-      memory_type: "token"  # Framework-specific configuration
-    
-  - type: "EXECUTE"
-    item_type: "AGENT"
-    name: "InsulinManagementAgent"
-    user_input: "My glucose is 180 mg/dL, I've been sitting at my desk all morning"
-    execution_config:       # Execution-specific configuration
-      max_iterations: 15
-      enable_observability: true
-"""
-```
-
 ## Core Components
 
-### 1. Provider Architecture
+### System Agent Decision Logic
 
-The framework supports multiple agent frameworks through a provider system:
-
-```python
-# Register a new provider
-provider_registry = ProviderRegistry()
-provider_registry.register_provider(BeeAIProvider(llm_service))
-
-# Create an agent with a specific framework
-await agent_factory.create_agent(
-    record=agent_record,
-    tools=tools,
-    firmware_content=firmware_content,
-    config={"memory_type": "token"}  # Framework-specific config
-)
-
-# Get available frameworks
-frameworks = agent_factory.get_available_frameworks()
-
-# Get configuration schema for a framework
-config_schema = agent_factory.get_agent_creation_schema("beeai")
-```
-
-### 2. Smart Library
-
-The Smart Library serves as a central repository that stores and manages:
+The System Agent implements the core decision logic for agent reuse or evolution:
 
 ```python
-# Store a tool in the library
-await library.create_record(
-    name="SymptomParser",
-    record_type="TOOL",
-    domain="medical",
-    description="Parses patient symptoms into structured data",
-    code_snippet=symptom_parser_code,
-    metadata={"framework": "beeai"}  # Optional framework specification
-)
+# If similarity >= 0.8: Reuse existing agent/tool
+# If 0.4 <= similarity < 0.8: Evolve existing agent/tool
+# If similarity < 0.4: Create new agent/tool
 
-# Find tools by domain
-medical_tools = await library.find_records_by_domain("medical", "TOOL")
-
-# Search for semantically similar tools
-results = await library.semantic_search(
-    query="Analyze lupus symptoms", 
-    record_type="TOOL",
-    domain="medical"
-)
-```
-
-### 3. Firmware Injection
-
-Firmware injects governance rules and constraints into all agents and tools:
-
-```python
-# Get firmware for a specific domain
-firmware_content = system_agent.firmware.get_firmware_prompt("medical")
-
-# Medical domain will include specific rules like:
-"""
-- Include medical disclaimers
-- Ensure HIPAA compliance
-- Protect patient confidentiality
-- Require medical validation
-"""
-```
-
-### 4. System Agent
-
-The System Agent implements the decision logic for reuse, evolution, or creation:
-
-```python
-# Process a request using the decision logic
 result = await system_agent.decide_and_act(
-    request="I need a tool to identify lupus symptoms",
-    domain="medical",
+    request="I need a tool to extract invoice data",
+    domain="document_processing",
     record_type="TOOL"
 )
 
-# Execute the resulting item
-if result["action"] in ["reuse", "evolve", "create"]:
-    execution = await system_agent.execute_item(
-        result["record"]["name"],
-        "Patient has joint pain, fatigue, and butterfly rash"
-    )
+# Result will contain the action taken (reuse/evolve/create)
+# and the resulting record
 ```
 
-### 5. Workflow Processing
+### Smart Library with Semantic Search
 
-Process YAML workflows with simple step definitions:
-
-```yaml
-steps:
-  - type: "DEFINE"    # Define a component, either new or evolved from existing
-  - type: "CREATE"    # Instantiate the component in the environment  
-  - type: "EXECUTE"   # Run the component with specific input
-```
-
-## Advanced Use Cases
-
-### Creating a BeeAI Agent with Custom Tools
+The Smart Library stores agents and tools, with powerful semantic search capabilities:
 
 ```python
-# Define a BeeAI agent that uses custom tools
-await library.create_record(
-    name="DataAnalysisAgent",
+# Search for semantically similar tools using OpenAI embeddings
+results = await library.semantic_search(
+    query="I need an agent that can understand and analyze documents",
     record_type="AGENT",
-    domain="data_science",
-    description="Agent that analyzes complex datasets",
-    code_snippet=agent_code,
-    metadata={
-        "framework": "beeai",
-        "required_tools": ["DataLoader", "StatisticalAnalyzer", "ChartGenerator"]
-    }
+    threshold=0.3  # Only return results with similarity above 0.3
 )
 
-# Create agent with specific framework configuration
-await agent_factory.create_agent(
-    record=agent_record,
-    tools=tools,
-    config={
-        "memory_type": "token",
-        "execution": {
-            "max_iterations": 20,
-            "max_retries_per_step": 3
-        }
-    }
-)
-
-# Execute with observability enabled
-result = await agent_factory.execute_agent(
-    "DataAnalysisAgent", 
-    "Analyze this customer churn dataset and identify key factors",
-    {
-        "enable_observability": True,
-        "max_iterations": 25
-    }
-)
+# Print search results
+for record, score in results:
+    print(f"Match: {record['name']} (Score: {score:.4f})")
+    print(f"Description: {record['description']}")
 ```
 
-### Defining Custom Domains and Firmware
+### Agent Communication
 
-You can extend the framework with custom domains:
+Agents can communicate with each other through a communication tool:
 
 ```python
-# Define finance domain firmware
-finance_firmware = """
-You are an AI agent operating under strict financial compliance rules:
+# Define a communication request
+request = {
+    "agent_name": "SpecialistAgent",
+    "message": document_text,
+    "data": {"document_type": "invoice"}
+}
 
-1. REGULATORY COMPLIANCE:
-- Never provide specific investment advice without disclaimers
-- Adhere to SEC regulations
-- Maintain transparency about hypothetical returns
+# Send the request using the AgentCommunicator tool
+specialist_result = await agent_communicator.execute(json.dumps(request))
+```
 
-2. DATA PRIVACY:
-- Handle all financial information confidentially
-- Do not retain PII
-- Anonymize all examples
+### Evolving Agents
 
-3. DISCLAIMERS:
-- Always include disclaimers about financial risks
-- State that past performance doesn't guarantee future results
+Agents can evolve based on new requirements:
+
+```python
+# Define evolution workflow
+evolution_workflow = """
+scenario_name: "Enhanced Invoice Processing"
+domain: "document_processing"
+description: "Evolve the specialist agent to provide better invoice analysis"
+
+steps:
+  # Define an evolved version of the specialist agent
+  - type: "DEFINE"
+    item_type: "AGENT"
+    name: "EnhancedInvoiceSpecialist"
+    from_existing_snippet: "SpecialistAgent"
+    evolve_changes:
+      docstring_update: "Improved with enhanced invoice analysis capabilities"
+    description: "Enhanced specialist that provides more detailed invoice analysis"
+
+  # Create and execute the evolved agent
+  - type: "CREATE"
+    item_type: "AGENT"
+    name: "EnhancedInvoiceSpecialist"
+    config:
+      memory_type: "token"
 """
 
-# Register in the library
-await library.create_record(
-    name="FinanceFirmware",
-    record_type="FIRMWARE",
-    domain="finance",
-    description="Financial domain governance rules",
-    code_snippet=finance_firmware
-)
+# Process the evolution workflow
+evolution_results = await processor.process_workflow(evolution_workflow)
 ```
 
-## Directory Structure
+## Use Cases
 
-```
-evolving-agents-framework/
-├── evolving_agents/
-│   ├── core/
-│   │   ├── llm_service.py        # LLM interface with provider support
-│   │   └── system_agent.py       # Core decision logic
-│   ├── firmware/
-│   │   └── firmware.py           # Governance rule injection
-│   ├── providers/
-│   │   ├── base.py               # Base provider interface
-│   │   ├── registry.py           # Provider registry
-│   │   └── beeai_provider.py     # BeeAI framework provider
-│   ├── smart_library/
-│   │   └── smart_library.py      # Repository for all components
-│   ├── tools/
-│   │   └── tool_factory.py       # Dynamic tool creation and execution
-│   ├── agents/
-│   │   └── agent_factory.py      # Agent creation and management
-│   ├── workflow/
-│   │   ├── workflow_generator.py # YAML workflow generation
-│   │   └── workflow_processor.py # YAML workflow execution
-│   └── utils/
-│       └── embeddings.py         # Embedding utilities
-├── examples/
-│   ├── medical_diagnosis_example.py
-│   └── smart_insulin_management_example.py
-├── config/
-│   └── firmware/                 # Domain-specific firmware
-└── tests/
-```
+- **Document Processing Systems**: Coordinate multiple specialized agents to analyze, classify, and extract data from documents
+- **Healthcare Workflows**: Medical agents communicating with pharmacy and insurance agents
+- **Customer Service**: Routing agents communicating with specialized support agents
+- **Financial Analysis**: Portfolio management agents communicating with market analysis agents
+
+## Advanced Features
+
+- **Firmware Injection**: Apply governance rules and constraints to all agents
+- **Provider Architecture**: Easily extend to support new agent frameworks 
+- **Workflow Generation**: Convert natural language requirements into executable workflows
+- **Agent Evolution Tracking**: Track the lineage and evolution of agents over time
 
 ## Contributing
 
