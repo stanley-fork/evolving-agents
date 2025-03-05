@@ -7,6 +7,9 @@ import uuid
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Tuple
 
+import numpy as np
+from evolving_agents.utils.embeddings import embedding_service
+
 logger = logging.getLogger(__name__)
 
 class SmartLibrary:
@@ -103,7 +106,7 @@ class SmartLibrary:
         threshold: float = 0.0
     ) -> List[Tuple[Dict[str, Any], float]]:
         """
-        Search for records semantically similar to the query.
+        Search for records semantically similar to the query using OpenAI embeddings.
         
         Args:
             query: The search query
@@ -123,25 +126,29 @@ class SmartLibrary:
             filtered_records = [r for r in filtered_records if r.get("domain") == domain]
             
         # Filter only active records
-        active_records = [r for r in filtered_records if r.get("status") == "active"]
+        active_records = [r for r in filtered_records if r.get("status", "active") == "active"]
+        
+        if not active_records:
+            logger.info(f"No active records found for search: {query}")
+            return []
+        
+        # Get embedding for the query
+        query_embedding = await embedding_service.generate_embedding(query)
         
         # For each record, calculate similarity
         results = []
         for record in active_records:
-            # In a real implementation, you would use embeddings
-            # For now, we'll use simple text matching as a placeholder
+            # Create a combined text representation of the record
             description = record.get("description", "")
             code_snippet = record.get("code_snippet", "")
+            name = record.get("name", "")
             
-            # Simple token overlap similarity (placeholder for embedding similarity)
-            query_tokens = set(query.lower().split())
-            record_tokens = set((description + " " + code_snippet).lower().split())
+            # Generate embedding for the record
+            record_text = f"{name} {description} {code_snippet}"
+            record_embedding = await embedding_service.generate_embedding(record_text)
             
-            if not query_tokens or not record_tokens:
-                similarity = 0
-            else:
-                overlap = len(query_tokens.intersection(record_tokens))
-                similarity = overlap / max(len(query_tokens), len(record_tokens))
+            # Compute similarity
+            similarity = embedding_service.compute_similarity(query_embedding, record_embedding)
             
             if similarity >= threshold:
                 results.append((record, similarity))
