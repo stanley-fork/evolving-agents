@@ -263,7 +263,6 @@ Support for multiple agent frameworks:
 # Register providers
 provider_registry = ProviderRegistry()
 provider_registry.register_provider(BeeAIProvider(llm_service))
-provider_registry.register_provider(OpenAIProvider(llm_service))
 
 # Initialize system agent with providers
 system = SystemAgent(library, llm, provider_registry=provider_registry)
