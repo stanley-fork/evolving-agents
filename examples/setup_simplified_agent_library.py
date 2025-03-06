@@ -226,7 +226,7 @@ def analyze_document(input):
 result = analyze_document(input)
 '''
 
-# UPDATED: CoordinatorAgent with improved BeeAI compatibility
+# CoordinatorAgent with improved BeeAI compatibility
 COORDINATOR_AGENT = '''
 # Primary agent that orchestrates document processing
 import json
