@@ -1,4 +1,4 @@
-# evolving_agents/core/system_agent.py (improved version)
+# evolving_agents/core/system_agent.py (updated version)
 
 import logging
 import yaml
@@ -6,8 +6,9 @@ import os
 import uuid
 from typing import Dict, Any, List, Optional, Tuple
 
+# Fix the imports for BeeAI framework
 from beeai_framework.agents.react import ReActAgent
-from beeai_framework.agents.types import BeeAgentExecutionConfig, AgentMeta
+from beeai_framework.agents.types import AgentMeta, AgentExecutionConfig
 from beeai_framework.memory import TokenMemory, UnconstrainedMemory
 from beeai_framework.tools.tool import Tool
 
@@ -30,12 +31,12 @@ class SystemAgent:
     - If similarity < 0.4: Create new
     """
     def __init__(
-    self, 
-    smart_library: SmartLibrary, 
-    llm_service: LLMService,
-    agent_factory: Optional[AgentFactory] = None,
-    tool_factory: Optional[ToolFactory] = None,
-    provider_registry: Optional[ProviderRegistry] = None
+        self, 
+        smart_library: SmartLibrary, 
+        llm_service: LLMService,
+        agent_factory: Optional[AgentFactory] = None,
+        tool_factory: Optional[ToolFactory] = None,
+        provider_registry: Optional[ProviderRegistry] = None
     ):
         self.library = smart_library
         self.llm = llm_service
@@ -56,8 +57,11 @@ class SystemAgent:
         self.tool_factory = tool_factory or ToolFactory(smart_library, llm_service)
         
         # Set up templates
-        from evolving_agents.utils.setup_templates import setup_templates
-        setup_templates()
+        try:
+            from evolving_agents.utils.setup_templates import setup_templates
+            setup_templates()
+        except ImportError:
+            logger.warning("Could not import setup_templates, skipping template setup")
         
         logger.info("System Agent initialized")
     

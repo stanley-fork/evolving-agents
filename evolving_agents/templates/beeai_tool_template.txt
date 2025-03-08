@@ -10,9 +10,7 @@ class WeatherToolInput(BaseModel):
     days: int = Field(description="Number of days for forecast (1-7)", default=1, ge=1, le=7)
 
 class WeatherTool(Tool[WeatherToolInput, ToolRunOptions, StringToolOutput]):
-    """
-    Retrieves weather information for a specified location.
-    """
+    """Retrieves weather information for a specified location."""
     name = "WeatherTool"
     description = "Get current weather and forecast information for locations worldwide"
     input_schema = WeatherToolInput
