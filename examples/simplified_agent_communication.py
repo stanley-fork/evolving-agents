@@ -64,145 +64,6 @@ Plan: Prescribed antibiotics (Azithromycin 500mg) for 5 days, recommended rest a
 Follow-up in 1 week if symptoms persist.
 """
 
-# Fix for DocumentAnalyzer tool
-FIXED_DOCUMENT_ANALYZER = '''
-# Tool to analyze documents and identify their type
-import json
-import re
-
-def analyze_document(input):
-    """
-    Analyzes a document to identify its type and key characteristics.
-    
-    Args:
-        input: Document text to analyze
-        
-    Returns:
-        Document analysis including type, confidence, and keywords
-    """
-    text = input.lower()
-    result = {
-        "document_type": "unknown",
-        "confidence": 0.5,
-        "keywords": []
-    }
-    
-    # Extract keywords (words that appear frequently or seem important)
-    words = text.split()
-    word_counts = {}
-    
-    for word in words:
-        # Clean the word - Fixed version with properly escaped quotes
-        clean_word = word.strip(".,;:()[]{}\"'")  # Removed the problematic sequence
-        if len(clean_word) > 3:  # Only count words with at least 4 characters
-            word_counts[clean_word] = word_counts.get(clean_word, 0) + 1
-    
-    # Get the top 5 most frequent words
-    sorted_words = sorted(word_counts.items(), key=lambda x: x[1], reverse=True)
-    result["keywords"] = [word for word, count in sorted_words[:5]]
-    
-    # Determine document type based on content
-    if "invoice" in text:
-        if "total" in text and ("payment" in text or "due" in text):
-            result["document_type"] = "invoice"
-            result["confidence"] = 0.9
-            
-            # Check for invoice amount
-            money_pattern = r'\\$(\d+,?\d*\.\d{2})'
-            amounts = re.findall(money_pattern, input)
-            if amounts:
-                result["has_monetary_values"] = True
-                try:
-                    result["highest_amount"] = max([float(amt.replace(",", "")) for amt in amounts])
-                except:
-                    pass
-    
-    elif "patient" in text:
-        if "medical" in text or "assessment" in text or "diagnosis" in text:
-            result["document_type"] = "medical"
-            result["confidence"] = 0.92
-            
-            # Check for medical keywords
-            medical_keywords = ["prescribed", "symptoms", "treatment", "follow-up", "medication"]
-            for keyword in medical_keywords:
-                if keyword in text:
-                    result["keywords"].append(keyword)
-    
-    elif "contract" in text or "agreement" in text:
-        result["document_type"] = "contract"
-        result["confidence"] = 0.85
-    
-    elif "report" in text:
-        result["document_type"] = "report"
-        result["confidence"] = 0.7
-    
-    # Clean up keywords to remove duplicates and sort
-    result["keywords"] = list(set(result["keywords"]))
-    
-    return result
-
-# Process the input text
-result = analyze_document(input)
-'''
-
-# Fix for SystemAgent.execute_item method
-async def fixed_execute_item(self, name: str, input_text: str):
-    """
-    Execute an active item (agent or tool).
-    
-    Args:
-        name: Name of the item to execute
-        input_text: Input text for the item
-        
-    Returns:
-        Execution result
-    """
-    if name not in self.active_items:
-        return {
-            "status": "error",
-            "message": f"Item '{name}' not found in active items"
-        }
-    
-    item = self.active_items[name]
-    record = item["record"]
-    instance = item["instance"]
-    
-    logger.info(f"Executing {record['record_type']} '{name}' with input: {input_text[:50]}...")
-    
-    try:
-        # Execute based on record type
-        if record["record_type"] == "AGENT":
-            result = await self.agent_factory.execute_agent(
-                name,  # Use name here, not instance
-                input_text
-            )
-        else:  # TOOL
-            result = await self.tool_factory.execute_tool(
-                instance,
-                input_text
-            )
-        
-        # Update usage metrics
-        await self.library.update_usage_metrics(record["id"], True)
-        
-        return {
-            "status": "success",
-            "item_name": name,
-            "item_type": record["record_type"],
-            "result": result,
-            "message": f"Executed {record['record_type']} '{name}'"
-        }
-    except Exception as e:
-        logger.error(f"Error executing {record['record_type']} '{name}': {str(e)}")
-        
-        # Update usage metrics as failure
-        await self.library.update_usage_metrics(record["id"], False)
-        
-        return {
-            "status": "error",
-            "message": f"Error executing {record['record_type']} '{name}': {str(e)}"
-        }
-
 async def main():
     try:
         # Initialize components
@@ -229,32 +90,17 @@ async def main():
         provider_registry = ProviderRegistry()
         provider_registry.register_provider(BeeAIProvider(llm_service))
         
-        # Fix DocumentAnalyzer tool
-        print("\nApplying fixes to library components...")
+        # Initialize the agent and tool factories with the provider registry
+        agent_factory = AgentFactory(library, llm_service, provider_registry)
+        tool_factory = ToolFactory(library, llm_service)
         
-        # Find and fix DocumentAnalyzer tool
-        analyzer_record = None
-        for record in library.records:
-            if record["name"] == "DocumentAnalyzer" and record["record_type"] == "TOOL":
-                analyzer_record = record
-                break
-        
-        if analyzer_record:
-            # Update the code snippet
-            analyzer_record["code_snippet"] = FIXED_DOCUMENT_ANALYZER
-            
-            # Save it back to the library
-            await library.save_record(analyzer_record)
-            print(f"✓ Updated DocumentAnalyzer tool (ID: {analyzer_record['id']})")
-        
-        # Apply patch to SystemAgent.execute_item method
-        SystemAgent.execute_item = fixed_execute_item
-        print("✓ SystemAgent.execute_item method has been patched")
-        
-        # Initialize system agent with the provider registry
+        # Initialize system agent with proper factories
         system_agent = SystemAgent(
             smart_library=library, 
-            llm_service=llm_service
+            llm_service=llm_service,
+            agent_factory=agent_factory,
+            tool_factory=tool_factory,
+            provider_registry=provider_registry
         )
         
         # Initialize workflow processor
@@ -354,37 +200,34 @@ steps:
     config:
       memory_type: "token"
 
+  # Create the coordinator agent with the tools
   - type: "CREATE"
     item_type: "AGENT"
     name: "CoordinatorAgent"
     config:
       memory_type: "token"
 
-  # Test with an invoice document
+  # Execute with an invoice document
   - type: "EXECUTE"
     item_type: "AGENT"
     name: "CoordinatorAgent"
     user_input: "Process this document: {invoice}"
     execution_config:
       max_iterations: 15
-      enable_observability: true
 """
         
         # Replace placeholders with sample documents
         workflow_yaml = workflow_yaml.replace("{invoice}", SAMPLE_INVOICE.replace("\n", "\\n"))
         
-        print("\nWorkflow to Execute:")
-        print(workflow_yaml)
-        
         # Process the workflow
-        print("\nExecuting workflow...")
-        results = await workflow_processor.process_workflow(workflow_yaml)
+        print("\nExecuting workflow for invoice processing...")
+        invoice_results = await workflow_processor.process_workflow(workflow_yaml)
         
         # Print execution results
         print("\nWorkflow Execution Results:")
         print("="*80)
         
-        for i, step in enumerate(results.get("steps", [])):
+        for i, step in enumerate(invoice_results.get("steps", [])):
             print(f"Step {i+1}: {step.get('message', 'No message')}")
             
             # Print execution details if available
@@ -398,15 +241,39 @@ steps:
                 print("\n  Result:")
                 result_text = step["result"]
                 
-                # Try to parse JSON result
+                # Try to pretty print JSON if possible
                 try:
                     result_json = json.loads(result_text)
                     print(f"    {json.dumps(result_json, indent=2)}")
                 except:
-                    # Handle as text - Fix for backslash issue in f-strings
                     print("    " + result_text.replace("\n", "\n    "))
             
             print("-" * 40)
+        
+        # Now try with a medical record
+        medical_workflow_yaml = workflow_yaml.replace("{invoice}", SAMPLE_MEDICAL_RECORD.replace("\n", "\\n"))
+        
+        print("\nExecuting workflow for medical record processing...")
+        medical_results = await workflow_processor.process_workflow(medical_workflow_yaml)
+        
+        # Print execution results
+        print("\nMedical Record Workflow Results:")
+        print("="*80)
+        
+        # Show only the final result for brevity
+        last_step = medical_results.get("steps", [])[-1]
+        if "result" in last_step and last_step.get("status") == "success":
+            print("Final Result:")
+            result_text = last_step["result"]
+            
+            # Try to pretty print JSON if possible
+            try:
+                result_json = json.loads(result_text)
+                print(f"  {json.dumps(result_json, indent=2)}")
+            except:
+                print("  " + result_text.replace("\n", "\n  "))
+        else:
+            print(f"Error: {last_step.get('message', 'No result')}")
         
         print("\n" + "="*80)
         print("PART 3: DEMONSTRATING AGENT EVOLUTION")
@@ -425,8 +292,8 @@ steps:
     name: "EnhancedInvoiceSpecialist"
     from_existing_snippet: "SpecialistAgent"
     evolve_changes:
-      docstring_update: "Improved with enhanced invoice analysis capabilities"
-    description: "Enhanced specialist that provides more detailed invoice analysis"
+      docstring_update: "Improved with enhanced invoice analysis capabilities including line item detection"
+    description: "Enhanced specialist that provides more detailed invoice analysis with line item extraction"
 
   # Create the evolved agent
   - type: "CREATE"
@@ -442,37 +309,33 @@ steps:
     user_input: "{invoice}"
     execution_config:
       max_iterations: 15
-      enable_observability: true
 """
         
         # Replace placeholder with invoice
         evolution_workflow = evolution_workflow.replace("{invoice}", SAMPLE_INVOICE.replace("\n", "\\n"))
         
         # Process the evolution workflow
-        print("\nExecuting evolution workflow...")
+        print("\nExecuting evolution workflow to create enhanced invoice specialist...")
         evolution_results = await workflow_processor.process_workflow(evolution_workflow)
         
         # Print evolution results
         print("\nEvolution Results:")
         print("="*80)
         
-        for i, step in enumerate(evolution_results.get("steps", [])):
-            print(f"Step {i+1}: {step.get('message', 'No message')}")
+        # Show only the final execution result for brevity
+        last_step = evolution_results.get("steps", [])[-1]
+        if "result" in last_step and last_step.get("status") == "success":
+            print("Enhanced Invoice Analysis Result:")
+            result_text = last_step["result"]
             
-            # Print result for the execution step
-            if "result" in step and i == 2:  # The execution step
-                print("\n  Enhanced Analysis Result:")
-                result_text = step["result"]
-                
-                # Try to parse JSON result
-                try:
-                    result_json = json.loads(result_text)
-                    print(f"    {json.dumps(result_json, indent=2)}")
-                except:
-                    # Handle as text
-                    print("    " + result_text.replace("\n", "\n    "))
-            
-            print("-" * 40)
+            # Try to pretty print JSON if possible
+            try:
+                result_json = json.loads(result_text)
+                print(f"  {json.dumps(result_json, indent=2)}")
+            except:
+                print("  " + result_text.replace("\n", "\n  "))
+        else:
+            print(f"Error: {last_step.get('message', 'No result')}")
 
         print("\n" + "="*80)
         print("PART 4: DEMONSTRATING SEMANTIC SEARCH WITH OPENAI EMBEDDINGS")
