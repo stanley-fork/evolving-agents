@@ -25,6 +25,9 @@ cd evolving-agents-framework
 pip install -r requirements.txt
 pip install -e .
 
+# Setup the agent library
+python examples/setup_simplified_agent_library.py
+
 # Run the comprehensive example
 python examples/simplified_agent_communication.py
 ```
@@ -76,16 +79,28 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-## Comprehensive Example Walkthrough
+## Understanding the Comprehensive Example
 
-The framework includes a comprehensive example (`examples/simplified_agent_communication.py`) that demonstrates four key capabilities:
+The framework includes a comprehensive example (`examples/simplified_agent_communication.py`) that demonstrates four key capabilities. This example shows in detail how the Evolving Agents Framework creates, manages, and evolves AI agents to handle real-world tasks.
 
-### 1. System Agent's Intelligent Decision Logic
+### Step 1: Setting Up the Agent Library
 
-The System Agent implements a sophisticated decision mechanism:
-- If similarity ≥ 0.8: Reuse an existing agent/tool
-- If 0.4 ≤ similarity < 0.8: Evolve an existing agent/tool 
-- If similarity < 0.4: Create a new agent/tool
+Before running the main example, we need to set up an initial library of agents and tools:
+
+```bash
+python examples/setup_simplified_agent_library.py
+```
+
+This script creates a foundation of BeeAI-compatible agents and tools:
+
+- **DocumentAnalyzer Tool**: A real BeeAI tool that uses an LLM to analyze documents and identify their type
+- **AgentCommunicator Tool**: A real BeeAI tool that facilitates communication between agents
+- **SpecialistAgent**: A BeeAI agent specialized in detailed document analysis
+- **CoordinatorAgent**: A BeeAI agent that orchestrates the document processing workflow
+
+### Step 2: Demonstrating the System Agent's Decision Logic
+
+The first part of the example demonstrates how the System Agent intelligently decides whether to reuse, evolve, or create a new agent based on semantic similarity:
 
 ```python
 # The System Agent dynamically decides what to do based on your request
@@ -95,16 +110,22 @@ invoice_agent_result = await system_agent.decide_and_act(
     record_type="AGENT"
 )
 
-print(f"System Agent Decision: {invoice_agent_result['action']}")  # 'evolve'
-print(f"Similarity Score: {invoice_agent_result['similarity']:.4f}")  # e.g., 0.4364
+print(f"System Agent Decision: {invoice_agent_result['action']}")  # 'create', 'evolve', or 'reuse'
 ```
 
-### 2. Agent-to-Agent Communication with Workflows
+The System Agent implements a sophisticated decision mechanism:
+- If similarity ≥ 0.8: Reuse an existing agent/tool
+- If 0.4 ≤ similarity < 0.8: Evolve an existing agent/tool 
+- If similarity < 0.4: Create a new agent/tool
 
-The framework enables specialized agents to communicate:
+In the example, when we ask for an invoice analysis agent, it creates a new one. When we ask for a medical record analyzer, it evolves the existing SpecialistAgent (since it has a similarity score of around 0.46).
 
-```python
-# Define a workflow where agents communicate with each other
+### Step 3: Agent-to-Agent Communication with Workflows
+
+The second part demonstrates how agents communicate with each other through workflows defined in YAML:
+
+```yaml
+# A workflow where agents communicate with each other
 workflow_yaml = """
 scenario_name: "Document Processing with Agent Communication"
 domain: "document_processing"
@@ -127,29 +148,29 @@ steps:
     config:
       memory_type: "token"
 
-  # Create the coordinator agent that will communicate with specialists
+  # Create the coordinator agent with the tools
   - type: "CREATE"
     item_type: "AGENT"
     name: "CoordinatorAgent"
     config:
       memory_type: "token"
 
-  # Execute the workflow with a document
+  # Execute with an invoice document
   - type: "EXECUTE"
     item_type: "AGENT"
     name: "CoordinatorAgent"
-    user_input: "Process this document: {document_text}"
+    user_input: "Process this document: {invoice}"
 """
 ```
 
-In this workflow, the CoordinatorAgent uses the AgentCommunicator tool to delegate specialized tasks to the SpecialistAgent, demonstrating how agents can collaborate to solve complex problems.
+In this workflow, the CoordinatorAgent delegates specialized tasks to the SpecialistAgent through the AgentCommunicator tool. The example shows a complete workflow execution for both an invoice and a medical record.
 
-### 3. Agent Evolution
+### Step 4: Agent Evolution
 
-Evolve existing agents to create enhanced versions:
+The third part demonstrates how agents can be evolved to create enhanced versions:
 
-```python
-# Define an evolution workflow
+```yaml
+# Evolution workflow
 evolution_workflow = """
 scenario_name: "Enhanced Invoice Processing"
 domain: "document_processing"
@@ -162,8 +183,8 @@ steps:
     name: "EnhancedInvoiceSpecialist"
     from_existing_snippet: "SpecialistAgent"
     evolve_changes:
-      docstring_update: "Improved with enhanced invoice analysis capabilities"
-    description: "Enhanced specialist that provides more detailed invoice analysis"
+      docstring_update: "Improved with enhanced invoice analysis capabilities including line item detection"
+    description: "Enhanced specialist that provides more detailed invoice analysis with line item extraction"
 
   # Create and execute the evolved agent
   - type: "CREATE"
@@ -172,31 +193,72 @@ steps:
     config:
       memory_type: "token"
 
+  # Test the evolved agent with an invoice
   - type: "EXECUTE"
     item_type: "AGENT"
     name: "EnhancedInvoiceSpecialist"
-    user_input: "{document_text}"
+    user_input: "{invoice}"
 """
 ```
 
-This allows you to create specialized versions of agents that perform better on specific types of tasks.
+This evolution process takes an existing agent (SpecialistAgent) and creates an enhanced version (EnhancedInvoiceSpecialist) with improved capabilities specific to invoice analysis.
 
-### 4. Semantic Search with OpenAI Embeddings
+### Step 5: Semantic Search with OpenAI Embeddings
 
-Find semantically similar components in the library:
+The final part demonstrates how to find semantically similar components in the library:
 
 ```python
-# Search for agents that can process documents
+# Search for document processing agents
 search_results = await library.semantic_search(
     query="agent that can process and understand documents",
     record_type="AGENT",
-    threshold=0.3  # Minimum similarity threshold
+    threshold=0.3
 )
-
-for record, score in search_results:
-    print(f"Match: {record['name']} (Score: {score:.4f})")
-    print(f"Description: {record['description']}")
 ```
+
+This shows how the framework uses OpenAI embeddings to find the most relevant agents for a given task, allowing you to discover and reuse existing components based on their semantic meaning rather than just exact keyword matches.
+
+## Implementation Details
+
+The example uses real BeeAI agents and tools, not just simulations. The key components are:
+
+1. **BeeAI ReActAgent Implementation**: Fully functional agents that use the Reasoning + Acting (ReAct) pattern to solve tasks.
+
+2. **LLM-based Tools**: Tools that leverage language models to analyze documents and facilitate agent communication.
+
+3. **Semantic Library**: A smart storage system that tracks agent versions, performance metrics, and supports semantic search.
+
+4. **YAML Workflow Definition**: A declarative way to describe complex agent interactions.
+
+5. **Provider Architecture**: A pluggable system that supports multiple agent frameworks (currently BeeAI).
+
+## Known Issues
+
+1. **Markdown Code Blocks**: The LLM sometimes includes markdown formatting in its responses (like ```python), which can cause syntax errors when trying to execute the code.
+
+2. **String Literal Handling**: Some generated code may have syntax issues with string literals, especially when escaping special characters.
+
+3. **Parameter Consistency**: When evolving agents, parameter types and names may not always be consistently maintained.
+
+4. **Medical Record Processing**: In the current example workflow, there might be issues with the medical record processing not correctly analyzing medical record inputs.
+
+## Roadmap for Future Improvements
+
+1. **Enhanced Code Parsing**: Add a more sophisticated code parsing system to better handle markdown and other formatting in the generated code.
+
+2. **Code Validation**: Add a validation step when loading agents and tools to ensure their code is well-formed and executable.
+
+3. **Test Mode for Agents**: Implement a "test mode" for agents where they can be checked for basic functionality before being added to the library.
+
+4. **Error Analysis System**: Add a system to record and analyze specific errors that agents encounter to better guide their evolution.
+
+5. **Improved Cross-Domain Collaboration**: Enhance the ability of agents from different domains to collaborate effectively.
+
+6. **Agent Memory Persistence**: Implement more sophisticated memory models that allow agents to retain knowledge across sessions.
+
+7. **Self-improvement Metrics**: Add quantitative measurements of agent improvement over time and across evolutions.
+
+8. **Visual Debugging Tools**: Create tools to visualize agent execution paths and communications for easier debugging.
 
 ## Core Components
 

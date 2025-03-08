@@ -19,27 +19,34 @@ logger = logging.getLogger(__name__)
 
 # Define real BeeAI-compatible tool and agent code snippets
 
-# Real BeeAI-compatible DocumentAnalyzer tool
+# LLM-based DocumentAnalyzer tool
 DOCUMENT_ANALYZER_TOOL = '''
 from typing import Dict, Any
-import re
+import json
 from pydantic import BaseModel, Field
 
 from beeai_framework.context import RunContext
 from beeai_framework.emitter.emitter import Emitter
 from beeai_framework.tools.tool import StringToolOutput, Tool, ToolRunOptions
+from beeai_framework.backend.chat import ChatModel
+from beeai_framework.backend.message import UserMessage
 
 class DocumentAnalyzerInput(BaseModel):
     text: str = Field(description="Document text to analyze")
 
 class DocumentAnalyzer(Tool[DocumentAnalyzerInput, ToolRunOptions, StringToolOutput]):
     """
-    Analyzes a document to identify its type and key characteristics.
+    Analyzes a document to identify its type and key characteristics using an LLM.
     """
     name = "DocumentAnalyzer"
     description = "Identifies document type and extracts key information"
     input_schema = DocumentAnalyzerInput
 
+    def __init__(self, options: Dict[str, Any] | None = None):
+        super().__init__(options=options or {})
+        # Get a chat model from the options or create a default one
+        self.chat_model = options.get("chat_model") if options else None
+        
     def _create_emitter(self) -> Emitter:
         return Emitter.root().child(
             namespace=["tool", "document", "analyzer"],
@@ -48,7 +55,7 @@ class DocumentAnalyzer(Tool[DocumentAnalyzerInput, ToolRunOptions, StringToolOut
     
     async def _run(self, input: DocumentAnalyzerInput, options: ToolRunOptions | None, context: RunContext) -> StringToolOutput:
         """
-        Analyzes a document to identify its type and key characteristics.
+        Analyzes a document using an LLM to identify its type and extract key information.
         
         Args:
             input: Document text to analyze
@@ -56,79 +63,115 @@ class DocumentAnalyzer(Tool[DocumentAnalyzerInput, ToolRunOptions, StringToolOut
         Returns:
             Document analysis including type, confidence, and keywords
         """
-        text = input.text.lower()
-        result = {
-            "document_type": "unknown",
-            "confidence": 0.5,
-            "keywords": []
-        }
+        # If we don't have a chat model, try to get one from the context
+        if not self.chat_model and context and hasattr(context, "llm"):
+            self.chat_model = context.llm
         
-        # Extract keywords (words that appear frequently or seem important)
-        words = text.split()
-        word_counts = {}
-        
-        for word in words:
-            # Clean the word
-            clean_word = word.strip(".,;:()[]{}\"'")
-            if len(clean_word) > 3:  # Only count words with at least 4 characters
-                word_counts[clean_word] = word_counts.get(clean_word, 0) + 1
-        
-        # Get the top 5 most frequent words
-        sorted_words = sorted(word_counts.items(), key=lambda x: x[1], reverse=True)
-        result["keywords"] = [word for word, count in sorted_words[:5]]
-        
-        # Determine document type based on content
-        if "invoice" in text:
-            if "total" in text and ("payment" in text or "due" in text):
-                result["document_type"] = "invoice"
-                result["confidence"] = 0.9
+        # If we still don't have a chat model, try to get the default one
+        if not self.chat_model:
+            try:
+                from beeai_framework.backend.chat import get_default_chat_model
+                self.chat_model = get_default_chat_model()
+            except:
+                pass
                 
-                # Check for invoice amount
-                money_pattern = r'\\$(\d+,?\d*\.\d{2})'
-                amounts = re.findall(money_pattern, input.text)
-                if amounts:
-                    result["has_monetary_values"] = True
+        # Fall back to OpenAI if available
+        if not self.chat_model:
+            try:
+                from beeai_framework.adapters.litellm.chat import LiteLLMChatModel
+                self.chat_model = LiteLLMChatModel("gpt-4o", provider_id="openai")
+            except:
+                return StringToolOutput(json.dumps({
+                    "error": "No chat model available for document analysis"
+                }))
+        
+        # Create the prompt for document analysis
+        prompt = f"""
+        Please analyze the following document and provide structured information about it.
+        Identify the document type, extract key information, and provide a confidence score.
+        
+        Return the results in JSON format with the following structure:
+        {{
+            "document_type": "Type of document (invoice, medical_record, contract, etc.)",
+            "confidence": 0.0-1.0,
+            "keywords": ["list", "of", "key", "words"],
+            "extracted_data": {{
+                "field1": "value1",
+                "field2": "value2",
+                ...
+            }}
+        }}
+        
+        DOCUMENT TO ANALYZE:
+        {input.text}
+        """
+        
+        try:
+            # Query the LLM
+            message = UserMessage(prompt)
+            response = await self.chat_model.create(messages=[message])
+            response_text = response.get_text_content()
+            
+            # Try to parse the response as JSON
+            try:
+                result = json.loads(response_text)
+                # Ensure we have all the required fields
+                if not isinstance(result, dict):
+                    result = {"document_type": "unknown", "error": "Invalid response format"}
+                if "document_type" not in result:
+                    result["document_type"] = "unknown"
+                if "confidence" not in result:
+                    result["confidence"] = 0.5
+                if "keywords" not in result:
+                    result["keywords"] = []
+                if "extracted_data" not in result:
+                    result["extracted_data"] = {}
+            except json.JSONDecodeError:
+                # If the response isn't valid JSON, try to extract JSON from it
+                import re
+                json_match = re.search(r'{{.*}}', response_text, re.DOTALL)
+                if json_match:
                     try:
-                        result["highest_amount"] = max([float(amt.replace(",", "")) for amt in amounts])
+                        result = json.loads(json_match.group(0))
                     except:
-                        pass
-        
-        elif "patient" in text:
-            if "medical" in text or "assessment" in text or "diagnosis" in text:
-                result["document_type"] = "medical"
-                result["confidence"] = 0.92
-                
-                # Check for medical keywords
-                medical_keywords = ["prescribed", "symptoms", "treatment", "follow-up", "medication"]
-                for keyword in medical_keywords:
-                    if keyword in text:
-                        result["keywords"].append(keyword)
-        
-        elif "contract" in text or "agreement" in text:
-            result["document_type"] = "contract"
-            result["confidence"] = 0.85
-        
-        elif "report" in text:
-            result["document_type"] = "report"
-            result["confidence"] = 0.7
-        
-        # Clean up keywords to remove duplicates and sort
-        result["keywords"] = list(set(result["keywords"]))
-        
-        import json
-        return StringToolOutput(json.dumps(result, indent=2))
+                        result = {
+                            "document_type": "unknown",
+                            "confidence": 0.5,
+                            "keywords": [],
+                            "extracted_data": {},
+                            "raw_response": response_text[:500]  # Include part of the raw response
+                        }
+                else:
+                    # Create a basic response
+                    result = {
+                        "document_type": "unknown",
+                        "confidence": 0.5,
+                        "keywords": [],
+                        "raw_response": response_text[:500]  # Include part of the raw response
+                    }
+            
+            return StringToolOutput(json.dumps(result, indent=2))
+            
+        except Exception as e:
+            error_result = {
+                "error": f"Error analyzing document: {str(e)}",
+                "document_type": "unknown",
+                "confidence": 0.0
+            }
+            return StringToolOutput(json.dumps(error_result, indent=2))
 '''
 
-# Real BeeAI-compatible AgentCommunicator tool
+# LLM-based AgentCommunicator tool
 AGENT_COMMUNICATOR_TOOL = '''
 from typing import Dict, Any, Optional
 import json
-import re
 from pydantic import BaseModel, Field
 
 from beeai_framework.context import RunContext
 from beeai_framework.emitter.emitter import Emitter
 from beeai_framework.tools.tool import StringToolOutput, Tool, ToolRunOptions
+from beeai_framework.backend.chat import ChatModel
+from beeai_framework.backend.message import UserMessage
 
 class AgentCommunicatorInput(BaseModel):
     agent_name: str = Field(description="Name of the agent to communicate with")
@@ -143,6 +186,11 @@ class AgentCommunicator(Tool[AgentCommunicatorInput, ToolRunOptions, StringToolO
     description = "Enables communication between different specialized agents"
     input_schema = AgentCommunicatorInput
 
+    def __init__(self, options: Dict[str, Any] | None = None):
+        super().__init__(options=options or {})
+        # Get a chat model from the options or create a default one
+        self.chat_model = options.get("chat_model") if options else None
+        
     def _create_emitter(self) -> Emitter:
         return Emitter.root().child(
             namespace=["tool", "agent", "communicator"],
@@ -151,7 +199,7 @@ class AgentCommunicator(Tool[AgentCommunicatorInput, ToolRunOptions, StringToolO
     
     async def _run(self, input: AgentCommunicatorInput, options: ToolRunOptions | None, context: RunContext) -> StringToolOutput:
         """
-        Process a communication request between agents.
+        Process a communication request between agents using an LLM.
         
         Args:
             input: Communication request details including agent name, message, and data
@@ -165,100 +213,107 @@ class AgentCommunicator(Tool[AgentCommunicatorInput, ToolRunOptions, StringToolO
             message = input.message
             data = input.data
             
-            # In a real implementation, we would use an agent registry or a more sophisticated
-            # way to communicate between agents. For this example, we'll simulate responses.
+            # If we don't have a chat model, try to get one from the context
+            if not self.chat_model and context and hasattr(context, "llm"):
+                self.chat_model = context.llm
             
+            # If we still don't have a chat model, try to get the default one
+            if not self.chat_model:
+                try:
+                    from beeai_framework.backend.chat import get_default_chat_model
+                    self.chat_model = get_default_chat_model()
+                except:
+                    pass
+                    
+            # Fall back to OpenAI if available
+            if not self.chat_model:
+                try:
+                    from beeai_framework.adapters.litellm.chat import LiteLLMChatModel
+                    self.chat_model = LiteLLMChatModel("gpt-4o", provider_id="openai")
+                except:
+                    return StringToolOutput(json.dumps({
+                        "error": "No chat model available for agent communication"
+                    }))
+            
+            # Create specialized prompts based on which agent is being contacted
             if agent_name == "SpecialistAgent":
-                # Simulate specialist analysis
-                result = self._specialist_analysis(message, data)
+                # Create a prompt for the specialist agent
+                prompt = f"""
+                You are a specialist agent that performs detailed document analysis.
+                
+                Analyze the following document and provide a structured response.
+                Return a JSON object with 'analysis' and 'extracted_data' fields.
+                
+                DOCUMENT TYPE: {data.get('document_type', 'unknown')}
+                
+                DOCUMENT CONTENT:
+                {message}
+                
+                ADDITIONAL CONTEXT:
+                {json.dumps(data, indent=2)}
+                """
             else:
-                return StringToolOutput(json.dumps({"error": f"Unknown agent: {agent_name}"}))
+                # Generic communication
+                prompt = f"""
+                You are simulating agent '{agent_name}'.
+                
+                Please respond to the following message as if you were the agent:
+                {message}
+                
+                ADDITIONAL CONTEXT:
+                {json.dumps(data, indent=2)}
+                
+                Return your response in JSON format with appropriate fields.
+                """
+            
+            # Query the LLM
+            message_obj = UserMessage(prompt)
+            response = await self.chat_model.create(messages=[message_obj])
+            response_text = response.get_text_content()
+            
+            # Try to parse the response as JSON
+            try:
+                result = json.loads(response_text)
+            except json.JSONDecodeError:
+                # If the response isn't valid JSON, try to extract JSON from it
+                import re
+                json_match = re.search(r'{{.*}}', response_text, re.DOTALL)
+                if json_match:
+                    try:
+                        result = json.loads(json_match.group(0))
+                    except:
+                        # Structure the response manually
+                        result = {
+                            "analysis": {
+                                "document_type": data.get("document_type", "unknown"),
+                                "notes": "Structured response could not be extracted"
+                            },
+                            "extracted_data": {},
+                            "raw_response": response_text[:500]  # Include part of the raw response
+                        }
+                else:
+                    # Structure the response manually
+                    result = {
+                        "analysis": {
+                            "document_type": data.get("document_type", "unknown"),
+                            "notes": "Structured response could not be extracted"
+                        },
+                        "extracted_data": {},
+                        "raw_response": response_text[:500]  # Include part of the raw response
+                    }
             
             return StringToolOutput(json.dumps(result, indent=2))
             
         except Exception as e:
-            return StringToolOutput(json.dumps({"error": f"Communication error: {str(e)}"}))
-    
-    def _specialist_analysis(self, text: str, options: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Performs specialized analysis based on document content.
-        In a real implementation, this would call the SpecialistAgent.
-        """
-        document_type = options.get("document_type", "unknown")
-        lower_text = text.lower()
-        
-        results = {
-            "analysis": {},
-            "extracted_data": {}
-        }
-        
-        # Extract basic data
-        # Dates (YYYY-MM-DD format)
-        date_pattern = r'(\d{4}-\d{2}-\d{2})'
-        dates = re.findall(date_pattern, text)
-        if dates:
-            results["extracted_data"]["dates"] = dates
-        
-        # Monetary values
-        money_pattern = r'\\$(\d+,?\d*\.\d{2})'
-        monetary_values = re.findall(money_pattern, text)
-        if monetary_values:
-            results["extracted_data"]["monetary_values"] = [value.replace(",", "") for value in monetary_values]
-        
-        # Document-specific analysis
-        if document_type == "invoice" or "invoice" in lower_text:
-            # Invoice analysis
-            results["analysis"]["document_type"] = "invoice"
-            results["analysis"]["priority"] = "medium"
-            
-            # Extract vendor
-            vendor_match = re.search(r'Vendor: ([^\\n]+)', text)
-            if vendor_match:
-                results["extracted_data"]["vendor"] = vendor_match.group(1).strip()
-            
-            # Extract total
-            total_match = re.search(r'Total[^:]*: ?\\$(\d+,?\d*\.\d{2})', text)
-            if total_match:
-                total = total_match.group(1).replace(",", "")
-                results["extracted_data"]["total_amount"] = total
-                
-                # Set priority based on amount
-                try:
-                    amount = float(total)
-                    if amount > 1000:
-                        results["analysis"]["priority"] = "high"
-                        results["analysis"]["approval_required"] = True
-                        results["analysis"]["notes"] = "Large invoice requires manager approval"
-                    else:
-                        results["analysis"]["approval_required"] = False
-                except:
-                    pass
-                
-        elif document_type == "medical" or "patient" in lower_text:
-            # Medical record analysis
-            results["analysis"]["document_type"] = "medical_record"
-            results["analysis"]["priority"] = "medium"
-            
-            # Extract patient name
-            name_match = re.search(r'Name: ([^\\n]+)', text)
-            if name_match:
-                results["extracted_data"]["patient_name"] = name_match.group(1).strip()
-            
-            # Extract diagnosis
-            diagnosis_match = re.search(r'Assessment: ([^\\n]+)', text)
-            if diagnosis_match:
-                diagnosis = diagnosis_match.group(1).strip()
-                results["extracted_data"]["diagnosis"] = diagnosis
-                
-                # Set priority based on diagnosis
-                if "acute" in diagnosis.lower() or "emergency" in diagnosis.lower():
-                    results["analysis"]["priority"] = "high"
-                    results["analysis"]["follow_up_required"] = True
-                    results["analysis"]["notes"] = "Urgent condition requires immediate follow-up"
-                else:
-                    results["analysis"]["follow_up_required"] = False
-        
-        return results
+            error_result = {
+                "error": f"Communication error: {str(e)}",
+                "analysis": {
+                    "document_type": data.get("document_type", "unknown") if isinstance(data, dict) else "unknown",
+                    "success": False
+                },
+                "extracted_data": {}
+            }
+            return StringToolOutput(json.dumps(error_result, indent=2))
 '''
 
 # Real BeeAI-compatible SpecialistAgent

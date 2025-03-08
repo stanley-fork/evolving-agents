@@ -57,6 +57,24 @@ class AgentFactory:
         # Additional providers would be registered here
         
         logger.info(f"Registered default providers: {self.provider_registry.list_available_providers()}")
+
+    def clean_code_snippet(code_snippet):
+        """Clean code snippet by removing markdown formatting and fixing common syntax issues."""
+        # Remove markdown code blocks if present
+        if "```" in code_snippet:
+            lines = code_snippet.split("\n")
+            clean_lines = []
+            inside_code_block = False
+            for line in lines:
+                if line.strip().startswith("```"):
+                    inside_code_block = not inside_code_block
+                    continue
+                if not inside_code_block:
+                    clean_lines.append(line)
+            code_snippet = "\n".join(clean_lines)
+        
+        # Additional cleaning if needed
+        return code_snippet.strip()
     
     async def create_agent(
         self, 
