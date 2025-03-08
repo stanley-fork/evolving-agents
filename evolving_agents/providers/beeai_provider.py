@@ -1,10 +1,14 @@
-# evolving_agents/providers/beeai_provider.py
+# evolving_agents/providers/beeai_provider.py (improved version)
 
 import logging
+import importlib
+import inspect
+import json
 from typing import Dict, Any, List, Optional, Union
+import ast
 
 # BeeAI framework imports
-from beeai_framework.agents.bee.agent import BeeAgent
+from beeai_framework.agents.react import ReActAgent
 from beeai_framework.agents.types import BeeAgentExecutionConfig, AgentMeta
 from beeai_framework.memory import TokenMemory, UnconstrainedMemory
 from beeai_framework.tools.tool import Tool
@@ -38,7 +42,7 @@ class BeeAIProvider(FrameworkProvider):
         tools: Optional[List[Tool]] = None,
         firmware_content: Optional[str] = None,
         config: Optional[Dict[str, Any]] = None
-    ) -> BeeAgent:
+    ) -> ReActAgent:
         """
         Create a BeeAgent with the specified configuration.
         
@@ -56,19 +60,7 @@ class BeeAIProvider(FrameworkProvider):
         # Apply default config if none provided
         config = config or {}
         
-        # Prepare description/instructions
-        instructions = record["description"]
-        if firmware_content:
-            instructions = f"{firmware_content}\n\n{instructions}"
-        
-        # Create meta information
-        meta = AgentMeta(
-            name=record["name"],
-            description=instructions,
-            tools=tools or []
-        )
-        
-        # Get the ChatModel - prefer provided llm_service, fall back to config
+        # Get the ChatModel - prefer provided llm_service
         chat_model = None
         if self.llm_service and self.llm_service.chat_model:
             chat_model = self.llm_service.chat_model
@@ -79,6 +71,81 @@ class BeeAIProvider(FrameworkProvider):
             logger.error("No ChatModel available for BeeAgent")
             raise ValueError("ChatModel not available. Provide an LLMService or chat_model in config.")
         
+        # Try to determine if this is a class-based agent or a function-based agent
+        code_snippet = record["code_snippet"]
+        
+        # First approach: Look for class with "create_agent" method
+        initializer_class_name = None
+        try:
+            parsed_ast = ast.parse(code_snippet)
+            for node in ast.walk(parsed_ast):
+                if isinstance(node, ast.ClassDef):
+                    for item in node.body:
+                        if isinstance(item, ast.FunctionDef) and item.name == "create_agent":
+                            initializer_class_name = node.name
+                            break
+                    if initializer_class_name:
+                        break
+        except:
+            pass
+        
+        # If we found an initializer class, use it
+        if initializer_class_name:
+            try:
+                # Create a module from the code snippet
+                module_code = f'''
+{code_snippet}
+
+# Create a factory function to instantiate the agent
+def create_agent_instance(chat_model, tools=None):
+    initializer = {initializer_class_name}()
+    if hasattr(initializer, "create_agent"):
+        # Class method approach
+        if "tools" in inspect.signature(initializer.create_agent).parameters:
+            return initializer.create_agent(chat_model, tools)
+        else:
+            return initializer.create_agent(chat_model)
+    elif hasattr({initializer_class_name}, "create_agent"):
+        # Static method approach
+        if "tools" in inspect.signature({initializer_class_name}.create_agent).parameters:
+            return {initializer_class_name}.create_agent(chat_model, tools)
+        else:
+            return {initializer_class_name}.create_agent(chat_model)
+    else:
+        raise ValueError("No create_agent method found")
+'''
+                # Create an executable namespace
+                namespace = {}
+                
+                # Execute the code within the namespace
+                exec(module_code, namespace)
+                
+                # Call the factory function
+                agent = namespace["create_agent_instance"](chat_model, tools)
+                
+                # Validate that it's a ReActAgent
+                if not isinstance(agent, ReActAgent):
+                    raise ValueError(f"Created object is not a ReActAgent: {type(agent)}")
+                
+                return agent
+                
+            except Exception as e:
+                logger.error(f"Error creating agent using initializer class: {str(e)}")
+                logger.error(traceback.format_exc())
+        
+        # Alternative approach: create a ReActAgent directly
+        # Prepare description/instructions
+        description = record["description"]
+        if firmware_content:
+            description = f"{firmware_content}\n\n{description}"
+        
+        # Create meta information
+        meta = AgentMeta(
+            name=record["name"],
+            description=description,
+            tools=tools or []
+        )
+        
         # Create memory - use TokenMemory by default, but allow configuration
         memory_type = config.get("memory_type", "token")
         if memory_type == "unconstrained":
@@ -87,7 +154,7 @@ class BeeAIProvider(FrameworkProvider):
             memory = TokenMemory(chat_model)
         
         # Create the BeeAgent with proper parameters
-        agent = BeeAgent(
+        agent = ReActAgent(
             llm=chat_model,
             tools=tools or [],
             memory=memory,
@@ -98,7 +165,7 @@ class BeeAIProvider(FrameworkProvider):
     
     async def execute_agent(
         self, 
-        agent_instance: BeeAgent,
+        agent_instance: Union[ReActAgent, str],
         input_text: str,
         execution_config: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
@@ -106,13 +173,22 @@ class BeeAIProvider(FrameworkProvider):
         Execute a BeeAgent with input text.
         
         Args:
-            agent_instance: The BeeAgent instance
+            agent_instance: The BeeAgent instance or name
             input_text: Input text to process
             execution_config: Optional execution configuration parameters
             
         Returns:
             Execution result dictionary with status, message, and result
         """
+        if isinstance(agent_instance, str):
+            logger.warning(f"Expected agent instance but got name: {agent_instance}. "
+                          "This may not work - fixes needed in SystemAgent.execute_item")
+            return {
+                "status": "error",
+                "message": f"BeeAIProvider requires agent instance, not name: {agent_instance}",
+                "result": f"Error: BeeAIProvider requires agent instance, not name"
+            }
+            
         logger.info(f"Executing BeeAgent with input: {input_text[:50]}...")
         
         # Apply default execution config if none provided
@@ -126,31 +202,11 @@ class BeeAIProvider(FrameworkProvider):
         )
         
         try:
-            # Setup observability if requested
-            observer = None
-            if execution_config.get("enable_observability", False):
-                def setup_observer(emitter: Emitter) -> None:
-                    def process_events(data: Dict[str, Any], event_meta: Any) -> None:
-                        logger.debug(f"BeeAgent event: {event_meta.name} - {str(data)[:100]}")
-                    
-                    emitter.on("*", process_events)
-                
-                observer = setup_observer
-            
-            # Run the agent with the input and config
-            run_input = input_text
-            
-            # Execute with or without observer
-            if observer:
-                run_result = await agent_instance.run(
-                    prompt=run_input,
-                    execution=bee_exec_config
-                ).observe(observer)
-            else:
-                run_result = await agent_instance.run(
-                    prompt=run_input,
-                    execution=bee_exec_config
-                )
+            # Run the agent with the input text
+            run_result = await agent_instance.run(
+                prompt=input_text,
+                execution=bee_exec_config
+            )
             
             # Get the text result
             result_text = run_result.result.text
@@ -193,7 +249,7 @@ class BeeAIProvider(FrameworkProvider):
         Returns:
             List of supported agent type names
         """
-        return ["BeeAgent"]
+        return ["BeeAgent", "ReActAgent"]
     
     def get_configuration_schema(self) -> Dict[str, Any]:
         """

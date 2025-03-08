@@ -1,4 +1,4 @@
-# evolving_agents/core/system_agent.py
+# evolving_agents/core/system_agent.py (improved version)
 
 import logging
 import yaml
@@ -6,7 +6,9 @@ import os
 import uuid
 from typing import Dict, Any, List, Optional, Tuple
 
-from beeai_framework.agents.types import BeeAgentExecutionConfig
+from beeai_framework.agents.react import ReActAgent
+from beeai_framework.agents.types import BeeAgentExecutionConfig, AgentMeta
+from beeai_framework.memory import TokenMemory, UnconstrainedMemory
 from beeai_framework.tools.tool import Tool
 
 from evolving_agents.smart_library.smart_library import SmartLibrary
@@ -14,29 +16,48 @@ from evolving_agents.firmware.firmware import Firmware
 from evolving_agents.core.llm_service import LLMService
 from evolving_agents.agents.agent_factory import AgentFactory
 from evolving_agents.tools.tool_factory import ToolFactory
+from evolving_agents.providers.registry import ProviderRegistry
+from evolving_agents.providers.beeai_provider import BeeAIProvider
 
 logger = logging.getLogger(__name__)
 
 class SystemAgent:
     """
     Central orchestrator for the evolving agents framework.
-    Implements the decision logic from Article 3.1.
+    Implements the decision logic:
+    - If similarity >= 0.8: Reuse
+    - If 0.4 <= similarity < 0.8: Evolve
+    - If similarity < 0.4: Create new
     """
     def __init__(
-        self, 
-        smart_library: SmartLibrary, 
-        llm_service: LLMService,
-        agent_factory: Optional[AgentFactory] = None,
-        tool_factory: Optional[ToolFactory] = None
+    self, 
+    smart_library: SmartLibrary, 
+    llm_service: LLMService,
+    agent_factory: Optional[AgentFactory] = None,
+    tool_factory: Optional[ToolFactory] = None,
+    provider_registry: Optional[ProviderRegistry] = None
     ):
         self.library = smart_library
         self.llm = llm_service
         self.firmware = Firmware()
         self.active_items = {}
         
+        # Initialize provider registry
+        self.provider_registry = provider_registry or ProviderRegistry()
+        if not self.provider_registry.list_available_providers():
+            self.provider_registry.register_provider(BeeAIProvider(llm_service))
+        
         # Initialize factories
-        self.agent_factory = agent_factory or AgentFactory(smart_library, llm_service)
+        self.agent_factory = agent_factory or AgentFactory(
+            smart_library, 
+            llm_service,
+            self.provider_registry
+        )
         self.tool_factory = tool_factory or ToolFactory(smart_library, llm_service)
+        
+        # Set up templates
+        from evolving_agents.utils.setup_templates import setup_templates
+        setup_templates()
         
         logger.info("System Agent initialized")
     
@@ -47,7 +68,7 @@ class SystemAgent:
         record_type: str  # "AGENT" or "TOOL"
     ) -> Dict[str, Any]:
         """
-        Main decision logic as described in Article 3.1:
+        Main decision logic:
         - If similarity >= 0.8: Reuse
         - If 0.4 <= similarity < 0.8: Evolve
         - If similarity < 0.4: Create new
@@ -171,6 +192,9 @@ class SystemAgent:
         
         For domain '{domain}', make sure to include all required disclaimers and domain-specific rules.
         
+        For AGENT records: The agent should use BeeAI's ReActAgent and properly use tools.
+        For TOOL records: The tool should extend beeai_framework.tools.tool.Tool class.
+        
         EVOLVED CODE:
         """
 
@@ -205,12 +229,13 @@ class SystemAgent:
             "message": f"Evolved {record['record_type']} '{record['name']}' to version {evolved_record['version']} (similarity={similarity:.2f})"
         }
     
+    
     async def _create_new(
-        self,
-        request: str,
-        domain: str,
-        record_type: str,
-        firmware_content: str
+    self,
+    request: str,
+    domain: str,
+    record_type: str,
+    firmware_content: str
     ) -> Dict[str, Any]:
         """
         Create a new record from scratch.
@@ -230,43 +255,124 @@ class SystemAgent:
         
         logger.info(f"Creating new {record_type} '{name}' for request: {request[:50]}...")
         
-        # Generate code - avoid f-string when there are curly braces in the template
-        creation_prompt = firmware_content + "\n\n"
-        creation_prompt += "Create a Python tool that fulfills this request:\n"
-        creation_prompt += f"\"{request}\"\n\n"
-        creation_prompt += "IMPORTANT REQUIREMENTS:\n"
-        creation_prompt += "1. The tool should define a main function that takes a single parameter named 'input' (a string)\n"
-        creation_prompt += "2. Set the final result to a variable named 'result'\n"
-        creation_prompt += "3. DO NOT include Markdown formatting (```python, etc.)\n"
-        creation_prompt += "4. Include appropriate error handling\n"
-        creation_prompt += f"5. For domain '{domain}', include all required disclaimers and domain-specific rules\n\n"
-        creation_prompt += "EXAMPLE TOOL FUNCTION:\n"
-        creation_prompt += "```\n"
-        creation_prompt += "# Medical disclaimer here\n\n"
-        creation_prompt += "def analyze_symptoms(input):\n"
-        creation_prompt += "    # Parse the input\n"
-        creation_prompt += "    text = input.lower()\n"
-        creation_prompt += "    \n"
-        creation_prompt += "    # Process and analyze\n"
-        creation_prompt += "    # ...\n"
-        creation_prompt += "    \n"
-        creation_prompt += "    # Return results\n"
-        creation_prompt += "    return {\"result\": \"analysis\", \"confidence\": 0.8}\n\n"
-        creation_prompt += "# Call the function with the input text and store the output in 'result'\n"
-        creation_prompt += "result = analyze_symptoms(input)\n"
-        creation_prompt += "```\n\n"
-        creation_prompt += "YOUR CODE (WITHOUT MARKDOWN FORMATTING):\n"
+        # Get paths to template files
+        import os
+        templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
+        
+        # Make sure the templates directory exists
+        os.makedirs(templates_dir, exist_ok=True)
+        
+        agent_template_path = os.path.join(templates_dir, "beeai_agent_template.txt")
+        tool_template_path = os.path.join(templates_dir, "beeai_tool_template.txt")
+        
+        # Read templates from files or use default if files don't exist
+        try:
+            with open(agent_template_path, 'r') as f:
+                bee_agent_template = f.read()
+        except FileNotFoundError:
+            logger.warning(f"Template file {agent_template_path} not found, using default template")
+            bee_agent_template = "# Default BeeAI agent template would be here"
+            
+        try:
+            with open(tool_template_path, 'r') as f:
+                bee_tool_template = f.read()
+        except FileNotFoundError:
+            logger.warning(f"Template file {tool_template_path} not found, using default template")
+            bee_tool_template = "# Default BeeAI tool template would be here"
+        
+        # Generate code - different approach for agents vs tools
+        if record_type == "AGENT":
+            creation_prompt = f"""
+            {firmware_content}
+
+            Create a Python agent using the BeeAI framework that fulfills this request:
+            "{request}"
+
+            IMPORTANT REQUIREMENTS:
+            1. The agent must be a properly implemented BeeAI ReActAgent 
+            2. Use the following framework imports:
+            - from beeai_framework.agents.react import ReActAgent
+            - from beeai_framework.agents.types import AgentMeta
+            - from beeai_framework.memory import TokenMemory or UnconstrainedMemory
+
+            3. The agent must follow this structure - implementing a class with a create_agent method:
+
+            REFERENCE TEMPLATE FOR A BEEAI AGENT:
+            ```python
+    {bee_agent_template}
+            ```
+
+            YOUR TASK:
+            Create a similar agent class for: "{request}"
+            - Replace the WeatherAgentInitializer with an appropriate name for this domain
+            - Adapt the description and functionality for the {domain} domain
+            - Include all required disclaimers from the firmware
+            - Specify any tools the agent should use
+            - The code must be complete and executable
+
+            CODE:
+            """
+        else:  # TOOL
+            creation_prompt = f"""
+            {firmware_content}
+
+            Create a Python tool using the BeeAI framework that fulfills this request:
+            "{request}"
+
+            IMPORTANT REQUIREMENTS:
+            1. The tool must be a properly implemented BeeAI Tool class
+            2. Use the following framework imports:
+            - from beeai_framework.tools.tool import Tool, StringToolOutput
+            - from beeai_framework.context import RunContext
+            - from pydantic import BaseModel, Field
+
+            3. The tool must follow this structure with an input schema and _run method:
+
+            REFERENCE TEMPLATE FOR A BEEAI TOOL:
+            ```python
+    {bee_tool_template}
+            ```
+
+            YOUR TASK:
+            Create a similar tool class for: "{request}"
+            - Replace WeatherTool with an appropriate name for this domain
+            - Replace WeatherToolInput with an appropriate input schema
+            - Define proper input fields with descriptions
+            - Implement the _run method with appropriate logic
+            - Include error handling
+            - For domain '{domain}', include all required disclaimers
+            - The code must be complete and executable
+
+            CODE:
+            """
 
         new_code = await self.llm.generate(creation_prompt)
         
         # Create record
+        metadata = {"framework": "beeai"}
+        
+        # Add metadata for required_tools if we detect it in the code
+        if record_type == "AGENT":
+            # Extract required tools from the code
+            import re
+            tools_pattern = r"tools=\[(.*?)\]"
+            tools_match = re.search(tools_pattern, new_code, re.DOTALL)
+            
+            if tools_match:
+                tools_str = tools_match.group(1)
+                # Try to extract tool class names
+                tool_classes = re.findall(r'(\w+)\(\)', tools_str)
+                if tool_classes:
+                    metadata["required_tools"] = tool_classes
+        
         new_record = await self.library.create_record(
             name=name,
             record_type=record_type,
             domain=domain,
             description=f"Created for: {request}",
             code_snippet=new_code,
-            tags=[domain, record_type.lower()]
+            tags=[domain, record_type.lower()],
+            metadata=metadata
         )
         
         # Create instance based on record type
@@ -315,9 +421,15 @@ class SystemAgent:
         try:
             # Execute based on record type
             if record["record_type"] == "AGENT":
-                result = await self.agent_factory.execute_agent(instance, input_text)
+                result = await self.agent_factory.execute_agent(
+                    name,  # Use name instead of instance
+                    input_text
+                )
             else:  # TOOL
-                result = await self.tool_factory.execute_tool(instance, input_text)
+                result = await self.tool_factory.execute_tool(
+                    instance, 
+                    input_text
+                )
             
             # Update usage metrics
             await self.library.update_usage_metrics(record["id"], True)
