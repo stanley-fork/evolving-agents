@@ -13,6 +13,7 @@ A production-grade framework for creating, managing, and evolving AI agents with
 - **Human-readable YAML Workflows**: Define complex agent collaborations with simple, version-controlled YAML
 - **Multi-Framework Support**: Seamlessly integrate agents from different frameworks (BeeAI, OpenAI, etc.)
 - **Governance through Firmware**: Enforce domain-specific rules across all agents
+- **ACP Integration**: Support for BeeAI's Agent Communication Protocol in pre-alpha
 
 ## Quick Start
 
@@ -218,6 +219,74 @@ search_results = await library.semantic_search(
 
 This shows how the framework uses OpenAI embeddings to find the most relevant agents for a given task, allowing you to discover and reuse existing components based on their semantic meaning rather than just exact keyword matches.
 
+## Agent Communication Protocol (ACP) Support
+
+The Evolving Agents Framework includes preliminary support for BeeAI's Agent Communication Protocol (ACP), a standardized approach for agent-to-agent communication.
+
+### What is ACP?
+
+The Agent Communication Protocol (ACP) is a protocol designed to standardize how agents communicate, enabling automation, agent-to-agent collaboration, UI integration, and developer tooling. Currently in pre-alpha, ACP extends the Model Context Protocol (MCP), leveraging the simplicity and versatility of JSON-RPC for efficient interactions between agents, platforms, and external services.
+
+For more information, see the [official BeeAI ACP documentation](https://docs.beeai.dev/acp/pre-alpha/introduction#relationship-with-mcp).
+
+### ACP Integration in Evolving Agents
+
+Our framework provides a preliminary implementation of ACP that allows agents to communicate using standardized message formats:
+
+```python
+# Example: Using ACP for agent communication
+from evolving_agents.acp.client import ACPClient
+from evolving_agents.providers.acp_provider import ACPProvider
+
+# Create an ACP client
+acp_client = ACPClient(transport="memory")
+
+# Register the ACP provider with your system
+provider_registry = ProviderRegistry()
+provider_registry.register_provider(ACPProvider(llm_service, acp_client))
+
+# Process an ACP-enabled workflow
+acp_workflow = """
+scenario_name: "ACP Document Analysis"
+domain: "document_processing"
+description: "Process documents using ACP-enabled agents"
+
+steps:
+  # Register agents with ACP
+  - type: "ACP_REGISTER"
+    name: "AnalysisAgent"
+
+  - type: "ACP_REGISTER"
+    name: "SummaryAgent"
+
+  # Execute with ACP communication
+  - type: "ACP_COMMUNICATE"
+    sender: "AnalysisAgent"
+    recipient: "SummaryAgent"
+    message: "Please analyze this document: {document_text}"
+"""
+
+results = await workflow_processor.process_acp_workflow(acp_workflow)
+```
+
+### ACP Features Currently Supported
+
+- **Message Types**: Support for text and structured JSON messages
+- **Transport Layers**: In-memory transport (with stubs for HTTP/SSE, WebSocket, and Stdio)
+- **Agent Registration**: Register and discover agents through the ACP registry
+- **Workflow Integration**: Define ACP-specific workflow steps in YAML
+- **Message History**: Track message exchanges for debugging and analysis
+
+### Next Steps for ACP Integration
+
+1. **Standard Compliance**: Align our implementation with evolving ACP standards as they mature
+2. **Transport Implementation**: Complete HTTP/SSE and WebSocket transport implementations
+3. **UI Integration**: Add support for ACP-powered user interfaces
+4. **Advanced Message Types**: Expand support for more sophisticated message schemas
+5. **Official Integration**: Prepare for seamless transition to official BeeAI ACP implementation
+
+As BeeAI's ACP moves from pre-alpha to more stable versions, we'll update our implementation to match the official standards while maintaining backward compatibility with existing workflows.
+
 ## Implementation Details
 
 The example uses real BeeAI agents and tools, not just simulations. The key components are:
@@ -259,6 +328,8 @@ The example uses real BeeAI agents and tools, not just simulations. The key comp
 7. **Self-improvement Metrics**: Add quantitative measurements of agent improvement over time and across evolutions.
 
 8. **Visual Debugging Tools**: Create tools to visualize agent execution paths and communications for easier debugging.
+
+9. **Full ACP Implementation**: Complete the integration with BeeAI's Agent Communication Protocol as it moves beyond pre-alpha.
 
 ## Core Components
 
@@ -325,6 +396,7 @@ Support for multiple agent frameworks:
 # Register providers
 provider_registry = ProviderRegistry()
 provider_registry.register_provider(BeeAIProvider(llm_service))
+provider_registry.register_provider(ACPProvider(llm_service))  # ACP support
 
 # Initialize system agent with providers
 system = SystemAgent(library, llm, provider_registry=provider_registry)
@@ -357,3 +429,4 @@ Apache v2.0
 
 - Matias Molinas and Ismael Faro for the original concept and architecture
 - BeeAI framework for integrated agent capabilities
+Add to Conversation
