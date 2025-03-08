@@ -37,11 +37,11 @@ class BeeAIProvider(FrameworkProvider):
         logger.info("BeeAI Provider initialized")
     
     async def create_agent(
-        self, 
-        record: Dict[str, Any],
-        tools: Optional[List[Tool]] = None,
-        firmware_content: Optional[str] = None,
-        config: Optional[Dict[str, Any]] = None
+    self, 
+    record: Dict[str, Any],
+    tools: Optional[List[Tool]] = None,
+    firmware_content: Optional[str] = None,
+    config: Optional[Dict[str, Any]] = None
     ) -> ReActAgent:
         """
         Create a BeeAgent with the specified configuration.
@@ -71,78 +71,31 @@ class BeeAIProvider(FrameworkProvider):
             logger.error("No ChatModel available for BeeAgent")
             raise ValueError("ChatModel not available. Provide an LLMService or chat_model in config.")
         
-        # Try to determine if this is a class-based agent or a function-based agent
+        # Clean up the code snippet
         code_snippet = record["code_snippet"]
         
-        # First approach: Look for class with "create_agent" method
-        initializer_class_name = None
-        try:
-            parsed_ast = ast.parse(code_snippet)
-            for node in ast.walk(parsed_ast):
-                if isinstance(node, ast.ClassDef):
-                    for item in node.body:
-                        if isinstance(item, ast.FunctionDef) and item.name == "create_agent":
-                            initializer_class_name = node.name
-                            break
-                    if initializer_class_name:
-                        break
-        except:
-            pass
+        # Remove markdown code block formatting if present
+        if "```" in code_snippet:
+            lines = code_snippet.split("\n")
+            clean_lines = []
+            inside_code_block = False
+            for i, line in enumerate(lines):
+                if line.strip().startswith("```"):
+                    inside_code_block = not inside_code_block
+                    continue
+                if not inside_code_block or (inside_code_block and not line.strip().startswith("```")):
+                    clean_lines.append(line)
+            code_snippet = "\n".join(clean_lines)
         
-        # If we found an initializer class, use it
-        if initializer_class_name:
-            try:
-                # Create a module from the code snippet
-                module_code = f'''
-{code_snippet}
-
-# Create a factory function to instantiate the agent
-def create_agent_instance(chat_model, tools=None):
-    initializer = {initializer_class_name}()
-    if hasattr(initializer, "create_agent"):
-        # Class method approach
-        if "tools" in inspect.signature(initializer.create_agent).parameters:
-            return initializer.create_agent(chat_model, tools)
-        else:
-            return initializer.create_agent(chat_model)
-    elif hasattr({initializer_class_name}, "create_agent"):
-        # Static method approach
-        if "tools" in inspect.signature({initializer_class_name}.create_agent).parameters:
-            return {initializer_class_name}.create_agent(chat_model, tools)
-        else:
-            return {initializer_class_name}.create_agent(chat_model)
-    else:
-        raise ValueError("No create_agent method found")
-'''
-                # Create an executable namespace
-                namespace = {}
-                
-                # Execute the code within the namespace
-                exec(module_code, namespace)
-                
-                # Call the factory function
-                agent = namespace["create_agent_instance"](chat_model, tools)
-                
-                # Validate that it's a ReActAgent
-                if not isinstance(agent, ReActAgent):
-                    raise ValueError(f"Created object is not a ReActAgent: {type(agent)}")
-                
-                return agent
-                
-            except Exception as e:
-                logger.error(f"Error creating agent using initializer class: {str(e)}")
-                logger.error(traceback.format_exc())
-        
-        # Alternative approach: create a ReActAgent directly
         # Prepare description/instructions
-        description = record["description"]
+        instructions = record["description"]
         if firmware_content:
-            description = f"{firmware_content}\n\n{description}"
+            instructions = f"{firmware_content}\n\n{instructions}"
         
         # Create meta information
         meta = AgentMeta(
             name=record["name"],
-            description=description,
+            description=instructions,
             tools=tools or []
         )
         
