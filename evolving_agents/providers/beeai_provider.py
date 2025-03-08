@@ -9,7 +9,7 @@ import ast
 
 # BeeAI framework imports
 from beeai_framework.agents.react import ReActAgent
-from beeai_framework.agents.types import BeeAgentExecutionConfig, AgentMeta
+from beeai_framework.agents.types import AgentExecutionConfig, AgentMeta
 from beeai_framework.memory import TokenMemory, UnconstrainedMemory
 from beeai_framework.tools.tool import Tool
 from beeai_framework.backend.message import UserMessage
@@ -182,20 +182,20 @@ def create_agent_instance(chat_model, tools=None):
         """
         if isinstance(agent_instance, str):
             logger.warning(f"Expected agent instance but got name: {agent_instance}. "
-                          "This may not work - fixes needed in SystemAgent.execute_item")
+                        "This may not work - fixes needed in SystemAgent.execute_item")
             return {
                 "status": "error",
                 "message": f"BeeAIProvider requires agent instance, not name: {agent_instance}",
                 "result": f"Error: BeeAIProvider requires agent instance, not name"
             }
-            
+                
         logger.info(f"Executing BeeAgent with input: {input_text[:50]}...")
         
         # Apply default execution config if none provided
         execution_config = execution_config or {}
         
-        # Create execution config with defaults
-        bee_exec_config = BeeAgentExecutionConfig(
+        # Create execution config with defaults - Changed BeeAgentExecutionConfig to AgentExecutionConfig
+        bee_exec_config = AgentExecutionConfig(
             max_retries_per_step=execution_config.get("max_retries_per_step", 3),
             total_max_retries=execution_config.get("total_max_retries", 10),
             max_iterations=execution_config.get("max_iterations", 20)

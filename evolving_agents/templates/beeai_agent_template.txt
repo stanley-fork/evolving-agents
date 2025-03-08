@@ -5,10 +5,8 @@ from beeai_framework.backend.chat import ChatModel
 from beeai_framework.tools.tool import Tool
 
 class WeatherAgentInitializer:
-    """
-    Agent that provides weather information for locations.
-    This agent can answer questions about current weather, forecasts, and historical weather data.
-    """
+    """Agent that provides weather information for locations.
+    This agent can answer questions about current weather, forecasts, and historical weather data."""
     
     @staticmethod
     def create_agent(llm: ChatModel, tools: List[Tool] = None) -> ReActAgent:
