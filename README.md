@@ -425,6 +425,10 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 [Apache v2.0](LICENSE)
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=matiasmolinas/evolving-agents&type=Timeline)](https://star-history.com/#matiasmolinas/evolving-agents&Timeline)
+
 ## Acknowledgements
 
 - [Matias Molinas](https://github.com/matiasmolinas) and [Ismael Faro](https://github.com/ismaelfaro) for the original concept and architecture
