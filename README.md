@@ -423,10 +423,10 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-Apache v2.0
+![Apache v2.0](LICENSE)
 
 ## Acknowledgements
 
-- Matias Molinas and Ismael Faro for the original concept and architecture
+- [Matias Molinas](https://github.com/matiasmolinas) and [Ismael Faro](https://github.com/ismaelfaro) for the original concept and architecture
 - BeeAI framework for integrated agent capabilities
 Add to Conversation
