@@ -433,4 +433,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 - [Matias Molinas](https://github.com/matiasmolinas) and [Ismael Faro](https://github.com/ismaelfaro) for the original concept and architecture
 - BeeAI framework for integrated agent capabilities
-Add to Conversation
