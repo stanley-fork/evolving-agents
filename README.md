@@ -19,7 +19,7 @@ A production-grade framework for creating, managing, and evolving AI agents with
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/evolving-agents-framework.git
+git clone https://github.com/matiasmolinas/evolving-agents-framework.git
 cd evolving-agents-framework
 
 # Install dependencies
@@ -433,3 +433,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 - [Matias Molinas](https://github.com/matiasmolinas) and [Ismael Faro](https://github.com/ismaelfaro) for the original concept and architecture
 - BeeAI framework for integrated agent capabilities
+Add to Conversation
