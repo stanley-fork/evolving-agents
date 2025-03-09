@@ -423,7 +423,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-![Apache v2.0](LICENSE)
+[Apache v2.0](LICENSE)
 
 ## Acknowledgements
 
