@@ -383,65 +383,6 @@ This capability-based communication enables:
 
 The SystemAgent is implemented as a BeeAI ReActAgent with specialized tools:
 
-```python
-class SystemAgent(ReActAgent):
-    """Central orchestrator for the evolving agents framework."""
-    
-    def __init__(self, llm_service):
-        # Create agent meta information
-        meta = AgentMeta(
-            name="SystemAgent",
-            description="Orchestrates agent creation, evolution, and communication"
-        )
-        
-        # Initialize as a ReActAgent
-        super().__init__(
-            llm=llm_service.chat_model,
-            tools=[],  # Tools will be initialized later
-            memory=TokenMemory(llm_service.chat_model),
-            meta=meta
-        )
-        
-        self.llm_service = llm_service
-        
-    async def initialize_tools(self):
-        """Initialize the specialized tools for the SystemAgent."""
-        # Create Smart Library tool
-        smart_library_tool = SmartLibraryTool()
-        
-        # Create Service Bus tool
-        service_bus_tool = ServiceBusTool()
-        
-        # Create Workflow Processor tool
-        workflow_tool = WorkflowProcessorTool()
-        
-        # Add tools to the agent
-        self.add_tools([smart_library_tool, service_bus_tool, workflow_tool])
-        
-        return True
-    
-    # Other methods that simplify common operations
-    async def decide_and_act(self, request, domain, record_type):
-        """Simplified helper to decide and act on a request."""
-        # This is a convenience wrapper around a more complex chain of tool calls
-        # that the agent would normally make
-        prompt = f"""
-        Please decide how to handle this request:
-        Request: {request}
-        Domain: {domain}
-        Record Type: {record_type}
-        
-        Follow these steps:
-        1. Search for existing components that might fulfill this request
-        2. Decide whether to reuse, evolve, or create a new component
-        3. Take the appropriate action
-        4. Return the result
-        """
-        
-        result = await self.run(prompt)
-        return result.result.parsed_output
-```
-
 ### Smart Library Tool
 
 Allows the SystemAgent to interact with the SmartLibrary:
