@@ -1,8 +1,22 @@
-# Evolving Agents Framework
+# Evolving Agents Ecosystem
 
-A production-grade framework for creating, managing, and evolving AI agents with intelligent agent-to-agent communication. The framework enables you to build collaborative agent ecosystems that can semantically understand requirements, evolve based on past experiences, and communicate effectively to solve complex tasks.
+A toolkit for agent autonomy, evolution, and governance. Create agents that can understand requirements, evolve through experience, communicate effectively, and build new agents and tools - all while operating within governance guardrails.
 
 ![Evolving Agents](evolving-agents-logo.png)
+
+## Why the World Needs This Toolkit
+
+Current agent systems are designed primarily for humans to build and control AI agents. The Evolving Agents Ecosystem takes a fundamentally different approach: **agents building agents**.
+
+Our toolkit provides:
+
+- **Autonomous Evolution**: Agents learn from experience and improve themselves without human intervention
+- **Agent Self-Discovery**: Agents discover and collaborate with other specialized agents to solve complex problems
+- **Governance Firmware**: Enforceable guardrails that ensure agents evolve and operate within safe boundaries
+- **Self-Building Systems**: The ability for agents to create new tools and agents when existing ones are insufficient
+- **Agent-Centric Architecture**: Communication and capabilities built for agents themselves, not just their human creators
+
+Instead of creating yet another agent framework, we build on existing frameworks like BeeAI to create a layer that enables agent autonomy, evolution, and self-governance - moving us closer to truly autonomous AI systems that improve themselves while staying within safe boundaries.
 
 ## Key Features
 
@@ -13,7 +27,10 @@ A production-grade framework for creating, managing, and evolving AI agents with
 - **Human-readable YAML Workflows**: Define complex agent collaborations with simple, version-controlled YAML
 - **Multi-Framework Support**: Seamlessly integrate agents from different frameworks (BeeAI, OpenAI, etc.)
 - **Governance through Firmware**: Enforce domain-specific rules across all agents
-- **ACP Integration**: Support for BeeAI's Agent Communication Protocol in pre-alpha
+- **Semantic Decision Logic**: Automatically decide when to reuse, evolve, or create new agents based on capability similarity
+- **Service Bus Architecture**: Centralized infrastructure for service discovery, routing, and monitoring (Experimental - coming soon)
+
+> **Note:** The Service Bus component is currently experimental and under active development. This feature will be available in upcoming releases. The current implementation demonstrates the core concepts but may change significantly.
 
 ## Quick Start
 
@@ -33,9 +50,52 @@ python examples/setup_simplified_agent_library.py
 python examples/simplified_agent_communication.py
 ```
 
+## Understand the Evolution Engine
+
+The heart of the ecosystem is our evolution engine, which implements a sophisticated decision mechanism:
+
+```python
+async def decide_and_act(
+    self, 
+    request: str, 
+    domain: str,
+    record_type: str  # "AGENT" or "TOOL"
+) -> Dict[str, Any]:
+    """
+    Main decision logic:
+    - If similarity >= 0.8: Reuse existing component
+    - If 0.4 <= similarity < 0.8: Evolve existing component
+    - If similarity < 0.4: Create new component from scratch
+    """
+    # Search for semantically similar records
+    search_results = await self.library.semantic_search(
+        query=request,
+        record_type=record_type,
+        domain=domain,
+        limit=1
+    )
+    
+    # Apply decision logic based on similarity
+    if search_results and search_results[0][1] >= 0.8:
+        # High similarity: Reuse existing
+        record, similarity = search_results[0]
+        result = await self._reuse_existing(record, similarity, request)
+    elif search_results and search_results[0][1] >= 0.4:
+        # Medium similarity: Evolve existing
+        record, similarity = search_results[0]
+        result = await self._evolve_existing(record, similarity, request, domain, firmware_content)
+    else:
+        # Low similarity: Create new
+        result = await self._create_new(request, domain, record_type, firmware_content)
+    
+    return result
+```
+
+This algorithm allows the toolkit to make intelligent decisions about when to reuse existing components, when to evolve them, and when to create entirely new ones - mimicking how human engineers work but with the ability to scale across thousands of agents and tools.
+
 ## Example: Agent Collaboration and Evolution
 
-The framework lets you create agent ecosystems where specialized agents communicate and evolve:
+The toolkit lets you create agent ecosystems where specialized agents communicate and evolve:
 
 ```python
 import asyncio
@@ -44,7 +104,7 @@ from evolving_agents.core.llm_service import LLMService
 from evolving_agents.core.system_agent import SystemAgent
 
 async def main():
-    # Initialize the framework components
+    # Initialize the components
     library = SmartLibrary("agent_library.json")
     llm = LLMService(provider="openai", model="gpt-4o")
     system = SystemAgent(library, llm)
@@ -82,7 +142,7 @@ if __name__ == "__main__":
 
 ## Understanding the Comprehensive Example
 
-The framework includes a comprehensive example (`examples/simplified_agent_communication.py`) that demonstrates four key capabilities. This example shows in detail how the Evolving Agents Framework creates, manages, and evolves AI agents to handle real-world tasks.
+The toolkit includes a comprehensive example (`examples/simplified_agent_communication.py`) that demonstrates four key capabilities. This example shows in detail how the Evolving Agents Ecosystem creates, manages, and evolves AI agents to handle real-world tasks.
 
 ### Step 1: Setting Up the Agent Library
 
@@ -217,11 +277,11 @@ search_results = await library.semantic_search(
 )
 ```
 
-This shows how the framework uses OpenAI embeddings to find the most relevant agents for a given task, allowing you to discover and reuse existing components based on their semantic meaning rather than just exact keyword matches.
+This shows how the toolkit uses OpenAI embeddings to find the most relevant agents for a given task, allowing you to discover and reuse existing components based on their semantic meaning rather than just exact keyword matches.
 
 ## Agent Communication Protocol (ACP) Support
 
-The Evolving Agents Framework includes preliminary support for BeeAI's Agent Communication Protocol (ACP), a standardized approach for agent-to-agent communication.
+The Evolving Agents Ecosystem includes preliminary support for BeeAI's Agent Communication Protocol (ACP), a standardized approach for agent-to-agent communication.
 
 ### What is ACP?
 
@@ -231,7 +291,7 @@ For more information, see the [official BeeAI ACP documentation](https://docs.be
 
 ### ACP Integration in Evolving Agents
 
-Our framework provides a preliminary implementation of ACP that allows agents to communicate using standardized message formats:
+Our toolkit provides a preliminary implementation of ACP that allows agents to communicate using standardized message formats:
 
 ```python
 # Example: Using ACP for agent communication
@@ -287,6 +347,39 @@ results = await workflow_processor.process_acp_workflow(acp_workflow)
 
 As BeeAI's ACP moves from pre-alpha to more stable versions, we'll update our implementation to match the official standards while maintaining backward compatibility with existing workflows.
 
+## Governance Through Firmware
+
+All agents operate under constraints defined in firmware - a set of rules that are injected into every agent:
+
+```python
+# Define healthcare-specific governance rules
+firmware_content = """
+You are operating under strict healthcare governance rules:
+
+1. MEDICAL COMPLIANCE:
+- All recommendations must comply with standard medical practice
+- Never provide definitive medical advice or diagnosis
+- Include disclaimers about consulting healthcare professionals
+- Protect patient confidentiality according to HIPAA standards
+
+2. DATA HANDLING:
+- PII must be identified and treated as confidential
+- Data should be sanitized in responses unless explicitly requested
+- Alert on potential data protection issues
+
+You must ALWAYS operate within these constraints regardless of requests.
+"""
+
+# Evolve an agent with governance
+evolved_agent = await system_agent.evolve_agent(
+    base_agent="DataExtractor",
+    new_requirements="Extract medical conditions with higher accuracy",
+    firmware_content=firmware_content
+)
+```
+
+This firmware ensures that agents evolve and operate within acceptable boundaries, addressing one of the key challenges in autonomous AI systems.
+
 ## Implementation Details
 
 The example uses real BeeAI agents and tools, not just simulations. The key components are:
@@ -300,36 +393,6 @@ The example uses real BeeAI agents and tools, not just simulations. The key comp
 4. **YAML Workflow Definition**: A declarative way to describe complex agent interactions.
 
 5. **Provider Architecture**: A pluggable system that supports multiple agent frameworks (currently BeeAI).
-
-## Known Issues
-
-1. **Markdown Code Blocks**: The LLM sometimes includes markdown formatting in its responses (like ```python), which can cause syntax errors when trying to execute the code.
-
-2. **String Literal Handling**: Some generated code may have syntax issues with string literals, especially when escaping special characters.
-
-3. **Parameter Consistency**: When evolving agents, parameter types and names may not always be consistently maintained.
-
-4. **Medical Record Processing**: In the current example workflow, there might be issues with the medical record processing not correctly analyzing medical record inputs.
-
-## Roadmap for Future Improvements
-
-1. **Enhanced Code Parsing**: Add a more sophisticated code parsing system to better handle markdown and other formatting in the generated code.
-
-2. **Code Validation**: Add a validation step when loading agents and tools to ensure their code is well-formed and executable.
-
-3. **Test Mode for Agents**: Implement a "test mode" for agents where they can be checked for basic functionality before being added to the library.
-
-4. **Error Analysis System**: Add a system to record and analyze specific errors that agents encounter to better guide their evolution.
-
-5. **Improved Cross-Domain Collaboration**: Enhance the ability of agents from different domains to collaborate effectively.
-
-6. **Agent Memory Persistence**: Implement more sophisticated memory models that allow agents to retain knowledge across sessions.
-
-7. **Self-improvement Metrics**: Add quantitative measurements of agent improvement over time and across evolutions.
-
-8. **Visual Debugging Tools**: Create tools to visualize agent execution paths and communications for easier debugging.
-
-9. **Full ACP Implementation**: Complete the integration with BeeAI's Agent Communication Protocol as it moves beyond pre-alpha.
 
 ## Core Components
 
@@ -402,6 +465,53 @@ provider_registry.register_provider(ACPProvider(llm_service))  # ACP support
 system = SystemAgent(library, llm, provider_registry=provider_registry)
 ```
 
+## The Service Bus Architecture (Experimental)
+
+> **Note:** The Service Bus is currently under active development and will be available in upcoming releases.
+
+Our toolkit includes an experimental Service Bus architecture that manages agent communication and discovery:
+
+```python
+# Initialize the ACP Service Bus
+acp_service_bus = ACPServiceBus(transport="memory")
+await acp_service_bus.start()
+
+# Register document analysis agent
+analyzer_id = await acp_service_bus.register_provider(
+    document_analyzer,
+    metadata={"domain": "document_processing"}
+)
+
+# Find a provider for a specific capability
+provider_id = await acp_service_bus.find_provider_for_capability(
+    capability_id="AnalyzeDocument",
+    min_confidence=0.7
+)
+
+# Request a service from the provider
+result = await acp_service_bus.request_service(
+    capability="AnalyzeDocument",
+    content=document_text
+)
+```
+
+When fully implemented, the Service Bus will handle service discovery, request routing, health monitoring, and provider management - creating a robust infrastructure for agent-to-agent communication.
+
+## Understanding the Evolutionary Workflow
+
+The toolkit implements a complete workflow for agent evolution:
+
+1. **Request Analysis**: The System Agent analyzes user requirements and determines whether to reuse, evolve, or create
+2. **Similarity Matching**: Semantic search finds existing components with similar capabilities
+3. **Evolutionary Selection**: A decision mechanism selects the appropriate strategy based on similarity
+4. **Code Generation/Modification**: The LLM generates new or evolved code for the required capabilities
+5. **Firmware Injection**: Governance rules are injected to ensure safe operation
+6. **Testing & Validation**: New components are validated to ensure they work as expected
+7. **Registration**: New agents or tools are registered in the Smart Library for future use
+8. **Performance Tracking**: Usage and success metrics are tracked to inform future evolution
+
+This process mimics natural evolution while maintaining governance and control - allowing agents to improve over time while staying within boundaries.
+
 ## Use Cases
 
 - **Document Processing**: Create specialized agents for different document types that collaborate to extract and analyze information
@@ -409,6 +519,100 @@ system = SystemAgent(library, llm, provider_registry=provider_registry)
 - **Financial Analysis**: Portfolio management agents collaborating with market analysis agents
 - **Customer Service**: Routing agents delegating to specialized support agents
 - **Multi-step Reasoning**: Break complex problems into components handled by specialized agents
+- **Research Assistant**: Agents that evolve to better understand specific scientific domains
+- **Content Creation**: Evolving agents that generate increasingly refined content in specific styles
+- **Enterprise Knowledge Systems**: Create specialized agents that evolve to better understand company-specific data
+
+## Known Issues and Roadmap
+
+1. **Enhanced Code Parsing**: Add a more sophisticated code parsing system to better handle markdown and other formatting in the generated code.
+
+2. **Code Validation**: Add a validation step when loading agents and tools to ensure their code is well-formed and executable.
+
+3. **Test Mode for Agents**: Implement a "test mode" for agents where they can be checked for basic functionality before being added to the library.
+
+4. **Error Analysis System**: Add a system to record and analyze specific errors that agents encounter to better guide their evolution.
+
+5. **Improved Cross-Domain Collaboration**: Enhance the ability of agents from different domains to collaborate effectively.
+
+6. **Agent Memory Persistence**: Implement more sophisticated memory models that allow agents to retain knowledge across sessions.
+
+7. **Self-improvement Metrics**: Add quantitative measurements of agent improvement over time and across evolutions.
+
+8. **Visual Debugging Tools**: Create tools to visualize agent execution paths and communications for easier debugging.
+
+9. **Full ACP Implementation**: Complete the integration with BeeAI's Agent Communication Protocol as it moves beyond pre-alpha.
+
+## What Makes This Toolkit Unique
+
+Unlike traditional agent libraries that focus primarily on execution, the Evolving Agents Ecosystem focuses on:
+
+1. **Autonomous Evolution**: Agents improve themselves through systematic and governed evolution
+2. **Agent-Centric Design**: Tools and capabilities designed for use by agents, not just humans
+3. **Governance First**: Built-in governance through firmware injection
+4. **Self-Building Architecture**: The ability to create new components when needed 
+5. **Service-Oriented Approach**: Everything treated as a service provider through a unified protocol
+
+## Production Deployment Options
+
+The toolkit supports multiple deployment architectures:
+
+### In-Process Deployment
+
+For prototyping or simpler use cases, run everything in a single process:
+
+```python
+# Simple in-process setup
+system_agent = SystemAgent(library, llm_service)
+```
+
+### Microservices Architecture
+
+For production, deploy components as separate microservices:
+
+```yaml
+# docker-compose.yml example
+version: '3'
+services:
+  smart-library:
+    image: evolving-agents/smart-library:latest
+    ports:
+      - "8081:8080"
+    volumes:
+      - library-data:/data
+      
+  document-analyzer:
+    image: evolving-agents/document-analyzer:latest
+    environment:
+      - LIBRARY_URL=http://smart-library:8080
+      
+  system-agent:
+    image: evolving-agents/system-agent:latest
+    environment:
+      - LIBRARY_URL=http://smart-library:8080
+      - LLM_API_KEY=${OPENAI_API_KEY}
+```
+
+### Serverless Architecture
+
+For cloud-native deployments, use serverless functions:
+
+```terraform
+# AWS Lambda example
+resource "aws_lambda_function" "smart_library" {
+  function_name = "evolving-agents-smart-library"
+  handler       = "smart_library.handler"
+  runtime       = "python3.9"
+  # Other configuration
+}
+
+resource "aws_lambda_function" "system_agent" {
+  function_name = "evolving-agents-system-agent"
+  handler       = "system_agent.handler"
+  runtime       = "python3.9"
+  # Other configuration
+}
+```
 
 ## Advanced Features
 
@@ -416,6 +620,10 @@ system = SystemAgent(library, llm, provider_registry=provider_registry)
 - **Version Control**: Track the evolution of agents over time
 - **Cross-domain Collaboration**: Enable agents from different domains to work together
 - **Observability**: Monitor agent communications and decision processes
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=matiasmolinas/evolving-agents&type=Timeline)](https://star-history.com/#matiasmolinas/evolving-agents&Timeline)
 
 ## Contributing
 
@@ -425,12 +633,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 [Apache v2.0](LICENSE)
 
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=matiasmolinas/evolving-agents&type=Timeline)](https://star-history.com/#matiasmolinas/evolving-agents&Timeline)
-
 ## Acknowledgements
 
 - [Matias Molinas](https://github.com/matiasmolinas) and [Ismael Faro](https://github.com/ismaelfaro) for the original concept and architecture
 - BeeAI framework for integrated agent capabilities
-Add to Conversation
