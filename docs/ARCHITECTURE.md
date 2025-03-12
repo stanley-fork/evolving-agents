@@ -8,16 +8,16 @@ The Evolving Agents Framework is built on a true agent-centric architecture. The
 
 ```mermaid
 flowchart TD
-    SA["SystemAgent\n(BeeAI ReActAgent)"]
-    SLT["SmartLibraryTools\n- SearchComponentTool\n- CreateComponentTool\n- EvolveComponentTool"]
-    SBT["ServiceBusTools\n- RegisterProviderTool\n- RequestServiceTool\n- DiscoverCapabilityTool"]
-    WT["WorkflowTools\n- ProcessWorkflowTool\n- GenerateWorkflowTool"]
-    SL["SmartLibrary\n(Storage Interface)"]
-    SB["ServiceBus\n(Messaging Interface)"]
+    SA["SystemAgent<br>(BeeAI ReActAgent)"]
+    SLT["SmartLibraryTools<br>- SearchComponentTool<br>- CreateComponentTool<br>- EvolveComponentTool"]
+    SBT["ServiceBusTools<br>- RegisterProviderTool<br>- RequestServiceTool<br>- DiscoverCapabilityTool"]
+    WT["WorkflowTools<br>- ProcessWorkflowTool<br>- GenerateWorkflowTool"]
+    SL["SmartLibrary<br>(Storage Interface)"]
+    SB["ServiceBus<br>(Messaging Interface)"]
     WP["WorkflowProcessor"]
-    SBE["Storage Backends\n- SimpleJSON\n- VectorDB (future)\n- Cloud (future)"]
-    MBE["Messaging Backends\n- SimpleJSON\n- Redis (future)\n- BeeAI ACP (future)"]
-    YD["YAML Definitions\n- Agent Workflows\n- Evolution Patterns\n- Governance Rules"]
+    SBE["Storage Backends<br>- SimpleJSON<br>- VectorDB (future)<br>- Cloud (future)"]
+    MBE["Messaging Backends<br>- SimpleJSON<br>- Redis (future)<br>- BeeAI ACP (future)"]
+    YD["YAML Definitions<br>- Agent Workflows<br>- Evolution Patterns<br>- Governance Rules"]
     
     SA --> SLT
     SA --> SBT
@@ -39,9 +39,9 @@ The SmartLibrary provides three specialized tools for component management:
 ```mermaid
 flowchart TD
     SLT["Smart Library Tools"]
-    SCT["SearchComponent\nTool\n- search_by_query()\n- search_by_similarity()\n- find_by_capability()"]
-    CCT["CreateComponent\nTool\n- create_agent()\n- create_tool()\n- create_from_specification()"]
-    ECT["EvolveComponent\nTool\n- evolve_agent()\n- evolve_tool()\n- adapt_to_domain()\n- improve_capability()"]
+    SCT["SearchComponent<br>Tool<br>- search_by_query()<br>- search_by_similarity()<br>- find_by_capability()"]
+    CCT["CreateComponent<br>Tool<br>- create_agent()<br>- create_tool()<br>- create_from_specification()"]
+    ECT["EvolveComponent<br>Tool<br>- evolve_agent()<br>- evolve_tool()<br>- adapt_to_domain()<br>- improve_capability()"]
     
     SLT --> SCT
     SLT --> CCT
@@ -55,9 +55,9 @@ The Service Bus provides three specialized tools for inter-agent communication:
 ```mermaid
 flowchart TD
     SBT["Service Bus Tools"]
-    RPT["RegisterProvider\nTool\n- register()\n- update_capabilities()\n- deregister()"]
-    RST["RequestService\nTool\n- request()\n- call_agent()\n- send_message()"]
-    DCT["DiscoverCapability\nTool\n- list_providers()\n- find_provider()\n- get_capabilities()\n- search_capabilities()"]
+    RPT["RegisterProvider<br>Tool<br>- register()<br>- update_capabilities()<br>- deregister()"]
+    RST["RequestService<br>Tool<br>- request()<br>- call_agent()<br>- send_message()"]
+    DCT["DiscoverCapability<br>Tool<br>- list_providers()<br>- find_provider()<br>- get_capabilities()<br>- search_capabilities()"]
     
     SBT --> RPT
     SBT --> RST
@@ -70,10 +70,10 @@ The Service Bus provides a unified communication layer with pluggable backends:
 
 ```mermaid
 flowchart TD
-    SBI["ServiceBusInterface\n- register_provider()\n- request_service()\n- send_message()\n- find_provider_for_capability()"]
-    SB["SimpleBackend\n(JSON storage)"]
-    RB["RedisBackend\n(High performance)"]
-    BB["BeeAIBackend\n(Future)"]
+    SBI["ServiceBusInterface<br>- register_provider()<br>- request_service()<br>- send_message()<br>- find_provider_for_capability()"]
+    SB["SimpleBackend<br>(JSON storage)"]
+    RB["RedisBackend<br>(High performance)"]
+    BB["BeeAIBackend<br>(Future)"]
     
     SBI --> SB
     SBI --> RB
@@ -86,10 +86,10 @@ The Smart Library stores agent and tool definitions with pluggable storage backe
 
 ```mermaid
 flowchart TD
-    SLI["SmartLibraryInterface\n- create_record()\n- semantic_search()\n- evolve_record()"]
-    SS["SimpleStorage\n(JSON-based)"]
-    VS["VectorDBStorage\n(Embedding search)"]
-    CS["CloudStorage\n(Scalable)"]
+    SLI["SmartLibraryInterface<br>- create_record()<br>- semantic_search()<br>- evolve_record()"]
+    SS["SimpleStorage<br>(JSON-based)"]
+    VS["VectorDBStorage<br>(Embedding search)"]
+    CS["CloudStorage<br>(Scalable)"]
     
     SLI --> SS
     SLI --> VS
