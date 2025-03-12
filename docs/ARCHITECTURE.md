@@ -408,3 +408,6 @@ class GenerateWorkflowTool(Tool):
 - **Version Control**: Track the evolution of agents over time
 - **Cross-domain Collaboration**: Enable agents from different domains to work together
 - **Observability**: Monitor agent communications and decision processes
+
+## Final Note
+We’re in the midst of an active refactoring process. The existing example is deprecated, but we’ll be publishing an updated version aligned with the architecture diagrams in the coming days! 🚀
