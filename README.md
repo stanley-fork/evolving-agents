@@ -51,35 +51,78 @@ python examples/simplified_agent_communication.py
 The Evolving Agents Framework is built on a true agent-centric architecture. The SystemAgent itself is implemented as a BeeAI ReActAgent that uses specialized tools to manage the agent ecosystem:
 
 ```
-┌───────────────────────────────────────────────────────────┐
-│                       SystemAgent                         │
-│                     (BeeAI ReActAgent)                    │
-└─────────────┬─────────────────────────────┬───────────────┘
-              │                             │
-              ▼                             ▼
-┌─────────────────────────┐   ┌─────────────────────────────┐
-│     SmartLibraryTool    │   │      ServiceBusTool         │
-│ - search_components()   │   │ - register_provider()       │
-│ - create_component()    │   │ - request_service()         │
-│ - evolve_component()    │   │ - discover_capabilities()   │
-└──────────┬──────────────┘   └──────────────┬──────────────┘
-           │                                 │
-           ▼                                 ▼
-┌─────────────────────────┐   ┌─────────────────────────────┐
-│      SmartLibrary       │   │        ServiceBus           │
-│  (Storage Interface)    │   │  (Messaging Interface)      │
-└──────────┬──────────────┘   └──────────────┬──────────────┘
-           │                                 │
-           ▼                                 ▼
-┌─────────────────────────┐   ┌─────────────────────────────┐
-│  Storage Backends       │   │   Messaging Backends        │
-│ - SimpleJSON            │   │  - SimpleJSON               │
-│ - VectorDB (future)     │   │  - Redis (future)           │
-│ - Cloud (future)        │   │  - BeeAI ACP (future)       │
-└─────────────────────────┘   └─────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                               SystemAgent                                    │
+│                             (BeeAI ReActAgent)                               │
+└────────────┬────────────────────────┬────────────────────────┬──────────────┘
+             │                        │                        │
+             ▼                        ▼                        ▼
+┌────────────────────────┐ ┌────────────────────────┐ ┌────────────────────────┐
+│   SmartLibraryTools    │ │    ServiceBusTools     │ │   WorkflowTools        │
+│ - SearchComponentTool  │ │ - RegisterProviderTool │ │ - ProcessWorkflowTool  │
+│ - CreateComponentTool  │ │ - RequestServiceTool   │ │ - GenerateWorkflowTool │
+│ - EvolveComponentTool  │ │ - DiscoverCapabilityTool│ │                       │
+└────────────┬───────────┘ └────────────┬───────────┘ └────────────┬───────────┘
+             │                          │                          │
+             ▼                          ▼                          ▼
+┌────────────────────────┐ ┌────────────────────────┐ ┌────────────────────────┐
+│     SmartLibrary       │ │       ServiceBus       │ │    WorkflowProcessor   │
+│  (Storage Interface)   │ │  (Messaging Interface) │ │                        │
+└────────────┬───────────┘ └────────────┬───────────┘ └────────────┬───────────┘
+             │                          │                          │
+             ▼                          ▼                          ▼
+┌────────────────────────┐ ┌────────────────────────┐ ┌────────────────────────┐
+│   Storage Backends     │ │   Messaging Backends   │ │    YAML Definitions    │
+│ - SimpleJSON           │ │ - SimpleJSON           │ │ - Agent Workflows      │
+│ - VectorDB (future)    │ │ - Redis (future)       │ │ - Evolution Patterns   │
+│ - Cloud (future)       │ │ - BeeAI ACP (future)   │ │ - Governance Rules     │
+└────────────────────────┘ └────────────────────────┘ └────────────────────────┘
 ```
 
 This architecture ensures that the system itself follows the "by agents, for agents" philosophy, with the SystemAgent making decisions and using specialized tools to interact with the underlying infrastructure.
+
+### Smart Library Tools
+
+The SmartLibrary provides three specialized tools for component management:
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                 Smart Library Tools                       │
+└──────────┬─────────────────┬───────────────┬─────────────┘
+           │                 │               │
+           ▼                 ▼               ▼
+┌────────────────┐ ┌────────────────┐ ┌───────────────────┐
+│SearchComponent │ │CreateComponent │ │ EvolveComponent   │
+│     Tool       │ │     Tool       │ │      Tool         │
+│- search_by_    │ │- create_agent()│ │- evolve_agent()   │
+│  query()       │ │- create_tool() │ │- evolve_tool()    │
+│- search_by_    │ │- create_from   │ │- adapt_to_domain()│
+│  similarity()  │ │  specification()│ │- improve_      │
+│- find_by_      │ │                │ │  capability()    │
+│  capability()  │ │                │ │                   │
+└────────────────┘ └────────────────┘ └───────────────────┘
+```
+
+### Service Bus Tools
+
+The Service Bus provides three specialized tools for inter-agent communication:
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                    Service Bus Tools                      │
+└──────────┬─────────────────┬───────────────┬─────────────┘
+           │                 │               │
+           ▼                 ▼               ▼
+┌────────────────┐ ┌────────────────┐ ┌───────────────────┐
+│RegisterProvider│ │RequestService  │ │DiscoverCapability │
+│     Tool       │ │     Tool       │ │      Tool         │
+│- register()    │ │- request()     │ │- list_providers() │
+│- update_       │ │- call_agent()  │ │- find_provider()  │
+│  capabilities()│ │- send_message()│ │- get_capabilities()│
+│- deregister()  │ │                │ │- search_           │
+│                │ │                │ │  capabilities()    │
+└────────────────┘ └────────────────┘ └───────────────────┘
+```
 
 ### Service Bus: Communication Layer
 
@@ -172,8 +215,8 @@ llm_service = LLMService(provider="openai", model="gpt-4o")
 system_agent = SystemAgent(llm_service)
 
 # The SystemAgent is a BeeAI ReActAgent that can:
-# 1. Interact with the SmartLibrary through SmartLibraryTool
-# 2. Manage the Service Bus through ServiceBusTool
+# 1. Interact with the SmartLibrary through specialized library tools
+# 2. Manage the Service Bus through specialized service bus tools
 # 3. Create and evolve agents as needed
 
 # Initialize tools for the SystemAgent
@@ -193,10 +236,10 @@ Total Due: $1,822.80
 """)
 
 # Behind the scenes, the SystemAgent:
-# 1. Searches the SmartLibrary for relevant components
-# 2. Creates or evolves components as needed
-# 3. Registers components with the Service Bus
-# 4. Orchestrates the document processing workflow
+# 1. Uses SearchComponentTool to find relevant components
+# 2. Uses CreateComponentTool or EvolveComponentTool as needed
+# 3. Uses RegisterProviderTool to register components with the Service Bus
+# 4. Uses RequestServiceTool to orchestrate the document processing workflow
 # 5. Returns the final results
 
 print(response.result.text)
@@ -349,9 +392,9 @@ The Service Bus enables agents to communicate based on capabilities rather than 
 # Initialize the Service Bus with simple JSON backend
 await system_agent.initialize_service_bus(backend_type="simple")
 
-# Register components with capabilities
-document_analyzer_id = await system_agent.register_with_service_bus(
-    "DocumentAnalyzer",
+# Register components with capabilities using RegisterProviderTool
+document_analyzer_id = await system_agent.tools["register_provider"].run(
+    name="DocumentAnalyzer",
     capabilities=[{
         "id": "analyze_document",
         "name": "Document Analysis",
@@ -360,11 +403,16 @@ document_analyzer_id = await system_agent.register_with_service_bus(
     }]
 )
 
-# Process a document using capability-based routing
+# Process a document using capability-based routing with RequestServiceTool
 document_text = "INVOICE #12345\nDate: 2023-05-15\nTotal: $1,822.80"
-analysis_response = await system_agent.request_service(
+analysis_response = await system_agent.tools["request_service"].run(
     capability="analyze_document",
     content=document_text
+)
+
+# Discover available capabilities with DiscoverCapabilityTool
+available_analysis_tools = await system_agent.tools["discover_capability"].run(
+    capability_type="document_analysis"
 )
 
 # The Service Bus automatically finds the most appropriate provider
@@ -383,46 +431,104 @@ This capability-based communication enables:
 
 The SystemAgent is implemented as a BeeAI ReActAgent with specialized tools:
 
-### Smart Library Tool
+### Smart Library Tools
 
-Allows the SystemAgent to interact with the SmartLibrary:
+The Smart Library tools allow the SystemAgent to manage components in the library:
 
 ```python
-class SmartLibraryTool(Tool):
-    """Tool for interacting with the Smart Library."""
+class SearchComponentTool(Tool):
+    """Tool for searching components in the Smart Library."""
     
-    name = "SmartLibraryTool"
-    description = "Search, create, and evolve agents and tools in the Smart Library"
+    name = "SearchComponentTool"
+    description = "Search for agents and tools by query, similarity, or capability"
     
-    # Tool implementation details...
+    # Tool implementation...
+    async def search_by_query(self, query, record_type=None, domain=None, limit=5):
+        """Search by natural language query."""
+        # Implementation...
+
+class CreateComponentTool(Tool):
+    """Tool for creating components in the Smart Library."""
+    
+    name = "CreateComponentTool"
+    description = "Create new agents and tools from specifications"
+    
+    # Tool implementation...
+    async def create_agent(self, name, description, domain, code=None):
+        """Create a new agent from specification."""
+        # Implementation...
+
+class EvolveComponentTool(Tool):
+    """Tool for evolving components in the Smart Library."""
+    
+    name = "EvolveComponentTool"
+    description = "Evolve existing agents and tools for new requirements"
+    
+    # Tool implementation...
+    async def evolve_agent(self, agent_id, changes, new_requirements):
+        """Evolve an existing agent with new capabilities."""
+        # Implementation...
 ```
 
-### Service Bus Tool
+### Service Bus Tools
 
-Enables the SystemAgent to manage the Service Bus:
+The Service Bus tools enable the SystemAgent to manage inter-agent communication:
 
 ```python
-class ServiceBusTool(Tool):
-    """Tool for managing the Service Bus."""
+class RegisterProviderTool(Tool):
+    """Tool for registering providers with the Service Bus."""
     
-    name = "ServiceBusTool"
-    description = "Register providers, request services, and monitor the Service Bus"
+    name = "RegisterProviderTool"
+    description = "Register agents and tools as service providers"
     
-    # Tool implementation details...
+    # Tool implementation...
+    async def register(self, name, capabilities):
+        """Register a provider with its capabilities."""
+        # Implementation...
+
+class RequestServiceTool(Tool):
+    """Tool for requesting services through the Service Bus."""
+    
+    name = "RequestServiceTool"
+    description = "Request services by capability"
+    
+    # Tool implementation...
+    async def request(self, capability, content):
+        """Request a service by capability."""
+        # Implementation...
+
+class DiscoverCapabilityTool(Tool):
+    """Tool for discovering capabilities in the Service Bus."""
+    
+    name = "DiscoverCapabilityTool"
+    description = "Discover available capabilities and providers"
+    
+    # Tool implementation...
+    async def find_provider(self, capability):
+        """Find a provider for a specific capability."""
+        # Implementation...
 ```
 
-### Workflow Processor
+### Workflow Tools
 
-A tool for defining and executing workflows:
+Tools for workflow management:
 
 ```python
-class WorkflowProcessorTool(Tool):
+class ProcessWorkflowTool(Tool):
     """Tool for processing workflows."""
     
-    name = "WorkflowProcessorTool"
+    name = "ProcessWorkflowTool"
     description = "Define and execute workflows in YAML format"
     
-    # Tool implementation details...
+    # Tool implementation...
+    
+class GenerateWorkflowTool(Tool):
+    """Tool for generating workflows from natural language."""
+    
+    name = "GenerateWorkflowTool"
+    description = "Generate workflow YAML from requirements"
+    
+    # Tool implementation...
 ```
 
 ## Use Cases
@@ -456,3 +562,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 - [Matias Molinas](https://github.com/matiasmolinas) and [Ismael Faro](https://github.com/ismaelfaro) for the original concept and architecture
 - BeeAI framework for integrated agent capabilities
+
+## Final Note:
+The code is currently being actively refactored to align with the README.md Some features described here may not yet be implemented or fully functional. The updated version reflecting this documentation will be available in the next few days. Stay tuned! 🚀
