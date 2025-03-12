@@ -28,7 +28,7 @@ Instead of creating yet another agent framework, we build on existing frameworks
 - **Governance through Firmware**: Enforce domain-specific rules across all agents
 - **Service Bus Architecture**: Connect agents through a unified communication system with pluggable backends
 
-For detailed architectural information, see [ARCHITECTURE.md](doc/ARCHITECTURE.md).
+For detailed architectural information, see [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Quick Start
 
