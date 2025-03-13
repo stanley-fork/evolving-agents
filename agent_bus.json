@@ -1,0 +1,65 @@
+{
+  "providers": {
+    "invoiceprocessortool_tool": {
+      "id": "invoiceprocessortool_tool",
+      "name": "InvoiceProcessorTool",
+      "provider_type": "TOOL",
+      "description": "Tool to process both invoices and medical records by extracting key information and formatting data in a structured way.",
+      "capabilities": [
+        {
+          "id": "process_invoices",
+          "name": "Process Invoices",
+          "description": "Extracts key information from invoices and formats it.",
+          "confidence": 0.8
+        },
+        {
+          "id": "process_medical_records",
+          "name": "Process Medical Records",
+          "description": "Extracts patient information, diagnosis, and treatment plans from medical records.",
+          "confidence": 0.8
+        }
+      ],
+      "metadata": {},
+      "status": "active",
+      "registered_at": "2025-03-13T14:35:48.102683",
+      "last_updated": "2025-03-13T14:35:48.102695"
+    }
+  },
+  "capabilities": {
+    "process_invoices": {
+      "id": "process_invoices",
+      "name": "Process Invoices",
+      "description": "Extracts key information from invoices and formats it in a structured way.",
+      "providers": [
+        {
+          "id": "invoiceprocessortool_tool",
+          "name": "InvoiceProcessorTool",
+          "confidence": 0.8
+        },
+        {
+          "id": "invoiceprocessortool_tool",
+          "name": "InvoiceProcessorTool",
+          "confidence": 0.8
+        }
+      ]
+    },
+    "process_medical_records": {
+      "id": "process_medical_records",
+      "name": "Process Medical Records",
+      "description": "Extracts patient information, diagnosis, and treatment plans from medical records and formats it in a structured way.",
+      "providers": [
+        {
+          "id": "invoiceprocessortool_tool",
+          "name": "InvoiceProcessorTool",
+          "confidence": 0.8
+        },
+        {
+          "id": "invoiceprocessortool_tool",
+          "name": "InvoiceProcessorTool",
+          "confidence": 0.8
+        }
+      ]
+    }
+  },
+  "updated_at": "2025-03-13T14:35:48.103462"
+}

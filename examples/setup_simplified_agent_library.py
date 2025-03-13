@@ -129,7 +129,7 @@ class DocumentAnalyzer(Tool[DocumentAnalyzerInput, ToolRunOptions, StringToolOut
             except json.JSONDecodeError:
                 # If the response isn't valid JSON, try to extract JSON from it
                 import re
-                json_match = re.search(r'{{.*}}', response_text, re.DOTALL)
+                json_match = re.search(r'dummy', response_text, re.DOTALL)
                 if json_match:
                     try:
                         result = json.loads(json_match.group(0))
@@ -277,7 +277,7 @@ class AgentCommunicator(Tool[AgentCommunicatorInput, ToolRunOptions, StringToolO
             except json.JSONDecodeError:
                 # If the response isn't valid JSON, try to extract JSON from it
                 import re
-                json_match = re.search(r'{{.*}}', response_text, re.DOTALL)
+                json_match = re.search(r'dummy', response_text, re.DOTALL)
                 if json_match:
                     try:
                         result = json.loads(json_match.group(0))
@@ -604,64 +604,6 @@ class CoordinatorAgentInitializer:
         return recommendations
 '''
 
-# Fix for SystemAgent.execute_item method - to be applied at runtime
-async def fixed_execute_item(self, name: str, input_text: str):
-    """
-    Execute an active item (agent or tool).
-    
-    Args:
-        name: Name of the item to execute
-        input_text: Input text for the item
-        
-    Returns:
-        Execution result
-    """
-    if name not in self.active_items:
-        return {
-            "status": "error",
-            "message": f"Item '{name}' not found in active items"
-        }
-    
-    item = self.active_items[name]
-    record = item["record"]
-    instance = item["instance"]
-    
-    logger.info(f"Executing {record['record_type']} '{name}' with input: {input_text[:50]}...")
-    
-    try:
-        # Execute based on record type
-        if record["record_type"] == "AGENT":
-            result = await self.agent_factory.execute_agent(
-                name,  # Use name instead of instance
-                input_text
-            )
-        else:  # TOOL
-            result = await self.tool_factory.execute_tool(
-                instance, 
-                input_text
-            )
-        
-        # Update usage metrics
-        await self.library.update_usage_metrics(record["id"], True)
-        
-        return {
-            "status": "success",
-            "item_name": name,
-            "item_type": record["record_type"],
-            "result": result,
-            "message": f"Executed {record['record_type']} '{name}'"
-        }
-    except Exception as e:
-        logger.error(f"Error executing {record['record_type']} '{name}': {str(e)}")
-        
-        # Update usage metrics as failure
-        await self.library.update_usage_metrics(record["id"], False)
-        
-        return {
-            "status": "error",
-            "message": f"Error executing {record['record_type']} '{name}': {str(e)}"
-        }
-
 async def main():
     try:
         # Check if library exists, and if so, delete it to recreate
@@ -724,17 +666,6 @@ async def main():
             tags=["coordinator", "agent", "orchestration"]
         )
         print("✓ Created CoordinatorAgent (BeeAI-compatible)")
-        
-        # Included in the setup file: Monkey patch the SystemAgent.execute_item method
-        # This will be applied by importing SystemAgent and replacing its method
-        try:
-            from evolving_agents.core.system_agent import SystemAgent
-            # Apply the fix - this ensures that when system_agent is imported later, 
-            # it already has the fixed method
-            SystemAgent.execute_item = fixed_execute_item
-            print("✓ Applied fix to SystemAgent.execute_item method")
-        except ImportError:
-            print("! Unable to patch SystemAgent - skipping this step")
         
         print("\nLibrary setup complete with real BeeAI agents and tools!")
         print(f"Library saved to: {library.storage_path}")
