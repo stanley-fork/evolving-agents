@@ -5,7 +5,7 @@ A toolkit for agent autonomy, evolution, and governance. Create agents that can 
 ![Evolving Agents](evolving-agents-logo.png)
 
 ## Why the World Needs This Toolkit
-Current agent systems are designed primarily for humans to build and control AI agents. The Evolving Agents Ecosystem takes a fundamentally different approach: agents building agents.
+Current agent systems are designed primarily for humans to build and control AI agents. The Evolving Agents Framework takes a fundamentally different approach: agents building agents.
 
 Our toolkit provides:
 
@@ -19,14 +19,14 @@ Instead of creating yet another agent framework, we build on existing frameworks
 
 ## Key Features
 
-- **Intelligent Agent Evolution**: Reuse, adapt, or create agents based on semantic similarity to existing components
-- **Agent-to-Agent Communication**: Enable specialized agents to delegate tasks and collaborate on complex problems
-- **Smart Library with Semantic Search**: Find the most relevant tools and agents using OpenAI embeddings
-- **Self-improving System**: Agents get better over time through continuous evolution and learning
+- **Intelligent Agent Evolution**: Tools encapsulate the logic to determine when to reuse, evolve, or create new components
+- **Agent-to-Agent Communication**: Agents communicate through capabilities rather than direct references
+- **Smart Library with Semantic Search**: Find relevant components using OpenAI embeddings with built-in decision logic
+- **Multi-Strategy Evolution**: Multiple evolution strategies (standard, conservative, aggressive, domain adaptation)
 - **Human-readable YAML Workflows**: Define complex agent collaborations with simple, version-controlled YAML
 - **Multi-Framework Support**: Seamlessly integrate agents from different frameworks (BeeAI, OpenAI, etc.)
 - **Governance through Firmware**: Enforce domain-specific rules across all agents
-- **Service Bus Architecture**: Connect agents through a unified communication system with pluggable backends
+- **Agent Bus Architecture**: Connect agents through a unified communication system with pluggable backends
 
 For detailed architectural information, see [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -44,40 +44,128 @@ pip install -e .
 # Setup the agent library
 python examples/setup_simplified_agent_library.py
 
-# Run the comprehensive example
-python examples/simplified_agent_communication.py
+# Run the pure ReAct agent demonstration
+python examples/pure_react_system_agent.py
 ```
 
-## Example: Agent Collaboration via Service Bus
+## Agent-Centric Architecture
+
+The Evolving Agents Framework features a true agent-centric architecture where:
+
+1. **The SystemAgent is a Pure ReActAgent**: Built on BeeAI's ReActAgent, it makes decisions through reasoning rather than hardcoded logic
+2. **Tools Encapsulate Strategies**: Each specialized tool contains its own decision-making logic and strategies
+3. **Everything is an Agent**: Components communicate through capabilities, not direct references
+4. **Strategy Evolution**: Tools can evolve their strategies independently of the agent that uses them
+
+### Key Components
+
+The architecture consists of three main types of tools, each with its own specialized strategies:
+
+#### 1. Smart Library Tools
+
+```mermaid
+graph TD
+    A[Smart Library Tools] --> B[SearchComponent Tool]
+    A --> C[CreateComponent Tool]
+    A --> D[EvolveComponent Tool]
+    
+    B --> B1[Contains similarity-based decision logic]
+    C --> C1[Encapsulates creation strategies]
+    D --> D1[Implements multiple evolution strategies]
+```
+
+#### 2. Agent Bus Tools
+
+```mermaid
+graph TD
+    A[Agent Bus Tools] --> B[RegisterProvider Tool]
+    A --> C[RequestService Tool]
+    A --> D[DiscoverCapability Tool]
+    
+    B --> B1[Manages capability registration]
+    C --> C1[Routes requests to best provider]
+    D --> D1[Enables dynamic discovery]
+```
+
+#### 3. Workflow Tools
+
+```mermaid
+graph TD
+    A[Workflow Tools] --> C[WorkflowProcessor]
+    C --> C1[Coordinates multi-agent cooperation]
+```
+
+## Demonstration
+
+The `examples/pure_react_system_agent.py` demonstrates the capabilities of our agent-centric architecture:
+
+### Demo 1: Search with Embedded Decision Logic
+Shows how the SearchComponentTool contains the logic to decide whether to reuse, evolve, or create new components:
+- If similarity ≥ 0.8: Recommends reusing an existing component
+- If 0.4 ≤ similarity < 0.8: Recommends evolving an existing component
+- If similarity < 0.4: Recommends creating a new component
+
+### Demo 2: Creation with Embedded Strategies
+Shows how the CreateComponentTool handles:
+- Code generation for new components
+- Framework selection
+- Metadata management
+- Next step recommendations
+
+### Demo 3: Evolution with Multiple Strategies
+Demonstrates the EvolveComponentTool's different evolution strategies:
+- **Standard**: Balanced evolution that preserves core functionality while adding new features
+- **Conservative**: Minimal changes to the original component, focusing on compatibility
+- **Aggressive**: Significant changes that optimize for new requirements
+- **Domain Adaptation**: Specialized for adapting components to new domains
+
+### Demo 4: Complete Workflow
+Shows all tools working together in a complete workflow:
+1. Searching for components
+2. Making decisions based on search results
+3. Creating or evolving components
+4. Registering components with the Agent Bus
+5. Processing documents using the registered components
+
+## Example: Using the SystemAgent
 
 ```python
-# Initialize the SystemAgent with LLM
+# Initialize the SystemAgent
 llm_service = LLMService(provider="openai", model="gpt-4o")
-system_agent = SystemAgent(llm_service)
+library = SmartLibrary("library.json")
+agent_bus = SimpleAgentBus()
 
-# The SystemAgent is a BeeAI ReActAgent that can:
-# 1. Interact with the SmartLibrary through specialized library tools
-# 2. Manage the Service Bus through specialized service bus tools
-# 3. Create and evolve agents as needed
+# Create the SystemAgent as a pure BeeAI ReActAgent
+system_agent = await SystemAgentFactory.create_agent(
+    llm_service=llm_service,
+    smart_library=library,
+    agent_bus=agent_bus,
+    memory_type="token"
+)
 
-# Initialize tools for the SystemAgent
-await system_agent.initialize_tools()
-
-# Ask the SystemAgent to set up a document processing workflow
+# Ask the SystemAgent to process a document
 response = await system_agent.run("""
-Please set up a document processing workflow with these components:
-1. A document analyzer tool that can identify document types
-2. A data extraction agent that can extract structured data from documents
-3. A summarization agent that can create concise summaries
-Then process this invoice: 
+I have an invoice that needs processing:
+
 INVOICE #12345
 Date: 2023-05-15
 Vendor: TechSupplies Inc.
 Total Due: $1,822.80
+
+Please search for relevant components, decide whether to reuse, evolve, or 
+create new components, and then process this invoice.
 """)
 
 print(response.result.text)
 ```
+
+## Key Technical Achievements
+
+1. **Tool-Encapsulated Logic**: Each tool contains its own strategy, enabling independent evolution
+2. **Pure ReActAgent Implementation**: SystemAgent uses reasoning rather than hardcoded functions
+3. **Circular Dependency Resolution**: Clean architecture with proper interfaces
+4. **Strategy Polymorphism**: Multiple strategies can be selected dynamically
+5. **Capability-Based Communication**: Components communicate via capabilities, not direct references
 
 ## Use Cases
 
@@ -103,6 +191,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 - [Matias Molinas](https://github.com/matiasmolinas) and [Ismael Faro](https://github.com/ismaelfaro) for the original concept and architecture
 - BeeAI framework for integrated agent capabilities
-
-## Final Note:
-The code is currently being actively refactored to align with the README.md. Some features described here may not yet be implemented or fully functional. The updated version reflecting this documentation will be available in the next few days. Stay tuned! 🚀

@@ -2,8 +2,11 @@
 
 import logging
 import os
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Union
+import re
 
+# Import the interface instead of the concrete class
+from evolving_agents.core.base import IAgent
 from evolving_agents.core.llm_service import LLMService
 from evolving_agents.smart_library.smart_library import SmartLibrary
 
@@ -13,10 +16,15 @@ class WorkflowGenerator:
     """
     Generates workflow YAML from natural language requirements.
     """
-    def __init__(self, llm_service: LLMService, smart_library: SmartLibrary):
+    def __init__(self, llm_service: LLMService, smart_library: SmartLibrary, agent: Optional[IAgent] = None):
         self.llm = llm_service
         self.library = smart_library
+        self.agent = agent  # Optional agent to use instead of direct LLM calls
         logger.info("Workflow Generator initialized")
+    
+    def set_agent(self, agent: IAgent) -> None:
+        """Set the agent after initialization."""
+        self.agent = agent
     
     async def generate_workflow(
         self,
@@ -37,6 +45,50 @@ class WorkflowGenerator:
         """
         logger.info(f"Generating workflow for '{domain}' from requirements: {requirements[:100]}...")
         
+        # If we have an agent, use it for generation
+        if self.agent:
+            return await self._generate_with_agent(requirements, domain, output_path)
+        
+        # Otherwise use the direct LLM approach
+        return await self._generate_with_llm(requirements, domain, output_path)
+    
+    async def _generate_with_agent(
+        self,
+        requirements: str,
+        domain: str,
+        output_path: Optional[str] = None
+    ) -> str:
+        """Generate workflow using the agent."""
+        prompt = f"""
+        Create a workflow YAML based on these requirements:
+        
+        REQUIREMENTS:
+        {requirements}
+        
+        DOMAIN: {domain}
+        
+        The workflow should follow our standard YAML format with steps for DEFINE, CREATE, and EXECUTE.
+        Search for components in the library that might be useful for this workflow.
+        
+        Return ONLY the YAML content without additional text.
+        """
+        
+        response = await self.agent.run(prompt)
+        workflow_yaml = self._extract_yaml(response.result.text)
+        
+        # Save if path provided
+        if output_path:
+            await self._save_yaml(workflow_yaml, output_path)
+            
+        return workflow_yaml
+    
+    async def _generate_with_llm(
+        self,
+        requirements: str,
+        domain: str,
+        output_path: Optional[str] = None
+    ) -> str:
+        """Generate workflow using direct LLM calls."""
         # Get firmware for this domain
         firmware_record = await self.library.get_firmware(domain)
         firmware_content = firmware_record["code_snippet"] if firmware_record else ""
@@ -110,26 +162,38 @@ class WorkflowGenerator:
         """
         
         workflow_yaml = await self.llm.generate(prompt)
+        workflow_yaml = self._extract_yaml(workflow_yaml)
         
-        # Clean up the response to extract just the YAML
-        workflow_yaml = workflow_yaml.strip()
+        # Save if path provided
+        if output_path:
+            await self._save_yaml(workflow_yaml, output_path)
+            
+        return workflow_yaml
+    
+    def _extract_yaml(self, text: str) -> str:
+        """Extract YAML content from text that may contain other elements."""
+        text = text.strip()
         
         # Remove markdown code block markers if present
-        if workflow_yaml.startswith("```yaml"):
-            workflow_yaml = workflow_yaml[7:]
-        if workflow_yaml.endswith("```"):
-            workflow_yaml = workflow_yaml[:-3]
-        
-        workflow_yaml = workflow_yaml.strip()
-        
-        # Save to file if path provided
-        if output_path:
-            try:
-                os.makedirs(os.path.dirname(output_path), exist_ok=True)
-                with open(output_path, 'w', encoding='utf-8') as f:
-                    f.write(workflow_yaml)
-                logger.info(f"Saved workflow to: {output_path}")
-            except Exception as e:
-                logger.error(f"Error saving workflow: {str(e)}")
-        
-        return workflow_yaml
+        if "```yaml" in text:
+            # Extract content between ```yaml and ```
+            yaml_match = re.search(r"```yaml\s*([\s\S]*?)```", text)
+            if yaml_match:
+                text = yaml_match.group(1).strip()
+        elif "```" in text:
+            # Extract content between ``` and ```
+            yaml_match = re.search(r"```\s*([\s\S]*?)```", text)
+            if yaml_match:
+                text = yaml_match.group(1).strip()
+                
+        return text
+    
+    async def _save_yaml(self, yaml_content: str, output_path: str) -> None:
+        """Save YAML content to file."""
+        try:
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(yaml_content)
+            logger.info(f"Saved workflow to: {output_path}")
+        except Exception as e:
+            logger.error(f"Error saving workflow: {str(e)}")
