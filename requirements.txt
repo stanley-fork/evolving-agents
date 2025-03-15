@@ -1,2 +1,3 @@
 beeai-framework
 numpy
+openai-agents

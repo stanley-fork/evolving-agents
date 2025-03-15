@@ -1,10 +1,10 @@
-# Evolving Agents Framework - Architecture
+# Evolving Agents Toolkit - Architecture
 
-This document details the architectural design of the Evolving Agents Framework.
+This document details the architectural design of the Evolving Agents Toolkit.
 
 ## Agent-Centric Architecture
 
-The Evolving Agents Framework is built on a true agent-centric architecture. The SystemAgent itself is implemented as a BeeAI ReActAgent that uses specialized tools to manage the agent ecosystem:
+The Evolving Agents Toolkit is built on a true agent-centric architecture. The SystemAgent itself is implemented as a BeeAI ReActAgent that uses specialized tools to manage the agent ecosystem:
 
 ```mermaid
 flowchart TD
@@ -12,9 +12,11 @@ flowchart TD
     SLT["SmartLibraryTools<br>- SearchComponentTool<br>- CreateComponentTool<br>- EvolveComponentTool"]
     SBT["ServiceBusTools<br>- RegisterProviderTool<br>- RequestServiceTool<br>- DiscoverCapabilityTool"]
     WT["WorkflowTools<br>- ProcessWorkflowTool<br>- GenerateWorkflowTool"]
+    OAT["OpenAIAgentTools<br>- CreateOpenAIAgentTool<br>- EvolveOpenAIAgentTool<br>- ABTestOpenAIAgentTool"]
     SL["SmartLibrary<br>(Storage Interface)"]
     SB["ServiceBus<br>(Messaging Interface)"]
     WP["WorkflowProcessor"]
+    OAE["OpenAI Evolution Manager"]
     SBE["Storage Backends<br>- SimpleJSON<br>- VectorDB (future)<br>- Cloud (future)"]
     MBE["Messaging Backends<br>- SimpleJSON<br>- Redis (future)<br>- BeeAI ACP (future)"]
     YD["YAML Definitions<br>- Agent Workflows<br>- Evolution Patterns<br>- Governance Rules"]
@@ -22,12 +24,15 @@ flowchart TD
     SA --> SLT
     SA --> SBT
     SA --> WT
+    SA --> OAT
     SLT --> SL
     SBT --> SB
     WT --> WP
+    OAT --> OAE
     SL --> SBE
     SB --> MBE
     WP --> YD
+    OAE --> SL
 ```
 
 This architecture ensures that the system itself follows the "by agents, for agents" philosophy, with the SystemAgent making decisions and using specialized tools to interact with the underlying infrastructure.
@@ -64,6 +69,22 @@ flowchart TD
     SBT --> DCT
 ```
 
+### OpenAI Agents Tools
+
+Specialized tools for working with OpenAI Agents SDK:
+
+```mermaid
+flowchart TD
+    OAT["OpenAI Agents Tools"]
+    COAT["CreateOpenAIAgent<br>Tool<br>- create_agent()<br>- configure_settings()<br>- add_guardrails()"]
+    EOAT["EvolveOpenAIAgent<br>Tool<br>- evolve_standard()<br>- evolve_aggressive()<br>- adapt_to_domain()"]
+    ABTT["ABTestOpenAIAgent<br>Tool<br>- compare_agents()<br>- evaluate_responses()<br>- measure_performance()"]
+    
+    OAT --> COAT
+    OAT --> EOAT
+    OAT --> ABTT
+```
+
 ### Service Bus: Communication Layer
 
 The Service Bus provides a unified communication layer with pluggable backends:
@@ -96,6 +117,22 @@ flowchart TD
     SLI --> CS
 ```
 
+### OpenAI Evolution Manager
+
+The OpenAI Evolution Manager facilitates the evolution of OpenAI agents:
+
+```mermaid
+flowchart TD
+    OEM["OpenAI Evolution Manager"]
+    ALG["Agent Logger<br>- record_invocation()<br>- get_experience()<br>- analyze_performance()"]
+    ES["Evolution Strategies<br>- standard<br>- conservative<br>- aggressive<br>- domain_adaptation"]
+    AB["A/B Testing<br>- compare_agents()<br>- evaluate_results()<br>- generate_recommendations()"]
+    
+    OEM --> ALG
+    OEM --> ES
+    OEM --> AB
+```
+
 ### Agent-Centric Communication Flow
 
 The Service Bus enables powerful capability-based communication between agents:
@@ -114,6 +151,35 @@ sequenceDiagram
     SB->>AC: 3. Route request to best provider<br>for the requested capability
     AC->>SB: 4. Process request and return result
     SB->>AA: Return result to requester
+```
+
+## Cross-Framework Evolution
+
+The framework enables both BeeAI and OpenAI agents to evolve using similar strategies:
+
+```mermaid
+flowchart TD
+    ES["Evolution Strategies"]
+    
+    STD_B["BeeAI Standard<br>Evolution<br>(70% preservation)"]
+    CON_B["BeeAI Conservative<br>Evolution<br>(90% preservation)"]
+    AGG_B["BeeAI Aggressive<br>Evolution<br>(40% preservation)"]
+    DOM_B["BeeAI Domain<br>Adaptation<br>(60% preservation)"]
+    
+    STD_O["OpenAI Standard<br>Evolution<br>(70% instruction<br>preservation)"]
+    CON_O["OpenAI Conservative<br>Evolution<br>(90% instruction<br>preservation)"]
+    AGG_O["OpenAI Aggressive<br>Evolution<br>(40% instruction<br>preservation)"]
+    DOM_O["OpenAI Domain<br>Adaptation<br>(60% instruction<br>preservation)"]
+    
+    ES --> STD_B
+    ES --> CON_B
+    ES --> AGG_B
+    ES --> DOM_B
+    
+    ES --> STD_O
+    ES --> CON_O
+    ES --> AGG_O
+    ES --> DOM_O
 ```
 
 ## Understanding the Comprehensive Example
@@ -240,7 +306,45 @@ steps:
 
 This evolution process takes an existing agent (SpecialistAgent) and creates an enhanced version (EnhancedInvoiceSpecialist) with improved capabilities specific to invoice analysis.
 
-### Step 5: Semantic Search with OpenAI Embeddings
+### Step 5: OpenAI Agents Evolution
+
+The OpenAI Agents Evolution system demonstrates how to evolve OpenAI agents through experience:
+
+```python
+# Initialize OpenAI Agent Evolution Manager
+evolution_manager = OpenAIAgentsEvolutionManager(library, llm_service, agent_factory)
+
+# Evolve an agent with the standard strategy
+evolved_agent = await evolution_manager.evolve_agent(
+    agent_id="InvoiceProcessor_V1",
+    changes="Add more structured JSON output and calculation verification",
+    evolution_type="standard"
+)
+
+# Test performance with A/B testing
+test_results = await evolution_manager.compare_agents(
+    agent_a_id="InvoiceProcessor_V1",  # Original
+    agent_b_id=evolved_agent["evolved_agent_id"],  # Evolved
+    test_inputs=test_inputs,
+    domain="finance"
+)
+
+# Adapt to a new domain
+medical_agent = await evolution_manager.evolve_agent(
+    agent_id=evolved_agent["evolved_agent_id"],
+    changes="Adapt to process medical records instead of invoices",
+    evolution_type="domain_adaptation",
+    target_domain="healthcare"
+)
+```
+
+This demonstrates the framework's ability to:
+1. Track agent experiences
+2. Evolve agents based on performance data
+3. Adapt agents to new domains
+4. Validate improvements through A/B testing
+
+### Step 6: Semantic Search with OpenAI Embeddings
 
 The final part demonstrates how to find semantically similar components in the library:
 
@@ -296,6 +400,44 @@ This capability-based communication enables:
 3. **Graceful Evolution**: Providers can be upgraded without disrupting consumers
 4. **Automatic Routing**: Requests are sent to the most appropriate provider
 
+## Multi-Framework Support
+
+The Evolving Agents Framework supports multiple agent frameworks through its Provider architecture:
+
+```mermaid
+flowchart TD
+    PR["Provider Registry"]
+    BP["BeeAI Provider<br>- create_agent()<br>- execute_agent()"]
+    OP["OpenAI Provider<br>- create_agent()<br>- execute_agent()<br>- apply_guardrails()"]
+    
+    PR --> BP
+    PR --> OP
+    PR --> FP["Future Providers<br>(extensible)"]
+```
+
+### Framework Integration
+
+The architecture allows seamless integration of different agent frameworks:
+
+```mermaid
+flowchart TD
+    AF["Agent Factory"]
+    PR["Provider Registry"]
+    SL["Smart Library"]
+    
+    ST["SearchTool<br>(BeeAI Tool)"]
+    OA["OpenAIAgent<br>(OpenAI Agent)"]
+    BA["BeeAIAgent<br>(BeeAI Agent)"]
+    
+    AF --> PR
+    AF --> SL
+    
+    ST -- "request()" --> AF
+    AF -- "call provider" --> PR
+    PR -- "create/execute" --> OA
+    PR -- "create/execute" --> BA
+```
+
 ## Core Components
 
 ### SystemAgent as a BeeAI ReActAgent
@@ -338,6 +480,45 @@ class EvolveComponentTool(Tool):
     # Tool implementation...
     async def evolve_agent(self, agent_id, changes, new_requirements):
         """Evolve an existing agent with new capabilities."""
+        # Implementation...
+```
+
+### OpenAI Agent Tools
+
+Tools for working with OpenAI Agents:
+
+```python
+class CreateOpenAIAgentTool(Tool):
+    """Tool for creating OpenAI agents."""
+    
+    name = "CreateOpenAIAgentTool"
+    description = "Create OpenAI agents with the OpenAI Agents SDK, configuring model, tools, and governance"
+    
+    # Tool implementation...
+    async def create_agent(self, name, description, domain, model="gpt-4o"):
+        """Create a new OpenAI agent."""
+        # Implementation...
+
+class EvolveOpenAIAgentTool(Tool):
+    """Tool for evolving OpenAI agents."""
+    
+    name = "EvolveOpenAIAgentTool"
+    description = "Evolve OpenAI agents through different strategies to adapt to new requirements or improve performance"
+    
+    # Tool implementation...
+    async def evolve_agent(self, agent_id, changes, evolution_type="standard"):
+        """Evolve an OpenAI agent with new capabilities."""
+        # Implementation...
+
+class ABTestOpenAIAgentTool(Tool):
+    """Tool for A/B testing OpenAI agents."""
+    
+    name = "ABTestOpenAIAgentTool"
+    description = "Compare two OpenAI agents on the same tasks to measure performance differences"
+    
+    # Tool implementation...
+    async def compare_agents(self, agent_a_id, agent_b_id, test_inputs):
+        """Compare two OpenAI agents and evaluate their performance."""
         # Implementation...
 ```
 
@@ -405,9 +586,10 @@ class GenerateWorkflowTool(Tool):
 ## Advanced Features
 
 - **Firmware Injection**: Enforce governance rules and constraints across all agents
+- **OpenAI Guardrails**: Apply guardrails for OpenAI agents based on firmware rules
 - **Version Control**: Track the evolution of agents over time
 - **Cross-domain Collaboration**: Enable agents from different domains to work together
 - **Observability**: Monitor agent communications and decision processes
-
-## Final Note
-We’re in the midst of an active refactoring process. The existing example is deprecated, but we’ll be publishing an updated version aligned with the architecture diagrams in the coming days! 🚀
+- **Experience-Driven Evolution**: Evolve agents based on their performance data
+- **A/B Testing**: Compare agent versions to validate improvements
+- **Multi-Framework Workflows**: Combine BeeAI and OpenAI agents in the same workflow
