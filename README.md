@@ -7,6 +7,8 @@ A toolkit for agent autonomy, evolution, and governance. Create agents that can 
 ## Why the World Needs This Toolkit
 Current agent systems are designed primarily for humans to build and control AI agents. The Evolving Agents Toolkit takes a fundamentally different approach: agents building agents.
 
+![The Evolving Agents Toolkit](1-toolkit.png)
+
 Our toolkit provides:
 
 - **Autonomous Evolution**: Agents learn from experience and improve themselves without human intervention
@@ -16,6 +18,96 @@ Our toolkit provides:
 - **Agent-Centric Architecture**: Communication and capabilities built for agents themselves, not just their human creators
 
 Instead of creating yet another agent framework, we build on existing frameworks like BeeAI and OpenAI Agents SDK to create a layer that enables agent autonomy, evolution, and self-governance - moving us closer to truly autonomous AI systems that improve themselves while staying within safe boundaries.
+
+## Why is Firmware Essential in Autonomous Agent Evolution?
+
+In a system where agents and tools can evolve autonomously and create new components from scratch, governance firmware becomes not just important but essential. Without proper guardrails:
+
+![Governance Firmware](2-firmware.png)
+
+- **Capability Drift**: Evolved agents could develop capabilities that stray from their intended purpose
+- **Alignment Challenges**: Self-improving systems may optimize for the wrong objectives without proper constraints
+- **Safety Concerns**: Autonomous creation of new agents could introduce unforeseen risks or harmful behaviors
+- **Compliance Issues**: Evolved agents might unknowingly violate regulatory requirements or ethical boundaries
+
+Our firmware system addresses these challenges by embedding governance rules directly into the evolution process itself. It ensures that:
+
+1. All evolved agents maintain alignment with human values and intentions
+2. Component creation and evolution happens within clearly defined ethical and operational boundaries
+3. Domain-specific compliance requirements (medical, financial, etc.) are preserved across generations
+4. Evolution optimizes for both performance and responsible behavior
+
+The firmware acts as a constitution for our agent ecosystem - allowing freedom and innovation within sensible boundaries.
+
+## Why Do We Need a Smart Library?
+
+The Smart Library serves as the institutional memory and knowledge base for our agent ecosystem. It provides several critical functions:
+
+![Smart Library](3-smartlibrary.png)
+
+- **Component Reuse**: Prevents reinventing the wheel by making existing, proven agents and tools discoverable
+- **Experience Capture**: Records performance metrics and usage patterns to guide future evolution
+- **Semantic Discovery**: Enables finding components based on capabilities rather than exact name matches
+- **Evolution Tracking**: Maintains lineage of components across multiple generations of improvements
+- **Cross-Domain Transfer**: Allows innovations from one domain to benefit others through knowledge sharing
+
+By maintaining a searchable repository of components, the Smart Library enables a cumulative learning process where each new solution builds upon previous advances, significantly accelerating development of agent-based systems.
+
+## Why Do We Need Workflow Generation and Execution?
+
+Workflow capabilities bridge the gap between human requirements and agent execution by:
+
+![Workflow Generation and Execution](4-workflow.png)
+
+- **Translating Requirements**: Converting natural language needs into precise agent collaboration patterns
+- **Orchestrating Collaboration**: Coordinating multiple specialized agents to solve complex problems
+- **Optimizing Resource Usage**: Selecting the most appropriate agents for each task based on capabilities
+- **Ensuring Reproducibility**: Creating version-controlled definitions of multi-agent processes
+- **Enabling Adaptation**: Allowing workflows to evolve as requirements change or new capabilities emerge
+
+The workflow system serves as the bridge between human intent and agent execution, ensuring that complex requirements can be addressed through well-orchestrated collaboration between specialized components.
+
+## Why Do We Need Agent and Tool Evolution?
+
+Evolution capabilities are essential because no agent or tool is perfect from the start. Evolution enables:
+
+![Agent and Tool Evolution](5-evolution.png)
+
+- **Performance Improvement**: Refining agents based on observed successes and failures
+- **Adaptation to Change**: Updating tools when external services or requirements change
+- **Specialization**: Creating domain-specific variants optimized for particular use cases
+- **Knowledge Transfer**: Applying learnings from one domain to another through targeted adaptation
+- **Interface Alignment**: Adjusting agents to work better with new LLMs or companion tools
+
+Evolution represents the core learning mechanism of our system, allowing it to improve over time through experience rather than requiring constant human intervention and rebuilding.
+
+## Why Create Agents and Tools from Scratch?
+
+While evolution is powerful, sometimes entirely new capabilities are needed. Creation from scratch:
+
+![Creating New Agents and Tools](6-new.png)
+
+- **Fills Capability Gaps**: Creates missing components when no suitable starting point exists
+- **Implements Novel Approaches**: Builds components that use fundamentally new techniques
+- **Introduces Diversity**: Prevents the system from getting stuck in local optima by introducing fresh approaches
+- **Responds to New Requirements**: Addresses emerging needs that weren't anticipated in existing components
+- **Leverages LLM Strengths**: Utilizes the code generation capabilities of modern LLMs to create well-designed components
+
+The creation capability ensures that our system can expand to meet new challenges rather than being limited to its initial design, making it truly adaptable to changing needs.
+
+## Why a System Agent?
+
+The System Agent serves as both the orchestrator and embodiment of our agent-centric philosophy:
+
+![System Agent](7-system.png)
+
+- **Consistency in Architecture**: Applies the agent-centric approach to the system itself, not just its components
+- **Decision Intelligence**: Makes sophisticated decisions about when to reuse, evolve, or create components
+- **Meta-Reasoning**: Reasons about the agent ecosystem and its own actions in a transparent, explainable way
+- **Unified Control**: Provides a single interface to all toolkit capabilities while maintaining modularity
+- **Embodied Philosophy**: Demonstrates our architectural principles in action by being itself an agent
+
+By implementing the system control layer as an agent with specialized tools, we ensure our architecture is consistent, flexible, and aligned with our core philosophy that agents should build and manage agents.
 
 ## Key Features
 
@@ -57,102 +149,9 @@ pip install -e .
 
 # Install OpenAI Agents SDK
 pip install -r requirements-openai-agents.txt
-
-# Setup the agent library
-python examples/setup_simplified_agent_library.py
-
-# Run the pure ReAct agent demonstration
-python examples/pure_react_system_agent.py
-
-# Run the OpenAI Agents integration demo
-python examples/openai_agents_workflow_integration.py
-
-# Run the OpenAI Agents evolution demo
-python examples/openai_agent_evolution_demo.py
 ```
 
-## Agent-Centric Architecture
-
-The Evolving Agents Framework features a true agent-centric architecture where:
-
-1. **The SystemAgent is a Pure ReActAgent**: Built on BeeAI's ReActAgent, it makes decisions through reasoning rather than hardcoded logic
-2. **Tools Encapsulate Strategies**: Each specialized tool contains its own decision-making logic and strategies
-3. **Everything is an Agent**: Components communicate through capabilities, not direct references
-4. **Strategy Evolution**: Tools can evolve their strategies independently of the agent that uses them
-5. **Cross-Framework Evolution**: Both BeeAI and OpenAI agents can evolve through experience
-
-### Key Components
-
-The architecture consists of four main categories of tools, each with specialized strategies:
-
-#### 1. Smart Library Tools
-
-```mermaid
-graph TD
-    A[Smart Library Tools] --> B[SearchComponent Tool]
-    A --> C[CreateComponent Tool]
-    A --> D[EvolveComponent Tool]
-    
-    B --> B1[Contains similarity-based decision logic]
-    C --> C1[Encapsulates creation strategies]
-    D --> D1[Implements multiple evolution strategies]
-```
-
-#### 2. Agent Bus Tools
-
-```mermaid
-graph TD
-    A[Agent Bus Tools] --> B[RegisterProvider Tool]
-    A --> C[RequestService Tool]
-    A --> D[DiscoverCapability Tool]
-    
-    B --> B1[Manages capability registration]
-    C --> C1[Routes requests to best provider]
-    D --> D1[Enables dynamic discovery]
-```
-
-#### 3. Workflow Tools
-
-```mermaid
-graph TD
-    A[Workflow Tools] --> C[WorkflowProcessor]
-    C --> C1[Coordinates multi-agent cooperation]
-```
-
-#### 4. OpenAI Agents Tools
-
-```mermaid
-graph TD
-    A[OpenAI Agents Tools] --> B[CreateOpenAIAgent Tool]
-    A --> C[ExecuteOpenAIAgent Tool]
-    A --> D[EvolveOpenAIAgent Tool]
-    A --> E[ABTestOpenAIAgent Tool]
-    
-    B --> B1[Creates OpenAI Agents]
-    C --> C1[Executes with OpenAI SDK]
-    D --> D1[Applies evolution strategies to OpenAI agents]
-    E --> E1[Compares agent performance]
-```
-
-## Evolution Strategies
-
-Both BeeAI and OpenAI agents can evolve through multiple strategies:
-
-- **Standard**: Balanced evolution that preserves core functionality while adding new features
-- **Conservative**: Minimal changes to the original component, focusing on compatibility
-- **Aggressive**: Significant changes that optimize for new requirements
-- **Domain Adaptation**: Specialized for adapting components to new domains
-
-### OpenAI Agent Evolution
-
-OpenAI agents gain unique evolution capabilities:
-
-1. **Experience Tracking**: Records invocation patterns, success rates, and performance across domains
-2. **A/B Testing**: Quantitative comparison between agent versions
-3. **Auto-Evolution**: Automatic detection of evolution candidates based on experience
-4. **Framework-Specific Optimization**: Evolution strategies tailored to OpenAI agent instructions
-
-## Example: Using the SystemAgent with OpenAI Agents
+## Example Code Snippets
 
 ```python
 # Initialize the SystemAgent
@@ -172,42 +171,18 @@ system_agent = await SystemAgentFactory.create_agent(
     agent_bus=agent_bus,
     memory_type="token"
 )
-
-# Request creation of an OpenAI agent
-response = await system_agent.run("""
-Create a new OpenAI agent called "InvoiceProcessor" that can extract 
-structured data from invoice documents.
-
-Use the openai-agents framework with the gpt-4o model and configure it to:
-1. Extract invoice number, date, vendor, items, and totals
-2. Verify calculations
-3. Output data in JSON format
-
-After creating the agent, test it with a sample invoice.
-""")
-
-print(response.result.text)
 ```
 
-## Example: OpenAI Agent Evolution
+## Coming Soon: Example Tutorials
 
-```python
-# Initialize evolution components
-agent_logger = OpenAIAgentLogger()
-evolve_tool = EvolveOpenAIAgentTool(library, llm_service, agent_logger=agent_logger)
+We're developing a comprehensive set of tutorial examples to help you get started with the Evolving Agents Toolkit:
 
-# Evolve the agent with standard strategy
-evolution_input = evolve_tool.input_schema(
-    agent_id_or_name="InvoiceProcessor",
-    evolution_type="standard",
-    changes="Improve JSON output structure and add calculation verification",
-    learning_from_experience=True
-)
+1. **Building a Smart Library** - Creating and populating your own smart library of agents and tools
+2. **Workflow Generation and Execution** - Defining and running multi-agent workflows using YAML
+3. **Agent Evolution** - Evolving agents to improve performance and adapt to new requirements
+4. **Creating New Agents from Scratch** - Building entirely new agents for novel use cases
 
-# Run the evolution
-evolution_result = await evolve_tool._run(evolution_input)
-print(json.loads(evolution_result.get_text_content())["message"])
-```
+Stay tuned for these detailed examples!
 
 ## Key Technical Achievements
 
