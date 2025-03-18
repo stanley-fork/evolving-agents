@@ -1,144 +1,93 @@
-scenario_name: Invoice Processing System
-domain: document_processing
-description: A system to process invoice documents, extract information, verify calculations, and generate summaries
+scenario_name: Invoice Processing
+domain: general
+description: Extracts and analyzes invoice data to generate a structured summary and error report.
 
 steps:
-  # Define specialized components
-  - type: "DEFINE"
-    item_type: "AGENT"
-    name: "DocumentAnalyzer"
-    description: "Agent that analyzes document structure and identifies invoice types"
-    code_snippet: |
-      # Agent implementation code
-
-  - type: "DEFINE"
-    item_type: "AGENT"
-    name: "DataExtractor"
-    description: "Agent that extracts data from the invoice"
-    code_snippet: |
-      # Agent implementation code
-
-  - type: "DEFINE"
-    item_type: "AGENT"
-    name: "CalculationVerifier"
-    description: "Agent that verifies the calculations on the invoice"
-    code_snippet: |
-      # Agent implementation code
-
-  - type: "DEFINE"
-    item_type: "AGENT"
-    name: "SummaryGenerator"
-    description: "Agent that generates a structured summary of the invoice"
-    code_snippet: |
-      # Agent implementation code
-
-  - type: "DEFINE"
-    item_type: "AGENT"
-    name: "ErrorDetector"
-    description: "Agent that detects errors in the invoice processing"
-    code_snippet: |
-      # Agent implementation code
-
-  # Define the orchestrator agent
-  - type: "DEFINE"
-    item_type: "AGENT"
-    name: "AdvancedInvoiceProcessor"
-    description: "Agent that orchestrates the invoice processing workflow"
-    code_snippet: |
-      from typing import List, Dict, Any, Optional
-      import re
-
-      from beeai_framework.agents.react import ReActAgent
-      from beeai_framework.agents.types import AgentMeta
-      from beeai_framework.memory import TokenMemory
-      from beeai_framework.backend.chat import ChatModel
-      from beeai_framework.tools.tool import Tool
-
-      class AdvancedInvoiceProcessorInitializer:
-          """
-          Advanced invoice processor that orchestrates specialized components
-          to analyze, extract, verify, and summarize invoice information.
-          """
-          
-          @staticmethod
-          def create_agent(llm: ChatModel, tools: Optional[List[Tool]] = None) -> ReActAgent:
-              """Create and configure the invoice processor agent."""
-              # Use empty tools list if none provided
-              if tools is None:
-                  tools = []
-                  
-              # Define agent metadata
-              meta = AgentMeta(
-                  name="AdvancedInvoiceProcessor",
-                  description=(
-                      "I am an advanced invoice processing agent that orchestrates specialized components "
-                      "to analyze, extract, verify, and summarize invoice information."
-                  ),
-                  tools=tools
-              )
-              
-              # Create the agent
-              agent = ReActAgent(
-                  llm=llm,
-                  tools=tools,
-                  memory=TokenMemory(llm),
-                  meta=meta
-              )
-              
-              return agent
-
   # Create all components
   - type: "CREATE"
-    item_type: "AGENT"
-    name: "DocumentAnalyzer"
-
+    item_type: "TOOL"
+    name: "OCR Tool"
+  
   - type: "CREATE"
-    item_type: "AGENT"
+    item_type: "TOOL"
     name: "DataExtractor"
-
+  
   - type: "CREATE"
-    item_type: "AGENT"
+    item_type: "TOOL"
+    name: "DocumentAnalyzer"
+  
+  - type: "CREATE"
+    item_type: "TOOL"
+    name: "FormatHandler"
+  
+  - type: "CREATE"
+    item_type: "TOOL"
     name: "CalculationVerifier"
-
+  
   - type: "CREATE"
-    item_type: "AGENT"
+    item_type: "TOOL"
+    name: "Error Detection Module"
+  
+  - type: "CREATE"
+    item_type: "TOOL"
     name: "SummaryGenerator"
-
-  - type: "CREATE"
-    item_type: "AGENT"
-    name: "ErrorDetector"
-
-  - type: "CREATE"
-    item_type: "AGENT"
-    name: "AdvancedInvoiceProcessor"
-
+  
   # Execute the workflow
   - type: "EXECUTE"
-    item_type: "AGENT"
-    name: "AdvancedInvoiceProcessor"
+    item_type: "TOOL"
+    name: "OCR Tool"
     user_input: |
-      Process this invoice:
-      
-      INVOICE #12345
-      Date: 2023-05-15
-      Vendor: TechSupplies Inc.
-      Address: 123 Tech Blvd, San Francisco, CA 94107
-      
-      Bill To:
-      Acme Corporation
-      456 Business Ave
-      New York, NY 10001
-      
-      Items:
-      1. Laptop Computer - $1,200.00 (2 units)
-      2. External Monitor - $300.00 (3 units)
-      3. Wireless Keyboard - $50.00 (5 units)
-      
-      Subtotal: $2,950.00
-      Tax (8.5%): $250.75
-      Total Due: $3,200.75
-      
-      Payment Terms: Net 30
-      Due Date: 2023-06-14
-      
+
       Thank you for your business!
+      
+      Due Date: 2023-06-14
+      Payment Terms: Net 30
+      
+      Total Due: $3,200.75
+      Tax (8.5%): $250.75
+      Subtotal: $2,950.00
+      
+      3. Wireless Keyboard - $50.00 (5 units)
+      2. External Monitor - $300.00 (3 units)
+      1. Laptop Computer - $1,200.00 (2 units)
+      Items:
+      
+      New York, NY 10001
+      456 Business Ave
+      Acme Corporation
+      Bill To:
+      
+      Address: 123 Tech Blvd, San Francisco, CA 94107
+      Vendor: TechSupplies Inc.
+      Date: 2023-05-15
+      INVOICE #12345
+  
+  - type: "EXECUTE"
+    item_type: "TOOL"
+    name: "DataExtractor"
+    user_input: "Output from OCR Tool"
+  
+  - type: "EXECUTE"
+    item_type: "TOOL"
+    name: "DocumentAnalyzer"
+    user_input: "Output from DataExtractor"
+  
+  - type: "EXECUTE"
+    item_type: "TOOL"
+    name: "FormatHandler"
+    user_input: "Output from DocumentAnalyzer"
+  
+  - type: "EXECUTE"
+    item_type: "TOOL"
+    name: "CalculationVerifier"
+    user_input: "Output from FormatHandler"
+  
+  - type: "EXECUTE"
+    item_type: "TOOL"
+    name: "Error Detection Module"
+    user_input: "Output from CalculationVerifier"
+  
+  - type: "EXECUTE"
+    item_type: "TOOL"
+    name: "SummaryGenerator"
+    user_input: "Output from Error Detection Module"

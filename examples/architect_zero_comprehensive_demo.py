@@ -57,7 +57,10 @@ def clean_previous_files():
         "agent_bus.json",
         "architect_interaction.txt",
         "invoice_workflow.yaml",
-        "workflow_execution_result.json"
+        "workflow_execution_result.json",
+        "detailed_invoice_analysis.txt",
+        "direct_invoice_analysis.txt",
+        "invoice_processor_id.txt"
     ]
     
     for file_path in files_to_remove:
@@ -295,6 +298,7 @@ async def main():
         
         # Try to execute the workflow with sample invoice data
         logger.info("\n=== EXECUTING GENERATED WORKFLOW ===")
+        execution_result = None
         try:
             # If we have a workflow, try to execute it
             if os.path.exists("invoice_workflow.yaml"):
@@ -302,7 +306,7 @@ async def main():
                     yaml_content = f.read()
                 
                 # Replace placeholder with actual invoice
-                yaml_content = yaml_content.replace("{{invoice_text}}", SAMPLE_INVOICE)
+                yaml_content = yaml_content.replace("dummy", SAMPLE_INVOICE)
                 yaml_content = yaml_content.replace("{invoice_text}", SAMPLE_INVOICE)
                 
                 # Use the workflow processor to execute it
@@ -338,6 +342,103 @@ async def main():
                 
         except Exception as e:
             logger.error(f"Error executing workflow: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+        
+        # Extract and display the actual processed invoice data if available
+        try:
+            if execution_result and "status" in execution_result and execution_result["status"] == "success":
+                logger.info("\n=== INVOICE PROCESSING RESULTS ===")
+                
+                # Try to find any invoice processor agent
+                processor_candidates = []
+                for record in smart_library.records:
+                    if record["record_type"] == "AGENT" and "invoice" in record["name"].lower():
+                        processor_candidates.append(record)
+                        
+                if processor_candidates:
+                    # Sort by creation date (newest first)
+                    processor_candidates.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+                    processor_agent_record = processor_candidates[0]
+                    
+                    # Save the agent ID for potential reuse
+                    with open("invoice_processor_id.txt", "w") as f:
+                        f.write(processor_agent_record["id"])
+                    
+                    logger.info(f"\n=== RUNNING {processor_agent_record['name']} DIRECTLY ===")
+                    
+                    try:
+                        # Create the processor agent
+                        from evolving_agents.agents.agent_factory import AgentFactory
+                        agent_factory = AgentFactory(smart_library, llm_service, None)
+                        
+                        processor_agent = await agent_factory.create_agent(processor_agent_record)
+                        
+                        # Check if the agent was created successfully
+                        if processor_agent:
+                            # The agent is created as a ReActAgent, so we need to use the run method directly
+                            if hasattr(processor_agent, "run"):
+                                try:
+                                    # Use the run method directly
+                                    prompt = f"Please process this invoice and provide a detailed analysis with extracted data, verification results, and a structured summary:\n\n{SAMPLE_INVOICE}"
+                                    run_result = await processor_agent.run(prompt=prompt)
+                                    
+                                    # Extract the result
+                                    if hasattr(run_result, "result") and hasattr(run_result.result, "text"):
+                                        result_text = run_result.result.text
+                                        logger.info("Direct execution result:")
+                                        logger.info(result_text)
+                                        
+                                        # Save detailed result
+                                        with open("detailed_invoice_analysis.txt", "w") as f:
+                                            f.write(result_text)
+                                        
+                                        logger.info("Detailed invoice analysis saved to detailed_invoice_analysis.txt")
+                                    else:
+                                        logger.error(f"Unexpected result structure: {run_result}")
+                                except Exception as e:
+                                    logger.error(f"Error running agent directly: {str(e)}")
+                                    import traceback
+                                    logger.error(traceback.format_exc())
+                            else:
+                                logger.error(f"Agent doesn't have 'run' method: {type(processor_agent)}")
+                        else:
+                            logger.error("Failed to create processor agent")
+                            
+                    except Exception as e:
+                        logger.error(f"Error executing agent directly: {str(e)}")
+                        import traceback
+                        logger.error(traceback.format_exc())
+                else:
+                    # If no invoice processor found, log this
+                    logger.warning("No invoice processor agent found in library")
+                
+                # Generate a final invoice analysis using the LLM directly regardless of what happened above
+                logger.info("\n=== GENERATING INVOICE ANALYSIS DIRECTLY ===")
+                analysis_prompt = f"""
+                Analyze this invoice and provide a detailed breakdown:
+                
+                {SAMPLE_INVOICE}
+                
+                Please provide:
+                1. Extracted key information (invoice #, date, vendor, etc.)
+                2. Line items with quantities and amounts
+                3. Verification of calculations (subtotal + tax = total)
+                4. Any potential errors or inconsistencies
+                5. A structured summary with insights
+                
+                Format your response as a clear, structured analysis.
+                """
+                
+                direct_analysis = await llm_service.generate(analysis_prompt)
+                
+                # Save direct analysis
+                with open("direct_invoice_analysis.txt", "w") as f:
+                    f.write(direct_analysis)
+                    
+                logger.info("Generated direct invoice analysis and saved to direct_invoice_analysis.txt")
+        except Exception as e:
+            logger.error(f"Error getting detailed invoice results: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
     
@@ -425,43 +526,37 @@ def extract_yaml_workflow(text):
 async def generate_workflow_from_response(llm_service, full_text):
     """Use the LLM to extract or generate a YAML workflow from the response."""
     prompt = f"""
-    Based on the following architect agent output, create a complete YAML workflow for an invoice processing system:
-
-    {full_text[:5000]}  # limit to avoid token issues
-
-    The workflow should process this sample invoice:
+    Create a complete YAML workflow for an advanced invoice processing system.
     
+    The workflow MUST include:
+    1. A definition for an "AdvancedInvoiceProcessor" agent as the main orchestrator
+    2. Definitions for specialized component agents (not tools) for different invoice processing tasks
+    3. Creation steps for all defined components
+    4. Execution of the AdvancedInvoiceProcessor agent with the sample invoice
+    
+    REQUIRED COMPONENTS:
+    - AdvancedInvoiceProcessor (AGENT - main orchestrator)
+    - DocumentAnalyzer (AGENT)
+    - DataExtractor (AGENT)
+    - CalculationVerifier (AGENT)
+    - SummaryGenerator (AGENT)
+    - ErrorDetector (AGENT)
+    
+    SAMPLE INVOICE:
     {SAMPLE_INVOICE}
 
-    Please create a YAML workflow that:
-    
-    1. Defines all necessary components (document analyzer, data extractor, calculation verifier, etc.)
-    2. Creates all the components
-    3. Defines an AdvancedInvoiceProcessor agent that orchestrates all the specialized components
-    4. Executes the workflow with the sample invoice
-
-    Use this format:
+    YAML FORMAT:
     ```yaml
-    scenario_name: Invoice Processing System
+    scenario_name: Advanced Invoice Processing System
     domain: document_processing
-    description: A system to process invoice documents, extract information, verify calculations, and generate summaries
+    description: A system to process invoice documents with advanced capabilities
 
     steps:
-      # Define specialized components
-      - type: "DEFINE"
-        item_type: "AGENT"
-        name: "DocumentAnalyzer"
-        description: "Agent that analyzes document structure and identifies invoice types"
-        code_snippet: |
-          # Agent implementation code
-          
-      # ... other component definitions
-      
-      # Define the orchestrator agent
+      # Define the AdvancedInvoiceProcessor orchestrator agent (REQUIRED)
       - type: "DEFINE"
         item_type: "AGENT"
         name: "AdvancedInvoiceProcessor"
-        description: "Agent that orchestrates the invoice processing workflow"
+        description: "Main agent that orchestrates the invoice processing workflow"
         code_snippet: |
           from typing import List, Dict, Any, Optional
           import re
@@ -505,47 +600,31 @@ async def generate_workflow_from_response(llm_service, full_text):
                   
                   return agent
           
-      # Create all components
-      - type: "CREATE"
+      # Define other component agents
+      - type: "DEFINE"
         item_type: "AGENT"
         name: "DocumentAnalyzer"
+        description: "Agent that analyzes document structure and identifies invoice types"
+        code_snippet: |
+          # Agent implementation code
+          
+      # ... other component definitions
       
-      # ... other component creations
-      
+      # Create all agents (REQUIRED)
       - type: "CREATE"
         item_type: "AGENT"
         name: "AdvancedInvoiceProcessor"
       
-      # Execute the workflow
+      # ... other agent creations
+      
+      # Execute the AdvancedInvoiceProcessor (REQUIRED)
       - type: "EXECUTE"
         item_type: "AGENT"
         name: "AdvancedInvoiceProcessor"
         user_input: |
           Process this invoice:
           
-          INVOICE #12345
-          Date: 2023-05-15
-          Vendor: TechSupplies Inc.
-          Address: 123 Tech Blvd, San Francisco, CA 94107
-          
-          Bill To:
-          Acme Corporation
-          456 Business Ave
-          New York, NY 10001
-          
-          Items:
-          1. Laptop Computer - $1,200.00 (2 units)
-          2. External Monitor - $300.00 (3 units)
-          3. Wireless Keyboard - $50.00 (5 units)
-          
-          Subtotal: $2,950.00
-          Tax (8.5%): $250.75
-          Total Due: $3,200.75
-          
-          Payment Terms: Net 30
-          Due Date: 2023-06-14
-          
-          Thank you for your business!
+          {SAMPLE_INVOICE}
     ```
 
     Return only the YAML workflow without explanation.

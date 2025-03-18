@@ -1,6 +1,6 @@
 [
   {
-    "id": "a3a96b45-02d6-408c-87f6-92b85a8349d9",
+    "id": "dff0ff52-d008-408c-84c5-99b11daddb65",
     "name": "BasicDocumentAnalyzer",
     "record_type": "TOOL",
     "domain": "document_processing",
@@ -11,8 +11,8 @@
     "success_count": 0,
     "fail_count": 0,
     "status": "active",
-    "created_at": "2025-03-18T21:33:41.036869",
-    "last_updated": "2025-03-18T21:33:41.036890",
+    "created_at": "2025-03-18T21:59:42.166831",
+    "last_updated": "2025-03-18T21:59:42.166837",
     "tags": [
       "document",
       "analysis",
@@ -21,7 +21,7 @@
     "metadata": {}
   },
   {
-    "id": "f72bd8b1-f63a-4bab-9a26-27004bf1de08",
+    "id": "0e57cc6d-1f24-4981-9458-b927cacbe2cf",
     "name": "BasicInvoiceProcessor",
     "record_type": "AGENT",
     "domain": "document_processing",
@@ -32,8 +32,8 @@
     "success_count": 0,
     "fail_count": 0,
     "status": "active",
-    "created_at": "2025-03-18T21:33:41.038835",
-    "last_updated": "2025-03-18T21:33:41.038877",
+    "created_at": "2025-03-18T21:59:42.167393",
+    "last_updated": "2025-03-18T21:59:42.167397",
     "tags": [
       "invoice",
       "processing",
@@ -42,163 +42,190 @@
     "metadata": {}
   },
   {
-    "id": "5d97ab56-1095-4046-a325-b527d506ffc4",
-    "name": "DocumentAnalyzer",
-    "record_type": "AGENT",
-    "domain": "document_processing",
-    "description": "Agent that analyzes document structure and identifies invoice types",
+    "id": "40b00740-bfe9-4ab7-be82-8801dd4f5bb4",
+    "name": "OCR Tool",
+    "record_type": "TOOL",
+    "domain": "general",
+    "description": "Tool to perform Optical Character Recognition on documents.",
     "code_snippet": "# No code provided",
     "version": "1.0.0",
     "usage_count": 0,
     "success_count": 0,
     "fail_count": 0,
     "status": "active",
-    "created_at": "2025-03-18T21:34:27.105847",
-    "last_updated": "2025-03-18T21:34:27.105852",
+    "created_at": "2025-03-18T22:00:23.949678",
+    "last_updated": "2025-03-18T22:00:23.949681",
     "tags": [
-      "document_processing",
-      "agent"
+      "general",
+      "tool"
     ],
     "metadata": {
       "framework": "beeai",
       "creation_strategy": {
         "method": "direct_code",
-        "timestamp": "2025-03-18T21:34:27.105769",
+        "timestamp": "2025-03-18T22:00:23.949652",
         "requirements_summary": null
       }
     }
   },
   {
-    "id": "b8305261-b51f-43da-a755-8fa888ebfe32",
+    "id": "43a8768c-f0e0-4af2-904f-48e6509347fb",
     "name": "DataExtractor",
-    "record_type": "AGENT",
-    "domain": "document_processing",
-    "description": "Agent that extracts data from the invoice",
+    "record_type": "TOOL",
+    "domain": "general",
+    "description": "Tool to extract data from OCR output.",
     "code_snippet": "# No code provided",
     "version": "1.0.0",
     "usage_count": 0,
     "success_count": 0,
     "fail_count": 0,
     "status": "active",
-    "created_at": "2025-03-18T21:34:28.421932",
-    "last_updated": "2025-03-18T21:34:28.421939",
+    "created_at": "2025-03-18T22:00:25.090465",
+    "last_updated": "2025-03-18T22:00:25.090467",
     "tags": [
-      "document_processing",
-      "agent"
+      "general",
+      "tool"
     ],
     "metadata": {
       "framework": "beeai",
       "creation_strategy": {
         "method": "direct_code",
-        "timestamp": "2025-03-18T21:34:28.421854",
+        "timestamp": "2025-03-18T22:00:25.090440",
         "requirements_summary": null
       }
     }
   },
   {
-    "id": "630a3660-dac3-4dad-a8bd-67c83f41b76d",
+    "id": "960caa58-0d4f-45aa-966a-cf0eb832e11b",
+    "name": "DocumentAnalyzer",
+    "record_type": "TOOL",
+    "domain": "general",
+    "description": "Tool to analyze extracted document data.",
+    "code_snippet": "# No code provided",
+    "version": "1.0.0",
+    "usage_count": 0,
+    "success_count": 0,
+    "fail_count": 0,
+    "status": "active",
+    "created_at": "2025-03-18T22:00:26.359639",
+    "last_updated": "2025-03-18T22:00:26.359642",
+    "tags": [
+      "general",
+      "tool"
+    ],
+    "metadata": {
+      "framework": "beeai",
+      "creation_strategy": {
+        "method": "direct_code",
+        "timestamp": "2025-03-18T22:00:26.359605",
+        "requirements_summary": null
+      }
+    }
+  },
+  {
+    "id": "1045c089-e50f-446e-b6f7-b67eb2f2e6b2",
+    "name": "FormatHandler",
+    "record_type": "TOOL",
+    "domain": "general",
+    "description": "Tool to handle formatting of analyzed data.",
+    "code_snippet": "# No code provided",
+    "version": "1.0.0",
+    "usage_count": 0,
+    "success_count": 0,
+    "fail_count": 0,
+    "status": "active",
+    "created_at": "2025-03-18T22:00:27.855946",
+    "last_updated": "2025-03-18T22:00:27.855956",
+    "tags": [
+      "general",
+      "tool"
+    ],
+    "metadata": {
+      "framework": "beeai",
+      "creation_strategy": {
+        "method": "direct_code",
+        "timestamp": "2025-03-18T22:00:27.855792",
+        "requirements_summary": null
+      }
+    }
+  },
+  {
+    "id": "7f77179d-d0ed-48c3-9284-63fbf83e016d",
     "name": "CalculationVerifier",
-    "record_type": "AGENT",
-    "domain": "document_processing",
-    "description": "Agent that verifies the calculations on the invoice",
+    "record_type": "TOOL",
+    "domain": "general",
+    "description": "Tool to verify calculations in formatted data.",
     "code_snippet": "# No code provided",
     "version": "1.0.0",
     "usage_count": 0,
     "success_count": 0,
     "fail_count": 0,
     "status": "active",
-    "created_at": "2025-03-18T21:34:29.490823",
-    "last_updated": "2025-03-18T21:34:29.490828",
+    "created_at": "2025-03-18T22:00:31.057764",
+    "last_updated": "2025-03-18T22:00:31.057767",
     "tags": [
-      "document_processing",
-      "agent"
+      "general",
+      "tool"
     ],
     "metadata": {
       "framework": "beeai",
       "creation_strategy": {
         "method": "direct_code",
-        "timestamp": "2025-03-18T21:34:29.490772",
+        "timestamp": "2025-03-18T22:00:31.057737",
         "requirements_summary": null
       }
     }
   },
   {
-    "id": "893e57ec-53d5-44a3-8e3b-da26fb233708",
+    "id": "c43f10d2-dbe4-42f1-9b27-477f38bca1f4",
+    "name": "Error Detection Module",
+    "record_type": "TOOL",
+    "domain": "general",
+    "description": "Tool to detect errors in verified calculations.",
+    "code_snippet": "# No code provided",
+    "version": "1.0.0",
+    "usage_count": 0,
+    "success_count": 0,
+    "fail_count": 0,
+    "status": "active",
+    "created_at": "2025-03-18T22:00:32.264194",
+    "last_updated": "2025-03-18T22:00:32.264198",
+    "tags": [
+      "general",
+      "tool"
+    ],
+    "metadata": {
+      "framework": "beeai",
+      "creation_strategy": {
+        "method": "direct_code",
+        "timestamp": "2025-03-18T22:00:32.264147",
+        "requirements_summary": null
+      }
+    }
+  },
+  {
+    "id": "ee67b148-1729-424e-ac30-ffe183cf8563",
     "name": "SummaryGenerator",
-    "record_type": "AGENT",
-    "domain": "document_processing",
-    "description": "Agent that generates a structured summary of the invoice",
+    "record_type": "TOOL",
+    "domain": "general",
+    "description": "Tool to generate a summary from error detection output.",
     "code_snippet": "# No code provided",
     "version": "1.0.0",
     "usage_count": 0,
     "success_count": 0,
     "fail_count": 0,
     "status": "active",
-    "created_at": "2025-03-18T21:34:30.523397",
-    "last_updated": "2025-03-18T21:34:30.523402",
+    "created_at": "2025-03-18T22:00:33.529957",
+    "last_updated": "2025-03-18T22:00:33.529959",
     "tags": [
-      "document_processing",
-      "agent"
+      "general",
+      "tool"
     ],
     "metadata": {
       "framework": "beeai",
       "creation_strategy": {
         "method": "direct_code",
-        "timestamp": "2025-03-18T21:34:30.523340",
-        "requirements_summary": null
-      }
-    }
-  },
-  {
-    "id": "7f9ac5be-68a8-4ad0-ba2e-fe6140e8bbc0",
-    "name": "ErrorDetector",
-    "record_type": "AGENT",
-    "domain": "document_processing",
-    "description": "Agent that detects errors in the invoice processing",
-    "code_snippet": "# No code provided",
-    "version": "1.0.0",
-    "usage_count": 0,
-    "success_count": 0,
-    "fail_count": 0,
-    "status": "active",
-    "created_at": "2025-03-18T21:34:31.670916",
-    "last_updated": "2025-03-18T21:34:31.670921",
-    "tags": [
-      "document_processing",
-      "agent"
-    ],
-    "metadata": {
-      "framework": "beeai",
-      "creation_strategy": {
-        "method": "direct_code",
-        "timestamp": "2025-03-18T21:34:31.670867",
-        "requirements_summary": null
-      }
-    }
-  },
-  {
-    "id": "1e9247a2-719d-4bf6-b45c-0ed8084534dc",
-    "name": "AdvancedInvoiceProcessor",
-    "record_type": "AGENT",
-    "domain": "document_processing",
-    "description": "Agent that orchestrates the invoice processing workflow",
-    "code_snippet": "# No code provided",
-    "version": "1.0.0",
-    "usage_count": 0,
-    "success_count": 0,
-    "fail_count": 0,
-    "status": "active",
-    "created_at": "2025-03-18T21:34:32.955290",
-    "last_updated": "2025-03-18T21:34:32.955296",
-    "tags": [
-      "document_processing",
-      "agent"
-    ],
-    "metadata": {
-      "framework": "beeai",
-      "creation_strategy": {
-        "method": "direct_code",
-        "timestamp": "2025-03-18T21:34:32.955236",
+        "timestamp": "2025-03-18T22:00:33.529931",
         "requirements_summary": null
       }
     }
