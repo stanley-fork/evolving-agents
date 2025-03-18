@@ -1,0 +1,206 @@
+[
+  {
+    "id": "a3a96b45-02d6-408c-87f6-92b85a8349d9",
+    "name": "BasicDocumentAnalyzer",
+    "record_type": "TOOL",
+    "domain": "document_processing",
+    "description": "A basic tool that analyzes documents to determine their type",
+    "code_snippet": "\nfrom typing import Dict, Any\nfrom pydantic import BaseModel, Field\n\nfrom beeai_framework.context import RunContext\nfrom beeai_framework.emitter.emitter import Emitter\nfrom beeai_framework.tools.tool import StringToolOutput, Tool, ToolRunOptions\n\nclass DocumentAnalyzerInput(BaseModel):\n    text: str = Field(description=\"Document text to analyze\")\n\nclass BasicDocumentAnalyzer(Tool[DocumentAnalyzerInput, ToolRunOptions, StringToolOutput]):\n    \"\"\"A basic tool that analyzes documents to determine their type.\"\"\"\n    name = \"BasicDocumentAnalyzer\"\n    description = \"Analyzes document content to determine if it's an invoice, receipt, or other document type\"\n    input_schema = DocumentAnalyzerInput\n\n    def _create_emitter(self) -> Emitter:\n        return Emitter.root().child(\n            namespace=[\"tool\", \"document\", \"analyzer\"],\n            creator=self,\n        )\n    \n    async def _run(self, input: DocumentAnalyzerInput, options: ToolRunOptions | None, context: RunContext) -> StringToolOutput:\n        \"\"\"Analyze document text to determine its type.\"\"\"\n        doc_text = input.text.lower()\n        \n        # Simple keyword matching\n        result = {\"type\": \"unknown\", \"confidence\": 0.0}\n        \n        if \"invoice\" in doc_text and (\"total\" in doc_text or \"amount\" in doc_text):\n            result = {\"type\": \"invoice\", \"confidence\": 0.7}\n        elif \"receipt\" in doc_text:\n            result = {\"type\": \"receipt\", \"confidence\": 0.6}\n        elif \"contract\" in doc_text:\n            result = {\"type\": \"contract\", \"confidence\": 0.6}\n        \n        import json\n        return StringToolOutput(json.dumps(result, indent=2))\n",
+    "version": "1.0.0",
+    "usage_count": 0,
+    "success_count": 0,
+    "fail_count": 0,
+    "status": "active",
+    "created_at": "2025-03-18T21:33:41.036869",
+    "last_updated": "2025-03-18T21:33:41.036890",
+    "tags": [
+      "document",
+      "analysis",
+      "basic"
+    ],
+    "metadata": {}
+  },
+  {
+    "id": "f72bd8b1-f63a-4bab-9a26-27004bf1de08",
+    "name": "BasicInvoiceProcessor",
+    "record_type": "AGENT",
+    "domain": "document_processing",
+    "description": "A basic agent that processes invoice documents to extract information",
+    "code_snippet": "\nfrom typing import List, Dict, Any, Optional\nimport re\n\nfrom beeai_framework.agents.react import ReActAgent\nfrom beeai_framework.agents.types import AgentMeta\nfrom beeai_framework.memory import TokenMemory\nfrom beeai_framework.backend.chat import ChatModel\nfrom beeai_framework.tools.tool import Tool\n\nclass BasicInvoiceProcessorInitializer:\n    \"\"\"\n    A basic agent that processes invoice documents to extract information.\n    It can extract simple data like invoice number, date, and total amount.\n    \"\"\"\n    \n    @staticmethod\n    def create_agent(llm: ChatModel, tools: Optional[List[Tool]] = None) -> ReActAgent:\n        \"\"\"Create and configure the invoice processor agent.\"\"\"\n        # Use empty tools list if none provided\n        if tools is None:\n            tools = []\n            \n        # Define agent metadata\n        meta = AgentMeta(\n            name=\"BasicInvoiceProcessor\",\n            description=(\n                \"I am an invoice processing agent that can extract basic information from invoice documents \"\n                \"including invoice number, date, vendor, and total amount.\"\n            ),\n            tools=tools\n        )\n        \n        # Create the agent\n        agent = ReActAgent(\n            llm=llm,\n            tools=tools,\n            memory=TokenMemory(llm),\n            meta=meta\n        )\n        \n        return agent\n        \n    @staticmethod\n    async def process_invoice(invoice_text: str) -> Dict[str, Any]:\n        \"\"\"\n        Process an invoice to extract key information.\n        \n        Args:\n            invoice_text: The text of the invoice to process\n            \n        Returns:\n            Extracted invoice information\n        \"\"\"\n        # Extract invoice number\n        invoice_num_match = re.search(r'INVOICE #([\\w-]+)', invoice_text, re.IGNORECASE)\n        invoice_num = invoice_num_match.group(1) if invoice_num_match else \"Unknown\"\n        \n        # Extract date\n        date_match = re.search(r'Date:?\\s*([\\w\\d/-]+)', invoice_text, re.IGNORECASE)\n        date = date_match.group(1).strip() if date_match else \"Unknown\"\n        \n        # Extract vendor\n        vendor_match = re.search(r'Vendor:?\\s*([^\\n]+)', invoice_text, re.IGNORECASE)\n        vendor = vendor_match.group(1).strip() if vendor_match else \"Unknown\"\n        \n        # Extract total\n        total_match = re.search(r'Total\\s*(?:Due|Amount)?:?\\s*\\$?([\\d.,]+)', invoice_text, re.IGNORECASE)\n        total = total_match.group(1).strip() if total_match else \"Unknown\"\n        \n        return {\n            \"invoice_number\": invoice_num,\n            \"date\": date,\n            \"vendor\": vendor,\n            \"total\": total\n        }\n",
+    "version": "1.0.0",
+    "usage_count": 0,
+    "success_count": 0,
+    "fail_count": 0,
+    "status": "active",
+    "created_at": "2025-03-18T21:33:41.038835",
+    "last_updated": "2025-03-18T21:33:41.038877",
+    "tags": [
+      "invoice",
+      "processing",
+      "basic"
+    ],
+    "metadata": {}
+  },
+  {
+    "id": "5d97ab56-1095-4046-a325-b527d506ffc4",
+    "name": "DocumentAnalyzer",
+    "record_type": "AGENT",
+    "domain": "document_processing",
+    "description": "Agent that analyzes document structure and identifies invoice types",
+    "code_snippet": "# No code provided",
+    "version": "1.0.0",
+    "usage_count": 0,
+    "success_count": 0,
+    "fail_count": 0,
+    "status": "active",
+    "created_at": "2025-03-18T21:34:27.105847",
+    "last_updated": "2025-03-18T21:34:27.105852",
+    "tags": [
+      "document_processing",
+      "agent"
+    ],
+    "metadata": {
+      "framework": "beeai",
+      "creation_strategy": {
+        "method": "direct_code",
+        "timestamp": "2025-03-18T21:34:27.105769",
+        "requirements_summary": null
+      }
+    }
+  },
+  {
+    "id": "b8305261-b51f-43da-a755-8fa888ebfe32",
+    "name": "DataExtractor",
+    "record_type": "AGENT",
+    "domain": "document_processing",
+    "description": "Agent that extracts data from the invoice",
+    "code_snippet": "# No code provided",
+    "version": "1.0.0",
+    "usage_count": 0,
+    "success_count": 0,
+    "fail_count": 0,
+    "status": "active",
+    "created_at": "2025-03-18T21:34:28.421932",
+    "last_updated": "2025-03-18T21:34:28.421939",
+    "tags": [
+      "document_processing",
+      "agent"
+    ],
+    "metadata": {
+      "framework": "beeai",
+      "creation_strategy": {
+        "method": "direct_code",
+        "timestamp": "2025-03-18T21:34:28.421854",
+        "requirements_summary": null
+      }
+    }
+  },
+  {
+    "id": "630a3660-dac3-4dad-a8bd-67c83f41b76d",
+    "name": "CalculationVerifier",
+    "record_type": "AGENT",
+    "domain": "document_processing",
+    "description": "Agent that verifies the calculations on the invoice",
+    "code_snippet": "# No code provided",
+    "version": "1.0.0",
+    "usage_count": 0,
+    "success_count": 0,
+    "fail_count": 0,
+    "status": "active",
+    "created_at": "2025-03-18T21:34:29.490823",
+    "last_updated": "2025-03-18T21:34:29.490828",
+    "tags": [
+      "document_processing",
+      "agent"
+    ],
+    "metadata": {
+      "framework": "beeai",
+      "creation_strategy": {
+        "method": "direct_code",
+        "timestamp": "2025-03-18T21:34:29.490772",
+        "requirements_summary": null
+      }
+    }
+  },
+  {
+    "id": "893e57ec-53d5-44a3-8e3b-da26fb233708",
+    "name": "SummaryGenerator",
+    "record_type": "AGENT",
+    "domain": "document_processing",
+    "description": "Agent that generates a structured summary of the invoice",
+    "code_snippet": "# No code provided",
+    "version": "1.0.0",
+    "usage_count": 0,
+    "success_count": 0,
+    "fail_count": 0,
+    "status": "active",
+    "created_at": "2025-03-18T21:34:30.523397",
+    "last_updated": "2025-03-18T21:34:30.523402",
+    "tags": [
+      "document_processing",
+      "agent"
+    ],
+    "metadata": {
+      "framework": "beeai",
+      "creation_strategy": {
+        "method": "direct_code",
+        "timestamp": "2025-03-18T21:34:30.523340",
+        "requirements_summary": null
+      }
+    }
+  },
+  {
+    "id": "7f9ac5be-68a8-4ad0-ba2e-fe6140e8bbc0",
+    "name": "ErrorDetector",
+    "record_type": "AGENT",
+    "domain": "document_processing",
+    "description": "Agent that detects errors in the invoice processing",
+    "code_snippet": "# No code provided",
+    "version": "1.0.0",
+    "usage_count": 0,
+    "success_count": 0,
+    "fail_count": 0,
+    "status": "active",
+    "created_at": "2025-03-18T21:34:31.670916",
+    "last_updated": "2025-03-18T21:34:31.670921",
+    "tags": [
+      "document_processing",
+      "agent"
+    ],
+    "metadata": {
+      "framework": "beeai",
+      "creation_strategy": {
+        "method": "direct_code",
+        "timestamp": "2025-03-18T21:34:31.670867",
+        "requirements_summary": null
+      }
+    }
+  },
+  {
+    "id": "1e9247a2-719d-4bf6-b45c-0ed8084534dc",
+    "name": "AdvancedInvoiceProcessor",
+    "record_type": "AGENT",
+    "domain": "document_processing",
+    "description": "Agent that orchestrates the invoice processing workflow",
+    "code_snippet": "# No code provided",
+    "version": "1.0.0",
+    "usage_count": 0,
+    "success_count": 0,
+    "fail_count": 0,
+    "status": "active",
+    "created_at": "2025-03-18T21:34:32.955290",
+    "last_updated": "2025-03-18T21:34:32.955296",
+    "tags": [
+      "document_processing",
+      "agent"
+    ],
+    "metadata": {
+      "framework": "beeai",
+      "creation_strategy": {
+        "method": "direct_code",
+        "timestamp": "2025-03-18T21:34:32.955236",
+        "requirements_summary": null
+      }
+    }
+  }
+]

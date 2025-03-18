@@ -1,236 +1,37 @@
 {
   "providers": {
-    "invoiceprocessortool_tool": {
-      "id": "invoiceprocessortool_tool",
-      "name": "InvoiceProcessorTool",
-      "provider_type": "TOOL",
-      "description": "Tool to process both invoices and medical records by extracting key information and formatting data in a structured way.",
-      "capabilities": [
-        {
-          "id": "process_invoices",
-          "name": "Process Invoices",
-          "description": "Extracts key information from invoices and formats it.",
-          "confidence": 0.8
-        },
-        {
-          "id": "process_medical_records",
-          "name": "Process Medical Records",
-          "description": "Extracts patient information, diagnosis, and treatment plans from medical records.",
-          "confidence": 0.8
-        }
-      ],
-      "metadata": {},
-      "status": "active",
-      "registered_at": "2025-03-13T14:35:48.102683",
-      "last_updated": "2025-03-13T14:35:48.102695"
-    },
-    "openaiinvoiceprocessor_agent": {
-      "id": "openaiinvoiceprocessor_agent",
-      "name": "OpenAIInvoiceProcessor",
-      "provider_type": "AGENT",
-      "description": "An OpenAI agent specialized in processing invoice documents.",
-      "capabilities": [
-        {
-          "id": "invoice_processing",
-          "name": "Invoice Processing",
-          "description": "Processes invoice documents to extract and verify data.",
-          "confidence": 0.8
-        }
-      ],
-      "metadata": {},
-      "status": "active",
-      "registered_at": "2025-03-15T18:19:53.471855",
-      "last_updated": "2025-03-15T18:19:53.471866"
-    },
-    "documentanalyzer_agent": {
-      "id": "documentanalyzer_agent",
-      "name": "DocumentAnalyzer",
-      "provider_type": "AGENT",
-      "description": "Tool that analyzes and identifies the type of document from its content",
-      "capabilities": [
-        {
-          "description": "Analyzes and identifies the type of document from its content.",
-          "id": "document_analysis",
-          "name": "Document Analysis",
-          "confidence": 0.8
-        }
-      ],
-      "metadata": {},
-      "status": "active",
-      "registered_at": "2025-03-15T18:19:56.135483",
-      "last_updated": "2025-03-15T18:19:56.135495"
-    },
-    "calculationverifier_agent": {
-      "id": "calculationverifier_agent",
-      "name": "CalculationVerifier",
-      "provider_type": "AGENT",
-      "description": "Tool that verifies calculations in invoices, ensuring subtotal + tax = total",
-      "capabilities": [
-        {
-          "description": "Verifies calculations in invoices, ensuring subtotal + tax = total.",
-          "id": "calculation_verification",
-          "name": "Calculation Verification",
-          "confidence": 0.8
-        }
-      ],
-      "metadata": {},
-      "status": "active",
-      "registered_at": "2025-03-15T18:19:59.075503",
-      "last_updated": "2025-03-15T18:19:59.075515"
-    },
-    "invoicesummarygenerator_agent": {
-      "id": "invoicesummarygenerator_agent",
-      "name": "InvoiceSummaryGenerator",
-      "provider_type": "AGENT",
-      "description": "Tool that generates a concise summary of an invoice's key information",
-      "capabilities": [
-        {
-          "description": "Generates a concise summary of an invoice's key information.",
-          "id": "invoice_summary_generation",
-          "name": "Invoice Summary Generation",
-          "confidence": 0.8
-        }
-      ],
-      "metadata": {},
-      "status": "active",
-      "registered_at": "2025-03-15T18:20:01.800774",
-      "last_updated": "2025-03-15T18:20:01.800782"
-    },
-    "documentanalyzer_tool": {
-      "id": "documentanalyzer_tool",
-      "name": "DocumentAnalyzer",
-      "provider_type": "TOOL",
-      "description": "Tool that analyzes and identifies the type of document from its content",
-      "capabilities": [
-        {
-          "id": "document_analysis",
-          "name": "Document Analysis",
-          "description": "Analyzes and identifies the type of document from its content",
-          "confidence": 0.8
-        }
-      ],
-      "metadata": {},
-      "status": "active",
-      "registered_at": "2025-03-15T18:20:23.244993",
-      "last_updated": "2025-03-15T18:20:23.245003"
-    },
-    "invoiceprocessor_v1_agent": {
-      "id": "invoiceprocessor_v1_agent",
-      "name": "InvoiceProcessor_V1",
+    "advancedinvoiceprocessor_agent": {
+      "id": "advancedinvoiceprocessor_agent",
+      "name": "AdvancedInvoiceProcessor",
       "provider_type": "AGENT",
       "description": "Agent providing 1 capabilities",
       "capabilities": [
         {
-          "id": "invoice_processing",
-          "name": "Invoice Processing",
-          "description": "Processes invoices and extracts relevant information",
-          "confidence": 0.8
+          "id": "advanced_invoice_processing",
+          "name": "Advanced Invoice Processing",
+          "description": "Orchestrates the invoice processing workflow",
+          "confidence": 0.9
         }
       ],
       "metadata": {},
       "status": "active",
-      "registered_at": "2025-03-15T19:35:29.060693",
-      "last_updated": "2025-03-15T19:35:29.060698"
+      "registered_at": "2025-03-18T21:34:37.798339",
+      "last_updated": "2025-03-18T21:34:37.798350"
     }
   },
   "capabilities": {
-    "process_invoices": {
-      "id": "process_invoices",
-      "name": "Process Invoices",
-      "description": "Extracts key information from invoices and formats it in a structured way.",
+    "advanced_invoice_processing": {
+      "id": "advanced_invoice_processing",
+      "name": "Advanced Invoice Processing",
+      "description": "Orchestrates the invoice processing workflow",
       "providers": [
         {
-          "id": "invoiceprocessortool_tool",
-          "name": "InvoiceProcessorTool",
-          "confidence": 0.8
-        },
-        {
-          "id": "invoiceprocessortool_tool",
-          "name": "InvoiceProcessorTool",
-          "confidence": 0.8
-        }
-      ]
-    },
-    "process_medical_records": {
-      "id": "process_medical_records",
-      "name": "Process Medical Records",
-      "description": "Extracts patient information, diagnosis, and treatment plans from medical records and formats it in a structured way.",
-      "providers": [
-        {
-          "id": "invoiceprocessortool_tool",
-          "name": "InvoiceProcessorTool",
-          "confidence": 0.8
-        },
-        {
-          "id": "invoiceprocessortool_tool",
-          "name": "InvoiceProcessorTool",
-          "confidence": 0.8
-        }
-      ]
-    },
-    "invoice_processing": {
-      "id": "invoice_processing",
-      "name": "Invoice Processing",
-      "description": "Processes invoice documents to extract and verify data.",
-      "providers": [
-        {
-          "id": "openaiinvoiceprocessor_agent",
-          "name": "OpenAIInvoiceProcessor",
-          "confidence": 0.8
-        },
-        {
-          "id": "invoiceprocessor_v1_agent",
-          "name": "InvoiceProcessor_V1",
-          "confidence": 0.8
-        },
-        {
-          "id": "invoiceprocessor_v1_agent",
-          "name": "InvoiceProcessor_V1",
-          "confidence": 0.8
-        }
-      ]
-    },
-    "document_analysis": {
-      "id": "document_analysis",
-      "name": "Document Analysis",
-      "description": "Analyzes and identifies the type of document from its content.",
-      "providers": [
-        {
-          "id": "documentanalyzer_agent",
-          "name": "DocumentAnalyzer",
-          "confidence": 0.8
-        },
-        {
-          "id": "documentanalyzer_tool",
-          "name": "DocumentAnalyzer",
-          "confidence": 0.8
-        }
-      ]
-    },
-    "calculation_verification": {
-      "id": "calculation_verification",
-      "name": "Calculation Verification",
-      "description": "Verifies calculations in invoices, ensuring subtotal + tax = total.",
-      "providers": [
-        {
-          "id": "calculationverifier_agent",
-          "name": "CalculationVerifier",
-          "confidence": 0.8
-        }
-      ]
-    },
-    "invoice_summary_generation": {
-      "id": "invoice_summary_generation",
-      "name": "Invoice Summary Generation",
-      "description": "Generates a concise summary of an invoice's key information.",
-      "providers": [
-        {
-          "id": "invoicesummarygenerator_agent",
-          "name": "InvoiceSummaryGenerator",
-          "confidence": 0.8
+          "id": "advancedinvoiceprocessor_agent",
+          "name": "AdvancedInvoiceProcessor",
+          "confidence": 0.9
         }
       ]
     }
   },
-  "updated_at": "2025-03-15T19:35:29.060861"
+  "updated_at": "2025-03-18T21:34:37.798725"
 }

@@ -1,0 +1,7 @@
+{
+  "status": "success",
+  "scenario_name": "Invoice Processing System",
+  "domain": "document_processing",
+  "result": "The workflow for the \"Invoice Processing System\" has been executed successfully. Here are the results for each step:\n\n1. **Define Agents:**\n   - **DocumentAnalyzer**: Created successfully.\n   - **DataExtractor**: Created successfully.\n   - **CalculationVerifier**: Created successfully.\n   - **SummaryGenerator**: Created successfully.\n   - **ErrorDetector**: Created successfully.\n   - **AdvancedInvoiceProcessor**: Created successfully.\n\n2. **Register and Execute:**\n   - **AdvancedInvoiceProcessor**: Registered successfully with the capability to orchestrate the invoice processing workflow.\n   - **Execution**: The \"AdvancedInvoiceProcessor\" agent processed the provided invoice data successfully with a confidence level of 0.9.\n\nIf you need further details or specific outputs from each agent, please let me know!",
+  "message": "Successfully executed workflow 'Invoice Processing System' using agent"
+}
