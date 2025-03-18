@@ -5,6 +5,7 @@ A toolkit for agent autonomy, evolution, and governance. Create agents that can 
 ![Evolving Agents](evolving-agents-logo.png)
 
 ## Why the World Needs This Toolkit
+
 Current agent systems are designed primarily for humans to build and control AI agents. The Evolving Agents Toolkit takes a fundamentally different approach: agents building agents.
 
 ![The Evolving Agents Toolkit](1-toolkit.png)
@@ -18,6 +19,115 @@ Our toolkit provides:
 - **Agent-Centric Architecture**: Communication and capabilities built for agents themselves, not just their human creators
 
 Instead of creating yet another agent framework, we build on existing frameworks like BeeAI and OpenAI Agents SDK to create a layer that enables agent autonomy, evolution, and self-governance - moving us closer to truly autonomous AI systems that improve themselves while staying within safe boundaries.
+
+## Architect-Zero: Our Flagship Example
+
+Our toolkit is best demonstrated through Architect-Zero, an agent that autonomously designs solutions to complex problems. Here's what it can do:
+
+```python
+# Create an Architect-Zero agent
+architect_agent = await create_architect_zero(
+    llm_service=llm_service,
+    smart_library=smart_library,
+    agent_bus=agent_bus,
+    system_agent_factory=SystemAgentFactory.create_agent
+)
+
+# Give it a task to improve an invoice processing system
+task_requirement = """
+Create an advanced invoice processing system that improves upon the basic version. The system should:
+
+1. Use a more sophisticated document analyzer that can detect invoices with higher confidence
+2. Extract comprehensive information (invoice number, date, vendor, items, subtotal, tax, total)
+3. Verify calculations to ensure subtotal + tax = total
+4. Generate a structured summary with key insights
+5. Handle different invoice formats and detect potential errors
+
+The system should leverage existing components from the library when possible,
+evolve them where improvements are needed, and create new components for missing functionality.
+"""
+
+# Architect-Zero analyzes the requirements and designs a solution
+result = await architect_agent.run(task_requirement)
+```
+
+### What Happens Behind the Scenes
+
+Architect-Zero demonstrates the full capabilities of our toolkit:
+
+1. **Analysis**: It searches the Smart Library for existing components (a basic invoice processor and document analyzer)
+
+2. **Design**: It designs a complete system with specialized components:
+   - Enhanced document analyzer for higher confidence detection
+   - Data extractor for comprehensive information capture
+   - Calculation verifier for mathematical validation
+   - Summary generator for insights
+   - Error detection module for handling edge cases
+   - Format handler for diverse invoice formats
+
+3. **Component Creation**: It generates implementation code for each specialized component:
+   ```python
+   # Example of generated code for calculation verification
+   class CalculationVerifier(Tool):
+       """Verifies that invoice calculations are correct."""
+       
+       async def _run(self, input: VerifierInput) -> StringToolOutput:
+           # Extract values
+           subtotal = float(input.subtotal.replace("$", "").replace(",", ""))
+           tax = float(input.tax.replace("$", "").replace(",", ""))
+           total = float(input.total.replace("$", "").replace(",", ""))
+           
+           # Verify calculations
+           expected_total = subtotal + tax
+           is_correct = abs(expected_total - total) < 0.01
+           
+           return StringToolOutput(json.dumps({
+               "is_correct": is_correct,
+               "expected_total": expected_total,
+               "difference": total - expected_total
+           }))
+   ```
+
+4. **Workflow Generation**: It produces a complete YAML workflow defining how these components should work together:
+   ```yaml
+   scenario_name: Invoice Processing System
+   domain: document_processing
+   description: Advanced invoice processing with validation and insights
+
+   steps:
+     # Define and create specialized components
+     - type: "DEFINE"
+       item_type: "TOOL"
+       name: "DocumentAnalyzer"
+       # ...code implementation...
+     
+     # ... other component definitions ...
+     
+     # Execute the workflow on an invoice
+     - type: "EXECUTE"
+       item_type: "TOOL"
+       name: "DocumentAnalyzer"
+       # ...with sample invoice input...
+   ```
+
+5. **Execution**: The system executes this workflow, processing a sample invoice through all the components:
+   ```
+   === INVOICE PROCESSING RESULTS ===
+   Invoice #12345
+   Date: May 15, 2023
+   Vendor: TechSupplies Inc.
+   Items:
+   - Laptop Computer: $1,200.00 (2 units)
+   - External Monitor: $300.00 (3 units)
+   - Wireless Keyboard: $50.00 (5 units)
+   Subtotal: $2,950.00
+   Tax (8.5%): $250.75
+   Total Due: $3,200.75
+   
+   Verification: Calculations correct
+   ```
+
+This example showcases the true potential of our toolkit - a meta-agent that can design, implement, and orchestrate complex multi-agent systems based on high-level requirements.
 
 ## Why is Firmware Essential in Autonomous Agent Evolution?
 
@@ -109,6 +219,17 @@ The System Agent serves as both the orchestrator and embodiment of our agent-cen
 
 By implementing the system control layer as an agent with specialized tools, we ensure our architecture is consistent, flexible, and aligned with our core philosophy that agents should build and manage agents.
 
+## The Agent Bus: Capability-Based Communication
+
+The Agent Bus facilitates communication between agents based on capabilities rather than identity, enabling:
+
+- **Dynamic Discovery**: Agents find each other based on what they can do, not who they are
+- **Loose Coupling**: Components can be replaced or upgraded without disrupting the system
+- **Resilient Architecture**: The system can continue functioning even when specific agents change
+- **Emergent Collaboration**: New collaboration patterns can form without explicit programming
+
+In our invoice processing example, the components registered their capabilities with the Agent Bus, allowing the system to find the right component for each processing stage automatically.
+
 ## Key Features
 
 - **Intelligent Agent Evolution**: Tools encapsulate the logic to determine when to reuse, evolve, or create new components
@@ -119,7 +240,7 @@ By implementing the system control layer as an agent with specialized tools, we 
 - **Multi-Framework Support**: Seamlessly integrate agents from different frameworks (BeeAI, OpenAI Agents SDK, etc.)
 - **Governance through Firmware**: Enforce domain-specific rules across all agent types
 - **Agent Bus Architecture**: Connect agents through a unified communication system with pluggable backends
-- **Cross-Framework Evolution**: Apply powerful evolution strategies to both BeeAI and OpenAI agents
+- **Meta-Agents**: Agents like Architect-Zero that can design and create entire agent systems
 
 For detailed architectural information, see [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -129,7 +250,7 @@ For detailed architectural information, see [ARCHITECTURE.md](docs/ARCHITECTURE.
 Our core agent architecture is built on BeeAI's ReActAgent system, providing reasoning-based decision making.
 
 ### OpenAI Agents SDK
-We now fully support the OpenAI Agents SDK, enabling:
+We fully support the OpenAI Agents SDK, enabling:
 - Creation and execution of OpenAI agents within our system
 - Experience-based evolution of OpenAI agents
 - Firmware rules translated to OpenAI guardrails
@@ -149,48 +270,56 @@ pip install -e .
 
 # Install OpenAI Agents SDK
 pip install -r requirements-openai-agents.txt
+
+# Run the Architect-Zero example
+python examples/architect_zero_comprehensive_demo.py
 ```
 
-## Example Code Snippets
+## System Initialization Example
 
 ```python
-# Initialize the SystemAgent
+# Initialize core components
 llm_service = LLMService(provider="openai", model="gpt-4o")
-library = SmartLibrary("library.json")
-agent_bus = SimpleAgentBus()
+smart_library = SmartLibrary("smart_library.json")
+agent_bus = SimpleAgentBus("agent_bus.json")
 
-# Initialize provider registry with both BeeAI and OpenAI providers
-provider_registry = ProviderRegistry()
-provider_registry.register_provider(BeeAIProvider(llm_service))
-provider_registry.register_provider(OpenAIAgentsProvider(llm_service))
-
-# Create the SystemAgent
+# Create the system agent
 system_agent = await SystemAgentFactory.create_agent(
     llm_service=llm_service,
-    smart_library=library,
-    agent_bus=agent_bus,
-    memory_type="token"
+    smart_library=smart_library,
+    agent_bus=agent_bus
 )
+
+# Create the Architect-Zero agent
+architect_agent = await create_architect_zero(
+    llm_service=llm_service,
+    smart_library=smart_library,
+    agent_bus=agent_bus,
+    system_agent_factory=SystemAgentFactory.create_agent
+)
+
+# Now you can use architect_agent.run() to solve complex problems
 ```
 
-## Coming Soon: Example Tutorials
+## Key Examples
 
-We're developing a comprehensive set of tutorial examples to help you get started with the Evolving Agents Toolkit:
+Our toolkit includes several examples to help you get started:
 
-1. **Building a Smart Library** - Creating and populating your own smart library of agents and tools
-2. **Workflow Generation and Execution** - Defining and running multi-agent workflows using YAML
-3. **Agent Evolution** - Evolving agents to improve performance and adapt to new requirements
-4. **Creating New Agents from Scratch** - Building entirely new agents for novel use cases
+1. **Architect-Zero Comprehensive Demo**: Our flagship example showing a meta-agent designing a complete invoice processing system
+2. **OpenAI Agent Evolution**: Demonstrates how to evolve OpenAI agents based on experience
+3. **Agent Bus Communication**: Shows how agents discover and communicate through capabilities
+4. **Workflow Generation and Execution**: Examples of defining and running multi-agent workflows
 
-Stay tuned for these detailed examples!
+See the `examples/` directory for complete code examples.
 
 ## Key Technical Achievements
 
-1. **Tool-Encapsulated Logic**: Each tool contains its own strategy, enabling independent evolution
-2. **Pure ReActAgent Implementation**: SystemAgent uses reasoning rather than hardcoded functions
-3. **Cross-Framework Integration**: Seamless interaction between BeeAI and OpenAI agents
-4. **Experience-Based Evolution**: Agents evolve based on performance metrics and usage patterns
-5. **Unified Governance**: Firmware rules apply to all agent types through appropriate mechanisms
+1. **Agent-Design-Agent**: Architect-Zero can design and implement entire agent systems
+2. **Tool-Encapsulated Logic**: Each tool contains its own strategy, enabling independent evolution
+3. **Pure ReActAgent Implementation**: All agents use reasoning rather than hardcoded functions
+4. **Cross-Framework Integration**: Seamless interaction between BeeAI and OpenAI agents
+5. **Experience-Based Evolution**: Agents evolve based on performance metrics and usage patterns
+6. **Unified Governance**: Firmware rules apply to all agent types through appropriate mechanisms
 
 ## Use Cases
 
