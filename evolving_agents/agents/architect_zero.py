@@ -174,6 +174,17 @@ class AnalyzeRequirementsTool(Tool[AnalyzeRequirementsInput, None, StringToolOut
         Returns:
             Analysis results including required components and capabilities
         """
+        # Extract domain information from requirements
+        domain = await self._extract_domain(input.task_requirements)
+        
+        # Leverage SmartLibrary's capability analysis if available
+        capabilities = []
+        if hasattr(self.library, "_extract_capabilities_with_llm"):
+            capabilities = await self.library._extract_capabilities_with_llm(
+                input.task_requirements, 
+                domain
+            )
+        
         # Prompt the LLM to analyze the requirements
         analysis_prompt = f"""
         Analyze the following task requirements and identify the necessary components:
@@ -181,11 +192,13 @@ class AnalyzeRequirementsTool(Tool[AnalyzeRequirementsInput, None, StringToolOut
         TASK REQUIREMENTS:
         {input.task_requirements}
 
+        {f"IDENTIFIED CAPABILITIES: {', '.join(capabilities)}" if capabilities else ""}
+
         Please provide:
         1. A clear summary of the task's objective
-        2. The domain(s) this task falls under
-        3. A list of required agents with their purpose
-        4. A list of required tools with their purpose
+        2. The domain(s) this task falls under (use: {domain})
+        3. A list of required agents with their purpose and required capabilities
+        4. A list of required tools with their purpose and required capabilities
         5. The key capabilities needed by these components
         6. Any constraints or special considerations
 
@@ -197,10 +210,34 @@ class AnalyzeRequirementsTool(Tool[AnalyzeRequirementsInput, None, StringToolOut
         
         try:
             # Parse the JSON response
-            analysis = json.loads(analysis_response)
+            analysis = self._extract_json(analysis_response)
+            
+            # Add extracted capabilities if not already included
+            if capabilities and "required_capabilities" not in analysis:
+                analysis["required_capabilities"] = capabilities
             
             # Check for existing components in the library that match requirements
             existing_components = []
+            
+            # Check for components matching extracted capabilities
+            if capabilities:
+                for capability in capabilities:
+                    component = await self.library.find_component_by_capability(
+                        capability_id=capability,
+                        domain=domain
+                    )
+                    
+                    if component:
+                        existing_components.append({
+                            "type": component["record_type"],
+                            "name": component["name"],
+                            "id": component["id"],
+                            "capability": capability,
+                            "description": component["description"],
+                            "match_type": "capability_exact"
+                        })
+            
+            # Also check for components matching agent and tool purposes
             for agent in analysis.get("required_agents", []):
                 agent_name = agent.get("name", "")
                 agent_purpose = agent.get("purpose", "")
@@ -209,24 +246,21 @@ class AnalyzeRequirementsTool(Tool[AnalyzeRequirementsInput, None, StringToolOut
                 similar_agents = await self.library.semantic_search(
                     f"agent that can {agent_purpose}",
                     record_type="AGENT",
+                    domain=domain,
                     limit=3
                 )
                 
                 if similar_agents:
-                    existing_components.append({
-                        "type": "AGENT",
-                        "name": agent_name,
-                        "purpose": agent_purpose,
-                        "similar_existing_components": [
-                            {
-                                "id": sa[0]["id"],
-                                "name": sa[0]["name"],
-                                "similarity": sa[1],
-                                "record_type": sa[0]["record_type"]
-                            }
-                            for sa in similar_agents
-                        ]
-                    })
+                    for sa, score in similar_agents:
+                        existing_components.append({
+                            "type": "AGENT",
+                            "name": sa["name"],
+                            "id": sa["id"],
+                            "purpose": agent_purpose,
+                            "proposed_name": agent_name,
+                            "similarity": score,
+                            "match_type": "semantic"
+                        })
             
             # Similarly for tools
             for tool in analysis.get("required_tools", []):
@@ -237,45 +271,130 @@ class AnalyzeRequirementsTool(Tool[AnalyzeRequirementsInput, None, StringToolOut
                 similar_tools = await self.library.semantic_search(
                     f"tool that can {tool_purpose}",
                     record_type="TOOL",
+                    domain=domain,
                     limit=3
                 )
                 
                 if similar_tools:
-                    existing_components.append({
-                        "type": "TOOL",
-                        "name": tool_name,
-                        "purpose": tool_purpose,
-                        "similar_existing_components": [
-                            {
-                                "id": st[0]["id"],
-                                "name": st[0]["name"],
-                                "similarity": st[1],
-                                "record_type": st[0]["record_type"]
-                            }
-                            for st in similar_tools
-                        ]
-                    })
+                    for st, score in similar_tools:
+                        existing_components.append({
+                            "type": "TOOL",
+                            "name": st["name"],
+                            "id": st["id"],
+                            "purpose": tool_purpose,
+                            "proposed_name": tool_name,
+                            "similarity": score,
+                            "match_type": "semantic"
+                        })
             
             # Add the existing components to the analysis
             analysis["existing_components"] = existing_components
             
+            # Add capability coverage analysis
+            if capabilities:
+                coverage = {}
+                for capability in capabilities:
+                    matching_components = [c for c in existing_components if c.get("capability") == capability]
+                    coverage[capability] = {
+                        "covered": len(matching_components) > 0,
+                        "components": matching_components
+                    }
+                analysis["capability_coverage"] = coverage
+            
             return StringToolOutput(json.dumps(analysis, indent=2))
         
-        except json.JSONDecodeError:
+        except Exception as e:
             # If parsing fails, return a structured error
+            import traceback
             error_response = {
                 "status": "error",
-                "message": "Failed to parse analysis response as JSON",
+                "message": f"Failed to analyze requirements: {str(e)}",
+                "traceback": traceback.format_exc(),
                 "raw_response": analysis_response
             }
             return StringToolOutput(json.dumps(error_response, indent=2))
+    
+    async def _extract_domain(self, task_requirements: str) -> str:
+        """Extract the domain from task requirements."""
+        if not self.llm:
+            # Default to "general" if no LLM available
+            return "general"
+            
+        domain_prompt = f"""
+        From the following task requirements, identify the primary domain this task falls under.
+        Choose the most specific applicable domain from this list:
+        - general
+        - document_processing
+        - finance
+        - healthcare
+        - customer_service
+        - legal
+        - education
+        - marketing
+        - software_development
+        - data_analysis
+        
+        TASK REQUIREMENTS:
+        {task_requirements}
+        
+        Return only the domain name, nothing else.
+        """
+        
+        try:
+            domain_response = await self.llm.generate(domain_prompt)
+            domain = domain_response.strip().lower()
+            
+            # Validate that it's one of the expected domains
+            valid_domains = [
+                "general", "document_processing", "finance", "healthcare", 
+                "customer_service", "legal", "education", "marketing",
+                "software_development", "data_analysis"
+            ]
+            
+            if domain in valid_domains:
+                return domain
+            else:
+                return "general"
+        except Exception as e:
+            logger.warning(f"Error extracting domain: {str(e)}")
+            return "general"
+    
+    def _extract_json(self, text: str) -> Dict[str, Any]:
+        """Extract and parse JSON from text that might contain other content."""
+        # Try to parse the entire text as JSON first
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            # Try to find JSON blocks
+            json_pattern = r'```(?:json)?\s*([\s\S]*?)```'
+            match = re.search(json_pattern, text)
+            if match:
+                try:
+                    return json.loads(match.group(1))
+                except json.JSONDecodeError:
+                    pass
+            
+            # Try to find anything that looks like a JSON object
+            bracket_pattern = r'(\{[\s\S]*\})'
+            match = re.search(bracket_pattern, text)
+            if match:
+                try:
+                    return json.loads(match.group(1))
+                except json.JSONDecodeError:
+                    pass
+            
+            # If all else fails, return the raw text as a structured error
+            return {
+                "error": "Failed to parse JSON",
+                "raw_text": text
+            }
 
 
 class DesignWorkflowTool(Tool[DesignWorkflowInput, None, StringToolOutput]):
     """Tool for designing a workflow based on the requirements analysis."""
     
     name = "DesignWorkflowTool"
-    description = "Design a workflow of agents and tools to fulfill the task requirements"
+    description = "Design a workflow of agents and tools to fulfill the task requirements, leveraging capability-based component selection"
     input_schema = DesignWorkflowInput
     
     def __init__(
@@ -316,7 +435,36 @@ class DesignWorkflowTool(Tool[DesignWorkflowInput, None, StringToolOutput]):
         required_agents = input.requirements_analysis.get("required_agents", [])
         required_tools = input.requirements_analysis.get("required_tools", [])
         capabilities = input.requirements_analysis.get("required_capabilities", [])
+        capability_coverage = input.requirements_analysis.get("capability_coverage", {})
         existing_components = input.requirements_analysis.get("existing_components", [])
+        
+        # Determine primary domain
+        domain = domains[0] if isinstance(domains, list) and domains else domains
+        if isinstance(domain, str) and not domain:
+            domain = "general"
+        
+        # Find appropriate components for each capability
+        capability_mapping = {}
+        if capabilities and hasattr(self.library, "find_components_for_workflow"):
+            workflow_components = await self.library.find_components_for_workflow(
+                workflow_description=task_objective,
+                required_capabilities=capabilities,
+                domain=domain,
+                use_llm=True
+            )
+            
+            # Format for inclusion in the prompt
+            if workflow_components:
+                capability_mapping_text = []
+                for cap_id, components in workflow_components.items():
+                    if components:
+                        component_names = [c["name"] for c in components]
+                        capability_mapping_text.append(f"- {cap_id}: {', '.join(component_names)}")
+                
+                if capability_mapping_text:
+                    capability_mapping = "\nCAPABILITY MAPPING:\n" + "\n".join(capability_mapping_text)
+                else:
+                    capability_mapping = "\nNo suitable existing components found for required capabilities."
         
         # Prompt the LLM to design the workflow
         design_prompt = f"""
@@ -325,17 +473,22 @@ class DesignWorkflowTool(Tool[DesignWorkflowInput, None, StringToolOutput]):
         TASK OBJECTIVE:
         {task_objective}
 
-        DOMAINS:
-        {', '.join(domains) if isinstance(domains, list) else domains}
+        DOMAIN:
+        {domain}
+
+        REQUIRED CAPABILITIES:
+        {json.dumps(capabilities, indent=2) if capabilities else "No specific capabilities identified."}
 
         REQUIRED AGENTS:
-        {json.dumps(required_agents, indent=2)}
+        {json.dumps(required_agents, indent=2) if required_agents else "No specific agents identified."}
 
         REQUIRED TOOLS:
-        {json.dumps(required_tools, indent=2)}
+        {json.dumps(required_tools, indent=2) if required_tools else "No specific tools identified."}
 
         EXISTING COMPONENTS IN LIBRARY:
-        {json.dumps(existing_components, indent=2)}
+        {json.dumps(existing_components, indent=2) if existing_components else "No existing components found."}
+
+        {capability_mapping if capability_mapping else ""}
 
         Please create a workflow design that:
         1. Specifies the sequence of operations
@@ -344,8 +497,16 @@ class DesignWorkflowTool(Tool[DesignWorkflowInput, None, StringToolOutput]):
         4. Leverages existing components where possible (reuse)
         5. Identifies components that need to be evolved from existing ones
         6. Specifies components that need to be created from scratch
+        7. Maps each component to the capabilities it should provide
 
-        Format your response as a structured JSON object with these sections.
+        For each component in the workflow, specify:
+        - Whether to reuse, evolve, or create from scratch
+        - Which capabilities it will provide
+        - What inputs it requires
+        - What outputs it produces
+        - How it should be implemented (high-level)
+
+        Format your response as a structured JSON object.
         """
         
         # Generate workflow design
@@ -353,7 +514,15 @@ class DesignWorkflowTool(Tool[DesignWorkflowInput, None, StringToolOutput]):
         
         try:
             # Parse the JSON response
-            workflow_design = json.loads(design_response)
+            workflow_design = self._extract_json(design_response)
+            
+            # Add required capabilities if not included
+            if capabilities and "required_capabilities" not in workflow_design:
+                workflow_design["required_capabilities"] = capabilities
+            
+            # Add domain information if not included
+            if "domain" not in workflow_design:
+                workflow_design["domain"] = domain
             
             # Generate a pseudo-YAML representation for visualization
             yaml_representation = await self._generate_yaml_representation(workflow_design)
@@ -361,11 +530,13 @@ class DesignWorkflowTool(Tool[DesignWorkflowInput, None, StringToolOutput]):
             
             return StringToolOutput(json.dumps(workflow_design, indent=2))
         
-        except json.JSONDecodeError:
+        except Exception as e:
             # If parsing fails, return a structured error
+            import traceback
             error_response = {
                 "status": "error",
-                "message": "Failed to parse workflow design response as JSON",
+                "message": f"Failed to design workflow: {str(e)}",
+                "traceback": traceback.format_exc(),
                 "raw_response": design_response
             }
             return StringToolOutput(json.dumps(error_response, indent=2))
@@ -375,23 +546,27 @@ class DesignWorkflowTool(Tool[DesignWorkflowInput, None, StringToolOutput]):
         sequence = workflow_design.get("sequence", [])
         components = workflow_design.get("components", [])
         data_flow = workflow_design.get("data_flow", [])
+        domain = workflow_design.get("domain", "general")
         
         yaml_prompt = f"""
         Convert this workflow design to a YAML workflow representation:
 
         SEQUENCE:
-        {json.dumps(sequence, indent=2)}
+        {json.dumps(sequence, indent=2) if sequence else "No sequence defined."}
 
         COMPONENTS:
-        {json.dumps(components, indent=2)}
+        {json.dumps(components, indent=2) if components else "No components defined."}
 
         DATA FLOW:
-        {json.dumps(data_flow, indent=2)}
+        {json.dumps(data_flow, indent=2) if data_flow else "No data flow defined."}
+
+        DOMAIN:
+        {domain}
 
         The YAML should follow this structure:
         ```yaml
         scenario_name: [task name]
-        domain: [domain]
+        domain: {domain}
         description: [description]
 
         steps:
@@ -410,8 +585,41 @@ class DesignWorkflowTool(Tool[DesignWorkflowInput, None, StringToolOutput]):
         if "```yaml" in yaml_response and "```" in yaml_response:
             yaml_content = yaml_response.split("```yaml")[1].split("```")[0].strip()
             return yaml_content
+        elif "```" in yaml_response:
+            yaml_content = yaml_response.split("```")[1].split("```")[0].strip()
+            return yaml_content
         
         return yaml_response
+    
+    def _extract_json(self, text: str) -> Dict[str, Any]:
+        """Extract and parse JSON from text that might contain other content."""
+        # Try to parse the entire text as JSON first
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            # Try to find JSON blocks
+            json_pattern = r'```(?:json)?\s*([\s\S]*?)```'
+            match = re.search(json_pattern, text)
+            if match:
+                try:
+                    return json.loads(match.group(1))
+                except json.JSONDecodeError:
+                    pass
+            
+            # Try to find anything that looks like a JSON object
+            bracket_pattern = r'(\{[\s\S]*\})'
+            match = re.search(bracket_pattern, text)
+            if match:
+                try:
+                    return json.loads(match.group(1))
+                except json.JSONDecodeError:
+                    pass
+            
+            # If all else fails, return the raw text as a structured error
+            return {
+                "error": "Failed to parse JSON",
+                "raw_text": text
+            }
 
 
 class GenerateLibraryEntriesHool(Tool[GenerateLibraryEntriesInput, None, StringToolOutput]):
@@ -647,11 +855,13 @@ class GenerateLibraryEntriesHool(Tool[GenerateLibraryEntriesInput, None, StringT
             return f"{version}.1"
 
 
+# evolving_agents/agents/architect_zero.py (partial update - CreateWorkflowTool class)
+
 class CreateWorkflowTool(Tool[CreateWorkflowInput, None, StringToolOutput]):
     """Tool for creating a YAML workflow from the workflow design."""
     
     name = "CreateWorkflowTool"
-    description = "Create a complete YAML workflow based on the workflow design and library entries"
+    description = "Create a complete YAML workflow based on the workflow design and library entries, leveraging capability-based component selection"
     input_schema = CreateWorkflowInput
     
     def __init__(self, workflow_generator: WorkflowGenerator):
@@ -679,19 +889,75 @@ class CreateWorkflowTool(Tool[CreateWorkflowInput, None, StringToolOutput]):
         Returns:
             Complete YAML workflow ready for execution
         """
-        # Generate the workflow YAML
-        yaml_workflow = await self.workflow_generator.generate_workflow_from_design(
-            input.workflow_design, 
-            input.library_entries
-        )
+        # Check if smart_library is available through the workflow_generator
+        library = getattr(self.workflow_generator, "smart_library", None)
         
-        result = {
-            "status": "success",
-            "yaml_workflow": yaml_workflow,
-            "message": "YAML workflow created successfully"
-        }
+        # Extract required capabilities from the workflow design
+        required_capabilities = []
+        workflow_domain = input.workflow_design.get("domain", "general")
         
-        return StringToolOutput(json.dumps(result, indent=2))
+        # Extract from components section
+        for component in input.workflow_design.get("components", []):
+            # Extract capabilities from component definitions
+            for cap in component.get("capabilities", []):
+                if isinstance(cap, str):
+                    required_capabilities.append(cap)
+                elif isinstance(cap, dict) and "id" in cap:
+                    required_capabilities.append(cap["id"])
+        
+        # Also extract from workflow sequence
+        for step in input.workflow_design.get("sequence", []):
+            for req in step.get("requirements", []):
+                if isinstance(req, str) and "capability" in req.lower():
+                    # Extract the capability name
+                    cap_match = re.search(r"capability\s*['\"]?([^'\"]+)['\"]?", req, re.IGNORECASE)
+                    if cap_match:
+                        required_capabilities.append(cap_match.group(1))
+        
+        # Find existing components for these capabilities if library is available
+        component_mapping = {}
+        if library and required_capabilities:
+            for cap_id in set(required_capabilities):  # Deduplicate capabilities
+                component = await library.find_component_by_capability(
+                    capability_id=cap_id,
+                    domain=workflow_domain
+                )
+                if component:
+                    component_mapping[cap_id] = component
+        
+        # Generate the workflow with capability info
+        try:
+            yaml_workflow = await self.workflow_generator.generate_workflow_from_design_with_capabilities(
+                input.workflow_design, 
+                input.library_entries,
+                component_mapping,
+                workflow_domain
+            )
+            
+            # Analyze the workflow for potential issues
+            workflow_analysis = None
+            if library and hasattr(library, "analyze_workflow_component_compatibility") and component_mapping:
+                workflow_analysis = await library.analyze_workflow_component_compatibility(
+                    workflow_description=input.workflow_design.get("description", ""),
+                    selected_components=component_mapping
+                )
+            
+            result = {
+                "status": "success",
+                "yaml_workflow": yaml_workflow,
+                "message": "YAML workflow created successfully",
+                "capability_mappings": {k: v["name"] for k, v in component_mapping.items()} if component_mapping else {},
+                "workflow_analysis": workflow_analysis
+            }
+            
+            return StringToolOutput(json.dumps(result, indent=2))
+        except Exception as e:
+            import traceback
+            return StringToolOutput(json.dumps({
+                "status": "error",
+                "message": f"Error creating workflow: {str(e)}",
+                "traceback": traceback.format_exc()
+            }, indent=2))
 
 
 class ExecuteWorkflowTool(Tool[ExecuteWorkflowInput, None, StringToolOutput]):

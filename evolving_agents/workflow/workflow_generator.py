@@ -25,10 +25,150 @@ class WorkflowGenerator:
         self.library = smart_library
         self.agent = None
         logger.info("Workflow Generator initialized")
+
+    def set_llm_service(self, llm_service):
+        """Set the LLM service."""
+        self.llm = llm_service
     
     def set_agent(self, agent):
         """Set the agent for this workflow generator."""
         self.agent = agent
+
+
+    async def generate_workflow_from_design_with_capabilities(
+        self,
+        workflow_design: Dict[str, Any],
+        library_entries: Dict[str, Any],
+        capability_mapping: Dict[str, Dict[str, Any]] = None,
+        domain: str = "general"
+    ) -> str:
+        """
+        Generate a workflow YAML from the design with capability-based component selection.
+        
+        Args:
+            workflow_design: The workflow design specification
+            library_entries: Library entries for reuse, evolution, or creation
+            capability_mapping: Mapping from capability IDs to components
+            domain: Domain for the workflow
+            
+        Returns:
+            YAML workflow as a string
+        """
+        # Fix: Use self.llm instead of self.llm_service
+        if not self.llm:
+            # Fall back to standard workflow generation if no LLM available
+            return await self.generate_workflow_from_design(workflow_design, library_entries)
+        
+        try:
+            # Format the workflow design for the prompt
+            workflow_json = json.dumps(workflow_design, indent=2)
+            
+            # Format library entries
+            library_json = json.dumps(library_entries, indent=2)
+            
+            # Format capability mapping
+            capability_info = ""
+            if capability_mapping:
+                capability_details = []
+                for cap_id, component in capability_mapping.items():
+                    cap_info = f"Capability '{cap_id}' can be provided by component '{component['name']}'"
+                    
+                    # Add details about the component
+                    cap_info += f" (ID: {component['id']}, Type: {component['record_type']})"
+                    
+                    # Add information about how the component provides this capability
+                    for cap in component.get("capabilities", []):
+                        if cap.get("id") == cap_id:
+                            cap_info += f"\n - Description: {cap.get('description', 'No description')}"
+                            if "context" in cap:
+                                context = cap["context"]
+                                required = context.get("required_fields", [])
+                                produced = context.get("produced_fields", [])
+                                if required:
+                                    # Handle both list and string formats
+                                    if isinstance(required, list):
+                                        cap_info += f"\n - Requires: {', '.join(required)}"
+                                    else:
+                                        cap_info += f"\n - Requires: {required}"
+                                if produced:
+                                    # Handle both list and string formats
+                                    if isinstance(produced, list):
+                                        cap_info += f"\n - Produces: {', '.join(produced)}"
+                                    else:
+                                        cap_info += f"\n - Produces: {produced}"
+                    
+                    capability_details.append(cap_info)
+                
+                capability_info = "CAPABILITY MAPPING:\n" + "\n".join(capability_details)
+            else:
+                capability_info = "No capability mapping provided. You'll need to create new components."
+            
+            # Create the prompt
+            prompt = f"""
+            Generate a complete YAML workflow based on this design, library entries, and capability mapping.
+            
+            WORKFLOW DESIGN:
+            {workflow_json}
+            
+            LIBRARY ENTRIES:
+            {library_json}
+            
+            {capability_info}
+            
+            DOMAIN: {domain}
+            
+            Create a complete YAML workflow with these sections:
+            1. scenario_name: A clear name for the workflow
+            2. domain: The domain of the workflow ({domain})
+            3. description: A detailed description of what the workflow does
+            4. steps: The sequence of operations to perform
+            
+            Each step should have:
+            - type: One of "DEFINE", "CREATE", or "EXECUTE"
+            - item_type: Type of item (AGENT or TOOL)
+            - name: Name of the item
+            - Additional fields as needed
+            
+            For DEFINE steps:
+            - Add code_snippet for new components
+            - For components in the capability mapping, reference them by name
+            
+            For CREATE steps:
+            - Reference the previously defined components
+            
+            For EXECUTE steps:
+            - Specify the component to execute and the input data
+            
+            VERY IMPORTANT: When including sample data like invoice text, always wrap it as follows:
+            
+            user_input: |
+            Sample text goes here
+            with proper indentation
+            for multi-line content
+            
+            The workflow should implement all the required functionality while leveraging the capability mapping to reuse existing components wherever possible.
+            
+            Return only the YAML content without additional comments or explanations.
+            """
+            
+            # Generate the workflow
+            response = await self.llm.generate(prompt)  # Fix: using self.llm instead of llm_service
+            
+            # Extract the YAML content
+            yaml_content = response
+            
+            # Clean up if needed (extract from markdown code blocks, etc.)
+            if "```yaml" in response:
+                yaml_content = response.split("```yaml")[1].split("```")[0].strip()
+            elif "```" in response:
+                yaml_content = response.split("```")[1].split("```")[0].strip()
+            
+            return yaml_content
+            
+        except Exception as e:
+            logger.error(f"Error generating workflow with capabilities: {str(e)}")
+            # Fall back to standard generation on error
+            return await self.generate_workflow_from_design(workflow_design, library_entries)
     
     async def generate_workflow_from_design(
         self,

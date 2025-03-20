@@ -1,93 +1,125 @@
-scenario_name: Invoice Processing
+scenario_name: Invoice Processing Workflow
 domain: general
-description: Extracts and analyzes invoice data to generate a structured summary and error report.
+description: >
+  This workflow processes invoice documents by analyzing, extracting data, verifying calculations, detecting errors, generating summaries, and integrating components into a cohesive system. It also evolves the system by creating new components as needed.
 
 steps:
-  # Create all components
-  - type: "CREATE"
-    item_type: "TOOL"
-    name: "OCR Tool"
-  
-  - type: "CREATE"
-    item_type: "TOOL"
-    name: "DataExtractor"
-  
-  - type: "CREATE"
-    item_type: "TOOL"
-    name: "DocumentAnalyzer"
-  
-  - type: "CREATE"
-    item_type: "TOOL"
-    name: "FormatHandler"
-  
-  - type: "CREATE"
-    item_type: "TOOL"
-    name: "CalculationVerifier"
-  
-  - type: "CREATE"
-    item_type: "TOOL"
-    name: "Error Detection Module"
-  
-  - type: "CREATE"
-    item_type: "TOOL"
-    name: "SummaryGenerator"
-  
-  # Execute the workflow
-  - type: "EXECUTE"
-    item_type: "TOOL"
-    name: "OCR Tool"
-    user_input: |
+  - type: EXECUTE
+    item_type: AGENT
+    name: DocumentAnalyzerAgent
+    tool: AdvancedDocumentAnalyzer
+    inputs:
+      user_input: |
+        Raw invoice documents to be analyzed
+    outputs:
+      - analyzed_invoice_documents
 
-      Thank you for your business!
-      
-      Due Date: 2023-06-14
-      Payment Terms: Net 30
-      
-      Total Due: $3,200.75
-      Tax (8.5%): $250.75
-      Subtotal: $2,950.00
-      
-      3. Wireless Keyboard - $50.00 (5 units)
-      2. External Monitor - $300.00 (3 units)
-      1. Laptop Computer - $1,200.00 (2 units)
-      Items:
-      
-      New York, NY 10001
-      456 Business Ave
-      Acme Corporation
-      Bill To:
-      
-      Address: 123 Tech Blvd, San Francisco, CA 94107
-      Vendor: TechSupplies Inc.
-      Date: 2023-05-15
-      INVOICE #12345
-  
-  - type: "EXECUTE"
-    item_type: "TOOL"
-    name: "DataExtractor"
-    user_input: "Output from OCR Tool"
-  
-  - type: "EXECUTE"
-    item_type: "TOOL"
-    name: "DocumentAnalyzer"
-    user_input: "Output from DataExtractor"
-  
-  - type: "EXECUTE"
-    item_type: "TOOL"
-    name: "FormatHandler"
-    user_input: "Output from DocumentAnalyzer"
-  
-  - type: "EXECUTE"
-    item_type: "TOOL"
-    name: "CalculationVerifier"
-    user_input: "Output from FormatHandler"
-  
-  - type: "EXECUTE"
-    item_type: "TOOL"
-    name: "Error Detection Module"
-    user_input: "Output from CalculationVerifier"
-  
-  - type: "EXECUTE"
-    item_type: "TOOL"
-    name: "SummaryGenerator"
-    user_input: "Output from Error Detection Module"
+  - type: EXECUTE
+    item_type: AGENT
+    name: DataExtractionAgent
+    tool: ComprehensiveDataExtractor
+    inputs:
+      - analyzed_invoice_documents
+    outputs:
+      - extracted_invoice_data
+
+  - type: EXECUTE
+    item_type: AGENT
+    name: CalculationVerificationAgent
+    tool: CalculationVerifier
+    inputs:
+      - extracted_invoice_data
+    outputs:
+      - verified_invoice_data
+
+  - type: EXECUTE
+    item_type: AGENT
+    name: ErrorDetectionAgent
+    tool: ErrorDetectionTool
+    inputs:
+      - verified_invoice_data
+    outputs:
+      - error_report
+
+  - type: EXECUTE
+    item_type: AGENT
+    name: SummaryGenerationAgent
+    tool: StructuredSummaryGenerator
+    inputs:
+      - verified_invoice_data
+    outputs:
+      - invoice_summary
+
+  - type: DEFINE
+    item_type: AGENT
+    name: ComponentIntegrationAgent
+    code_snippet: |
+      # Middleware design for integrating agents and tools
+      class ComponentIntegrationAgent:
+          def integrate(self, inputs):
+              # Logic to integrate components
+              pass
+    inputs:
+      - analyzed_invoice_documents
+      - extracted_invoice_data
+      - verified_invoice_data
+      - error_report
+      - invoice_summary
+    outputs:
+      - integrated_system
+
+  - type: EXECUTE
+    item_type: AGENT
+    name: ComponentIntegrationAgent
+    inputs:
+      - analyzed_invoice_documents
+      - extracted_invoice_data
+      - verified_invoice_data
+      - error_report
+      - invoice_summary
+    outputs:
+      - integrated_system
+
+  - type: DEFINE
+    item_type: AGENT
+    name: ComponentEvolutionAgent
+    code_snippet: |
+      # Feedback loop implementation for system evolution
+      class ComponentEvolutionAgent:
+          def evolve(self, system):
+              # Logic to assess and improve system components
+              pass
+    inputs:
+      - integrated_system
+    outputs:
+      - evolved_system
+
+  - type: EXECUTE
+    item_type: AGENT
+    name: ComponentEvolutionAgent
+    inputs:
+      - integrated_system
+    outputs:
+      - evolved_system
+
+  - type: DEFINE
+    item_type: AGENT
+    name: ComponentCreationAgent
+    code_snippet: |
+      # Gap analysis and new component design
+      class ComponentCreationAgent:
+          def create(self, gaps):
+              # Logic to design new components
+              pass
+    inputs:
+      - identified_gaps
+    outputs:
+      - new_components
+
+  - type: EXECUTE
+    item_type: AGENT
+    name: ComponentCreationAgent
+    inputs:
+      - identified_gaps
+    outputs:
+      - new_components

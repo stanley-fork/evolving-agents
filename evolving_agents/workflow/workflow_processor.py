@@ -26,6 +26,10 @@ class WorkflowProcessor:
     def set_agent(self, agent: IAgent) -> None:
         """Set the agent after initialization."""
         self.agent = agent
+
+    def set_llm_service(self, llm_service):
+        """Set the LLM service."""
+        self.llm = llm_service
     
     async def process_workflow(self, workflow_yaml: str) -> Dict[str, Any]:
         """
