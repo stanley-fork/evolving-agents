@@ -18,75 +18,131 @@ AGENT THOUGHT PROCESS:
 Here is the complete YAML workflow for the advanced invoice processing system:
 
 ```yaml
-scenario_name: Invoice Processing
+scenario_name: Invoice Processing Workflow
 domain: general
-description: Extracts and analyzes invoice data to generate a structured summary and error report.
+description: >
+  This workflow processes invoice documents by analyzing, extracting data, verifying calculations, detecting errors, generating summaries, and integrating components into a cohesive system. It also evolves the system by creating new components as needed.
 
 steps:
-  # Create all components
-  - type: "CREATE"
-    item_type: "TOOL"
-    name: "OCR Tool"
-  
-  - type: "CREATE"
-    item_type: "TOOL"
-    name: "DataExtractor"
-  
-  - type: "CREATE"
-    item_type: "TOOL"
-    name: "DocumentAnalyzer"
-  
-  - type: "CREATE"
-    item_type: "TOOL"
-    name: "FormatHandler"
-  
-  - type: "CREATE"
-    item_type: "TOOL"
-    name: "CalculationVerifier"
-  
-  - type: "CREATE"
-    item_type: "TOOL"
-    name: "Error Detection Module"
-  
-  - type: "CREATE"
-    item_type: "TOOL"
-    name: "SummaryGenerator"
-  
-  # Execute the workflow
-  - type: "EXECUTE"
-    item_type: "TOOL"
-    name: "OCR Tool"
-    user_input: "Invoice (scanned image or digital document)"
-  
-  - type: "EXECUTE"
-    item_type: "TOOL"
-    name: "DataExtractor"
-    user_input: "Output from OCR Tool"
-  
-  - type: "EXECUTE"
-    item_type: "TOOL"
-    name: "DocumentAnalyzer"
-    user_input: "Output from DataExtractor"
-  
-  - type: "EXECUTE"
-    item_type: "TOOL"
-    name: "FormatHandler"
-    user_input: "Output from DocumentAnalyzer"
-  
-  - type: "EXECUTE"
-    item_type: "TOOL"
-    name: "CalculationVerifier"
-    user_input: "Output from FormatHandler"
-  
-  - type: "EXECUTE"
-    item_type: "TOOL"
-    name: "Error Detection Module"
-    user_input: "Output from CalculationVerifier"
-  
-  - type: "EXECUTE"
-    item_type: "TOOL"
-    name: "SummaryGenerator"
-    user_input: "Output from Error Detection Module"
+  - type: EXECUTE
+    item_type: AGENT
+    name: DocumentAnalyzerAgent
+    tool: AdvancedDocumentAnalyzer
+    inputs:
+      user_input: |
+        Raw invoice documents to be analyzed
+    outputs:
+      - analyzed_invoice_documents
+
+  - type: EXECUTE
+    item_type: AGENT
+    name: DataExtractionAgent
+    tool: ComprehensiveDataExtractor
+    inputs:
+      - analyzed_invoice_documents
+    outputs:
+      - extracted_invoice_data
+
+  - type: EXECUTE
+    item_type: AGENT
+    name: CalculationVerificationAgent
+    tool: CalculationVerifier
+    inputs:
+      - extracted_invoice_data
+    outputs:
+      - verified_invoice_data
+
+  - type: EXECUTE
+    item_type: AGENT
+    name: ErrorDetectionAgent
+    tool: ErrorDetectionTool
+    inputs:
+      - verified_invoice_data
+    outputs:
+      - error_report
+
+  - type: EXECUTE
+    item_type: AGENT
+    name: SummaryGenerationAgent
+    tool: StructuredSummaryGenerator
+    inputs:
+      - verified_invoice_data
+    outputs:
+      - invoice_summary
+
+  - type: DEFINE
+    item_type: AGENT
+    name: ComponentIntegrationAgent
+    code_snippet: |
+      # Middleware design for integrating agents and tools
+      class ComponentIntegrationAgent:
+          def integrate(self, inputs):
+              # Logic to integrate components
+              pass
+    inputs:
+      - analyzed_invoice_documents
+      - extracted_invoice_data
+      - verified_invoice_data
+      - error_report
+      - invoice_summary
+    outputs:
+      - integrated_system
+
+  - type: EXECUTE
+    item_type: AGENT
+    name: ComponentIntegrationAgent
+    inputs:
+      - analyzed_invoice_documents
+      - extracted_invoice_data
+      - verified_invoice_data
+      - error_report
+      - invoice_summary
+    outputs:
+      - integrated_system
+
+  - type: DEFINE
+    item_type: AGENT
+    name: ComponentEvolutionAgent
+    code_snippet: |
+      # Feedback loop implementation for system evolution
+      class ComponentEvolutionAgent:
+          def evolve(self, system):
+              # Logic to assess and improve system components
+              pass
+    inputs:
+      - integrated_system
+    outputs:
+      - evolved_system
+
+  - type: EXECUTE
+    item_type: AGENT
+    name: ComponentEvolutionAgent
+    inputs:
+      - integrated_system
+    outputs:
+      - evolved_system
+
+  - type: DEFINE
+    item_type: AGENT
+    name: ComponentCreationAgent
+    code_snippet: |
+      # Gap analysis and new component design
+      class ComponentCreationAgent:
+          def create(self, gaps):
+              # Logic to design new components
+              pass
+    inputs:
+      - identified_gaps
+    outputs:
+      - new_components
+
+  - type: EXECUTE
+    item_type: AGENT
+    name: ComponentCreationAgent
+    inputs:
+      - identified_gaps
+    outputs:
+      - new_components
 ```
 
-This workflow outlines the steps to create and execute the components necessary for processing invoices, extracting data, verifying calculations, and generating structured summaries.
+This workflow outlines the steps for processing invoices, including document analysis, data extraction, calculation verification, error detection, summary generation, and system integration and evolution.

@@ -5,6 +5,7 @@ import logging
 import json
 import os
 import re
+import datetime
 from dotenv import load_dotenv
 
 from evolving_agents.core.llm_service import LLMService
@@ -60,7 +61,8 @@ def clean_previous_files():
         "workflow_execution_result.json",
         "detailed_invoice_analysis.txt",
         "direct_invoice_analysis.txt",
-        "invoice_processor_id.txt"
+        "invoice_processor_id.txt",
+        "component_analysis.json"  # New file for component compatibility analysis
     ]
     
     for file_path in files_to_remove:
@@ -74,9 +76,9 @@ def clean_previous_files():
 async def setup_library():
     """Set up some initial components in the smart library to show evolution."""
     llm_service = LLMService(provider="openai", model="gpt-4o")
-    smart_library = SmartLibrary("smart_library.json")
+    smart_library = SmartLibrary("smart_library.json", llm_service)  # Pass LLM service to SmartLibrary
     
-    # Create a basic document analyzer
+    # Create a basic document analyzer with capabilities
     basic_doc_analyzer = {
         "name": "BasicDocumentAnalyzer",
         "record_type": "TOOL",
@@ -123,10 +125,22 @@ class BasicDocumentAnalyzer(Tool[DocumentAnalyzerInput, ToolRunOptions, StringTo
         return StringToolOutput(json.dumps(result, indent=2))
 """,
         "version": "1.0.0",
-        "tags": ["document", "analysis", "basic"]
+        "tags": ["document", "analysis", "basic"],
+        # Add capabilities information
+        "capabilities": [
+            {
+                "id": "document_type_detection",
+                "name": "Document Type Detection",
+                "description": "Detects the type of document from its content",
+                "context": {
+                    "required_fields": ["document_text"],
+                    "produced_fields": ["document_type", "confidence_score"]
+                }
+            }
+        ]
     }
     
-    # Create a basic invoice processor
+    # Create a basic invoice processor with capabilities
     basic_invoice_processor = {
         "name": "BasicInvoiceProcessor",
         "record_type": "AGENT",
@@ -210,7 +224,19 @@ class BasicInvoiceProcessorInitializer:
         }
 """,
         "version": "1.0.0",
-        "tags": ["invoice", "processing", "basic"]
+        "tags": ["invoice", "processing", "basic"],
+        # Add capabilities information
+        "capabilities": [
+            {
+                "id": "invoice_data_extraction",
+                "name": "Invoice Data Extraction",
+                "description": "Extracts basic information from invoice documents",
+                "context": {
+                    "required_fields": ["invoice_text"],
+                    "produced_fields": ["invoice_number", "date", "vendor", "total"]
+                }
+            }
+        ]
     }
     
     # Add them to the library
@@ -228,7 +254,7 @@ async def main():
     
     # Initialize core components
     llm_service = LLMService(provider="openai", model="gpt-4o")
-    smart_library = SmartLibrary("smart_library.json")
+    smart_library = SmartLibrary("smart_library.json", llm_service)  # Pass LLM service to SmartLibrary
     agent_bus = SimpleAgentBus("agent_bus.json")
     
     # Create the system agent
@@ -237,6 +263,9 @@ async def main():
         smart_library=smart_library,
         agent_bus=agent_bus
     )
+
+    system_agent.workflow_processor.set_llm_service(llm_service)
+    system_agent.workflow_generator.set_llm_service(llm_service)
     
     # Create the Architect-Zero agent
     architect_agent = await create_architect_zero(
@@ -265,6 +294,24 @@ async def main():
     # Print the task
     logger.info("=== TASK REQUIREMENTS ===")
     logger.info(task_requirement)
+    
+    # Use LLM-enhanced SmartLibrary to analyze required capabilities
+    logger.info("\n=== ANALYZING WORKFLOW REQUIREMENTS WITH LLM ===")
+    extracted_capabilities = await smart_library._extract_capabilities_with_llm(task_requirement, "document_processing")
+    logger.info(f"Extracted capabilities: {extracted_capabilities}")
+    
+    # Use enhanced find_components_for_workflow to get suggested components
+    workflow_components = await smart_library.find_components_for_workflow(
+        workflow_description=task_requirement,
+        required_capabilities=extracted_capabilities,
+        domain="document_processing",
+        use_llm=True
+    )
+    
+    logger.info(f"Identified components for workflow: {len(workflow_components)} capability matches")
+    for cap_id, components in workflow_components.items():
+        component_names = [c["name"] for c in components]
+        logger.info(f"  - {cap_id}: {', '.join(component_names)}")
     
     # Run the architect agent to design the system
     logger.info("\n=== RUNNING ARCHITECT-ZERO AGENT ===")
@@ -296,6 +343,46 @@ async def main():
                     f.write(yaml_workflow)
                 logger.info("Generated workflow saved to invoice_workflow.yaml")
         
+        # Analyze component compatibility if we have a workflow
+        if os.path.exists("invoice_workflow.yaml"):
+            with open("invoice_workflow.yaml", "r") as f:
+                yaml_content = f.read()
+            
+            # Extract component names from the workflow
+            component_names = re.findall(r'name:\s*"?([^"\n]+)"?', yaml_content)
+            
+            # Create a dictionary of selected components
+            selected_components = {}
+            for name in component_names:
+                for records in workflow_components.values():
+                    for record in records:
+                        if record["name"] == name:
+                            for cap in record.get("capabilities", []):
+                                cap_id = cap.get("id", "")
+                                if cap_id:
+                                    selected_components[cap_id] = record
+                                    break
+            
+            # Analyze component compatibility
+            if selected_components:
+                logger.info("\n=== ANALYZING COMPONENT COMPATIBILITY ===")
+                compatibility = await smart_library.analyze_workflow_component_compatibility(
+                    workflow_description=task_requirement,
+                    selected_components=selected_components
+                )
+                
+                # Save compatibility analysis
+                with open("component_analysis.json", "w") as f:
+                    json.dump(compatibility, f, indent=2)
+                
+                logger.info(f"Component compatibility score: {compatibility.get('compatibility_score', 'unknown')}")
+                if "missing_capabilities" in compatibility and compatibility["missing_capabilities"]:
+                    logger.info(f"Missing capabilities: {', '.join(compatibility['missing_capabilities'])}")
+                if "recommendations" in compatibility and compatibility["recommendations"]:
+                    logger.info("Recommendations:")
+                    for rec in compatibility["recommendations"]:
+                        logger.info(f"  - {rec}")
+        
         # Try to execute the workflow with sample invoice data
         logger.info("\n=== EXECUTING GENERATED WORKFLOW ===")
         execution_result = None
@@ -305,41 +392,64 @@ async def main():
                 with open("invoice_workflow.yaml", "r") as f:
                     yaml_content = f.read()
                 
-                # Replace placeholder with actual invoice
-                yaml_content = yaml_content.replace("dummy", SAMPLE_INVOICE)
-                yaml_content = yaml_content.replace("{invoice_text}", SAMPLE_INVOICE)
+                # Check if the workflow already has the invoice content with proper formatting
+                if "INVOICE #12345" in yaml_content:
+                    # Make sure the invoice is properly formatted as a YAML multi-line string
+                    lines = yaml_content.split('\n')
+                    new_lines = []
+                    in_invoice = False
+                    proper_indent = ""
+                    
+                    for i, line in enumerate(lines):
+                        if "INVOICE #12345" in line and i > 0:
+                            # Found the invoice start, check if previous line has user_input: |
+                            if not lines[i-1].strip().endswith("user_input: |"):
+                                # Need to fix formatting
+                                in_invoice = True
+                                # Get indentation from previous line
+                                prev_line = lines[i-1]
+                                proper_indent = prev_line[:prev_line.find("user_input:")] + "  "  # Add 2 spaces
+                                # Replace previous line with proper formatting
+                                new_lines[-1] = prev_line.replace("user_input:", "user_input: |")
+                                # Add this line with proper indentation
+                                new_lines.append(f"{proper_indent}{line.strip()}")
+                            else:
+                                # Already properly formatted
+                                new_lines.append(line)
+                        elif in_invoice:
+                            # Continue indenting invoice lines
+                            new_lines.append(f"{proper_indent}{line.strip()}")
+                            # Check if we're at the end of the invoice
+                            if not line.strip() or i == len(lines) - 1 or "type:" in lines[i+1]:
+                                in_invoice = False
+                        else:
+                            # Regular line
+                            new_lines.append(line)
+                    
+                    # Use the fixed content
+                    yaml_content = '\n'.join(new_lines)
+                    
+                    # Write back the fixed content
+                    with open("invoice_workflow.yaml", "w") as f:
+                        f.write(yaml_content)
                 
                 # Use the workflow processor to execute it
                 # Check available methods on workflow processor
                 processor_methods = dir(system_agent.workflow_processor)
                 logger.info(f"Available workflow processor methods: {[m for m in processor_methods if not m.startswith('_')]}")
                 
-                # Inspect the process_workflow method signature
-                if hasattr(system_agent.workflow_processor, "process_workflow"):
-                    import inspect
-                    sig = inspect.signature(system_agent.workflow_processor.process_workflow)
-                    logger.info(f"process_workflow method signature: {sig}")
-                    
-                    # Execute the workflow with the only parameter it accepts
-                    execution_result = await system_agent.workflow_processor.process_workflow(yaml_content)
-                    
-                    logger.info(f"Workflow execution result: {json.dumps(execution_result, indent=2)}")
-                    
-                    # Save execution result
-                    with open("workflow_execution_result.json", "w") as f:
-                        json.dump(execution_result, f, indent=2)
-                    
-                    logger.info("Workflow execution result saved to workflow_execution_result.json")
-                else:
-                    logger.warning("Workflow processor doesn't have process_workflow method - skipping execution")
-                    
-                    # Try alternative methods
-                    if hasattr(system_agent.workflow_processor, "execute_workflow"):
-                        execution_result = await system_agent.workflow_processor.execute_workflow(yaml_content)
-                        logger.info(f"Workflow execution result: {json.dumps(execution_result, indent=2)}")
+                # Execute the workflow with the only parameter it accepts
+                execution_result = await system_agent.workflow_processor.process_workflow(yaml_content)
+                
+                logger.info(f"Workflow execution result: {json.dumps(execution_result, indent=2)}")
+                
+                # Save execution result
+                with open("workflow_execution_result.json", "w") as f:
+                    json.dump(execution_result, f, indent=2)
+                
+                logger.info("Workflow execution result saved to workflow_execution_result.json")
             else:
                 logger.warning("No workflow file found - skipping execution")
-                
         except Exception as e:
             logger.error(f"Error executing workflow: {str(e)}")
             import traceback
@@ -376,44 +486,37 @@ async def main():
                         
                         # Check if the agent was created successfully
                         if processor_agent:
-                            # The agent is created as a ReActAgent, so we need to use the run method directly
-                            if hasattr(processor_agent, "run"):
-                                try:
-                                    # Use the run method directly
-                                    prompt = f"Please process this invoice and provide a detailed analysis with extracted data, verification results, and a structured summary:\n\n{SAMPLE_INVOICE}"
-                                    run_result = await processor_agent.run(prompt=prompt)
-                                    
-                                    # Extract the result
-                                    if hasattr(run_result, "result") and hasattr(run_result.result, "text"):
-                                        result_text = run_result.result.text
-                                        logger.info("Direct execution result:")
-                                        logger.info(result_text)
-                                        
-                                        # Save detailed result
-                                        with open("detailed_invoice_analysis.txt", "w") as f:
-                                            f.write(result_text)
-                                        
-                                        logger.info("Detailed invoice analysis saved to detailed_invoice_analysis.txt")
-                                    else:
-                                        logger.error(f"Unexpected result structure: {run_result}")
-                                except Exception as e:
-                                    logger.error(f"Error running agent directly: {str(e)}")
-                                    import traceback
-                                    logger.error(traceback.format_exc())
-                            else:
-                                logger.error(f"Agent doesn't have 'run' method: {type(processor_agent)}")
-                        else:
-                            logger.error("Failed to create processor agent")
+                            # Use the LLM-enhanced query for better instruction formulation
+                            enhanced_prompt = await smart_library._enhance_query_with_llm(
+                                f"Process this invoice and provide a detailed analysis with extracted data, verification results, and a structured summary:\n\n{SAMPLE_INVOICE}",
+                                "document_processing"
+                            )
                             
+                            # Use the run method directly with enhanced prompt
+                            run_result = await processor_agent.run(prompt=enhanced_prompt)
+                            
+                            # Extract the result
+                            if hasattr(run_result, "result") and hasattr(run_result.result, "text"):
+                                result_text = run_result.result.text
+                                logger.info("Direct execution result:")
+                                logger.info(result_text)
+                                
+                                # Save detailed result
+                                with open("detailed_invoice_analysis.txt", "w") as f:
+                                    f.write(result_text)
+                                
+                                logger.info("Detailed invoice analysis saved to detailed_invoice_analysis.txt")
+                            else:
+                                logger.error(f"Unexpected result structure: {run_result}")
                     except Exception as e:
-                        logger.error(f"Error executing agent directly: {str(e)}")
+                        logger.error(f"Error running agent directly: {str(e)}")
                         import traceback
                         logger.error(traceback.format_exc())
                 else:
                     # If no invoice processor found, log this
                     logger.warning("No invoice processor agent found in library")
                 
-                # Generate a final invoice analysis using the LLM directly regardless of what happened above
+                # Generate a final invoice analysis using the LLM directly
                 logger.info("\n=== GENERATING INVOICE ANALYSIS DIRECTLY ===")
                 analysis_prompt = f"""
                 Analyze this invoice and provide a detailed breakdown:
@@ -437,6 +540,25 @@ async def main():
                     f.write(direct_analysis)
                     
                 logger.info("Generated direct invoice analysis and saved to direct_invoice_analysis.txt")
+                
+                # Track performance metrics in the library for the components that were used
+                if "records" in execution_result:
+                    for record in execution_result["records"]:
+                        component_id = record.get("id")
+                        success = record.get("status") == "success"
+                        if component_id:
+                            # Update performance metrics
+                            await smart_library.update_component_metrics(
+                                component_id=component_id,
+                                execution_metrics={
+                                    "success": success,
+                                    "execution_time": record.get("execution_time", 1.0),
+                                    "capability_id": "invoice_processing",  # Generic capability
+                                    "domain": "document_processing",
+                                    "timestamp": datetime.datetime.utcnow().isoformat()
+                                }
+                            )
+                            logger.info(f"Updated performance metrics for component {component_id}")
         except Exception as e:
             logger.error(f"Error getting detailed invoice results: {str(e)}")
             import traceback
@@ -510,13 +632,16 @@ def extract_yaml_workflow(text):
         # Replace the user_input with our sample invoice
         lines = yaml_content.split('\n')
         for i, line in enumerate(lines):
-            if "user_input:" in line:
-                # Indent level
+            if "user_input:" in line and not "user_input: |" in line:
+                # Fix: Ensure proper YAML formatting for multi-line string
                 indent = line[:line.index("user_input:")]
-                # Replace this line and add the sample invoice
-                lines[i] = f"{indent}user_input: |\n"
+                # Replace with pipe notation for multi-line strings
+                lines[i] = f"{indent}user_input: |"
+                # Add the sample invoice with proper indentation
+                indent_level = len(indent) + 2  # Add 2 spaces for the sub-indentation
+                invoice_indent = " " * indent_level
                 for invoice_line in SAMPLE_INVOICE.strip().split('\n'):
-                    lines.insert(i+1, f"{indent}  {invoice_line}")
+                    lines.insert(i+1, f"{invoice_indent}{invoice_line}")
                 break
         
         yaml_content = '\n'.join(lines)

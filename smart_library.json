@@ -1,6 +1,6 @@
 [
   {
-    "id": "dff0ff52-d008-408c-84c5-99b11daddb65",
+    "id": "6595d3eb-1d54-499a-a2b0-8ac5a442089c",
     "name": "BasicDocumentAnalyzer",
     "record_type": "TOOL",
     "domain": "document_processing",
@@ -11,17 +11,41 @@
     "success_count": 0,
     "fail_count": 0,
     "status": "active",
-    "created_at": "2025-03-18T21:59:42.166831",
-    "last_updated": "2025-03-18T21:59:42.166837",
+    "created_at": "2025-03-20T15:50:01.737465",
+    "last_updated": "2025-03-20T15:50:01.737471",
     "tags": [
       "document",
       "analysis",
       "basic"
     ],
-    "metadata": {}
+    "metadata": {},
+    "performance_metrics": {
+      "total_executions": 0,
+      "successful_executions": 0,
+      "average_execution_time": 0.0,
+      "capabilities": {},
+      "domains": {},
+      "last_execution": null
+    },
+    "capabilities": [
+      {
+        "id": "document_type_detection",
+        "name": "Document Type Detection",
+        "description": "Detects the type of document from its content",
+        "context": {
+          "required_fields": [
+            "document_text"
+          ],
+          "produced_fields": [
+            "document_type",
+            "confidence_score"
+          ]
+        }
+      }
+    ]
   },
   {
-    "id": "0e57cc6d-1f24-4981-9458-b927cacbe2cf",
+    "id": "75b2c8be-0b22-41d6-ab28-9740317a07ab",
     "name": "BasicInvoiceProcessor",
     "record_type": "AGENT",
     "domain": "document_processing",
@@ -32,202 +56,39 @@
     "success_count": 0,
     "fail_count": 0,
     "status": "active",
-    "created_at": "2025-03-18T21:59:42.167393",
-    "last_updated": "2025-03-18T21:59:42.167397",
+    "created_at": "2025-03-20T15:50:01.738041",
+    "last_updated": "2025-03-20T15:50:01.738045",
     "tags": [
       "invoice",
       "processing",
       "basic"
     ],
-    "metadata": {}
-  },
-  {
-    "id": "40b00740-bfe9-4ab7-be82-8801dd4f5bb4",
-    "name": "OCR Tool",
-    "record_type": "TOOL",
-    "domain": "general",
-    "description": "Tool to perform Optical Character Recognition on documents.",
-    "code_snippet": "# No code provided",
-    "version": "1.0.0",
-    "usage_count": 0,
-    "success_count": 0,
-    "fail_count": 0,
-    "status": "active",
-    "created_at": "2025-03-18T22:00:23.949678",
-    "last_updated": "2025-03-18T22:00:23.949681",
-    "tags": [
-      "general",
-      "tool"
-    ],
-    "metadata": {
-      "framework": "beeai",
-      "creation_strategy": {
-        "method": "direct_code",
-        "timestamp": "2025-03-18T22:00:23.949652",
-        "requirements_summary": null
+    "metadata": {},
+    "performance_metrics": {
+      "total_executions": 0,
+      "successful_executions": 0,
+      "average_execution_time": 0.0,
+      "capabilities": {},
+      "domains": {},
+      "last_execution": null
+    },
+    "capabilities": [
+      {
+        "id": "invoice_data_extraction",
+        "name": "Invoice Data Extraction",
+        "description": "Extracts basic information from invoice documents",
+        "context": {
+          "required_fields": [
+            "invoice_text"
+          ],
+          "produced_fields": [
+            "invoice_number",
+            "date",
+            "vendor",
+            "total"
+          ]
+        }
       }
-    }
-  },
-  {
-    "id": "43a8768c-f0e0-4af2-904f-48e6509347fb",
-    "name": "DataExtractor",
-    "record_type": "TOOL",
-    "domain": "general",
-    "description": "Tool to extract data from OCR output.",
-    "code_snippet": "# No code provided",
-    "version": "1.0.0",
-    "usage_count": 0,
-    "success_count": 0,
-    "fail_count": 0,
-    "status": "active",
-    "created_at": "2025-03-18T22:00:25.090465",
-    "last_updated": "2025-03-18T22:00:25.090467",
-    "tags": [
-      "general",
-      "tool"
-    ],
-    "metadata": {
-      "framework": "beeai",
-      "creation_strategy": {
-        "method": "direct_code",
-        "timestamp": "2025-03-18T22:00:25.090440",
-        "requirements_summary": null
-      }
-    }
-  },
-  {
-    "id": "960caa58-0d4f-45aa-966a-cf0eb832e11b",
-    "name": "DocumentAnalyzer",
-    "record_type": "TOOL",
-    "domain": "general",
-    "description": "Tool to analyze extracted document data.",
-    "code_snippet": "# No code provided",
-    "version": "1.0.0",
-    "usage_count": 0,
-    "success_count": 0,
-    "fail_count": 0,
-    "status": "active",
-    "created_at": "2025-03-18T22:00:26.359639",
-    "last_updated": "2025-03-18T22:00:26.359642",
-    "tags": [
-      "general",
-      "tool"
-    ],
-    "metadata": {
-      "framework": "beeai",
-      "creation_strategy": {
-        "method": "direct_code",
-        "timestamp": "2025-03-18T22:00:26.359605",
-        "requirements_summary": null
-      }
-    }
-  },
-  {
-    "id": "1045c089-e50f-446e-b6f7-b67eb2f2e6b2",
-    "name": "FormatHandler",
-    "record_type": "TOOL",
-    "domain": "general",
-    "description": "Tool to handle formatting of analyzed data.",
-    "code_snippet": "# No code provided",
-    "version": "1.0.0",
-    "usage_count": 0,
-    "success_count": 0,
-    "fail_count": 0,
-    "status": "active",
-    "created_at": "2025-03-18T22:00:27.855946",
-    "last_updated": "2025-03-18T22:00:27.855956",
-    "tags": [
-      "general",
-      "tool"
-    ],
-    "metadata": {
-      "framework": "beeai",
-      "creation_strategy": {
-        "method": "direct_code",
-        "timestamp": "2025-03-18T22:00:27.855792",
-        "requirements_summary": null
-      }
-    }
-  },
-  {
-    "id": "7f77179d-d0ed-48c3-9284-63fbf83e016d",
-    "name": "CalculationVerifier",
-    "record_type": "TOOL",
-    "domain": "general",
-    "description": "Tool to verify calculations in formatted data.",
-    "code_snippet": "# No code provided",
-    "version": "1.0.0",
-    "usage_count": 0,
-    "success_count": 0,
-    "fail_count": 0,
-    "status": "active",
-    "created_at": "2025-03-18T22:00:31.057764",
-    "last_updated": "2025-03-18T22:00:31.057767",
-    "tags": [
-      "general",
-      "tool"
-    ],
-    "metadata": {
-      "framework": "beeai",
-      "creation_strategy": {
-        "method": "direct_code",
-        "timestamp": "2025-03-18T22:00:31.057737",
-        "requirements_summary": null
-      }
-    }
-  },
-  {
-    "id": "c43f10d2-dbe4-42f1-9b27-477f38bca1f4",
-    "name": "Error Detection Module",
-    "record_type": "TOOL",
-    "domain": "general",
-    "description": "Tool to detect errors in verified calculations.",
-    "code_snippet": "# No code provided",
-    "version": "1.0.0",
-    "usage_count": 0,
-    "success_count": 0,
-    "fail_count": 0,
-    "status": "active",
-    "created_at": "2025-03-18T22:00:32.264194",
-    "last_updated": "2025-03-18T22:00:32.264198",
-    "tags": [
-      "general",
-      "tool"
-    ],
-    "metadata": {
-      "framework": "beeai",
-      "creation_strategy": {
-        "method": "direct_code",
-        "timestamp": "2025-03-18T22:00:32.264147",
-        "requirements_summary": null
-      }
-    }
-  },
-  {
-    "id": "ee67b148-1729-424e-ac30-ffe183cf8563",
-    "name": "SummaryGenerator",
-    "record_type": "TOOL",
-    "domain": "general",
-    "description": "Tool to generate a summary from error detection output.",
-    "code_snippet": "# No code provided",
-    "version": "1.0.0",
-    "usage_count": 0,
-    "success_count": 0,
-    "fail_count": 0,
-    "status": "active",
-    "created_at": "2025-03-18T22:00:33.529957",
-    "last_updated": "2025-03-18T22:00:33.529959",
-    "tags": [
-      "general",
-      "tool"
-    ],
-    "metadata": {
-      "framework": "beeai",
-      "creation_strategy": {
-        "method": "direct_code",
-        "timestamp": "2025-03-18T22:00:33.529931",
-        "requirements_summary": null
-      }
-    }
+    ]
   }
 ]
