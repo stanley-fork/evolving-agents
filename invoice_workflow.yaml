@@ -1,102 +1,133 @@
 scenario_name: Invoice Processing Workflow
 domain: general
 description: >
-  This workflow processes raw invoice documents through a series of operations including document analysis, data extraction, calculation verification, summary generation, error detection, and component integration to produce a comprehensive invoice processing system.
+  This workflow processes raw invoice documents by analyzing, extracting, verifying, and summarizing the data. It integrates various components to ensure accurate and efficient invoice processing, including error detection and system evolution.
 
 steps:
   - type: DEFINE
     item_type: AGENT
     name: DocumentAnalyzerAgent
     code_snippet: |
-      Develop an agent that uses the AdvancedDocumentAnalyzer tool to perform sophisticated analysis of invoice documents, ensuring high confidence in invoice detection and handling various formats.
+      class DocumentAnalyzerAgent:
+          def analyze_documents(self, documents):
+              # Implement document analysis logic
+              pass
 
   - type: DEFINE
     item_type: AGENT
     name: DataExtractionAgent
     code_snippet: |
-      Develop an agent that utilizes the ComprehensiveDataExtractor tool to extract detailed information from invoices, including line items, totals, and tax information.
+      class DataExtractionAgent:
+          def extract_data(self, analyzed_data):
+              # Implement data extraction logic
+              pass
 
   - type: DEFINE
     item_type: AGENT
     name: CalculationVerificationAgent
     code_snippet: |
-      Develop an agent that uses the CalculationVerifier tool to ensure the accuracy of invoice calculations, verifying that the subtotal plus tax equals the total.
-
-  - type: DEFINE
-    item_type: AGENT
-    name: SummaryGenerationAgent
-    code_snippet: |
-      Develop an agent that uses the SummaryGenerator tool to create structured summaries of invoice data, highlighting key insights and metrics.
+      class CalculationVerificationAgent:
+          def verify_calculations(self, extracted_info):
+              # Implement calculation verification logic
+              pass
 
   - type: DEFINE
     item_type: AGENT
     name: ErrorDetectionAgent
     code_snippet: |
-      Develop an agent that uses the ErrorDetector tool to identify and flag potential errors in invoices, such as missing fields or incorrect calculations.
+      class ErrorDetectionAgent:
+          def detect_errors(self, verified_info):
+              # Implement error detection logic
+              pass
+
+  - type: DEFINE
+    item_type: AGENT
+    name: SummaryGenerationAgent
+    code_snippet: |
+      class SummaryGenerationAgent:
+          def generate_summary(self, verified_info):
+              # Implement summary generation logic
+              pass
 
   - type: DEFINE
     item_type: AGENT
     name: ComponentIntegrationAgent
     code_snippet: |
-      Develop an agent responsible for integrating all components into a cohesive system, ensuring seamless data flow and interaction between agents and tools.
+      class ComponentIntegrationAgent:
+          def integrate_components(self, summary, error_report):
+              # Implement component integration logic
+              pass
 
-  - type: CREATE
+  - type: DEFINE
+    item_type: AGENT
+    name: ComponentEvolutionAgent
+    code_snippet: |
+      class ComponentEvolutionAgent:
+          def evolve_system(self, integrated_system):
+              # Implement system evolution logic
+              pass
+
+  - type: DEFINE
+    item_type: AGENT
+    name: ComponentCreationAgent
+    code_snippet: |
+      class ComponentCreationAgent:
+          def create_components(self, identified_gaps):
+              # Implement component creation logic
+              pass
+
+  - type: EXECUTE
     item_type: AGENT
     name: DocumentAnalyzerAgent
-
-  - type: EXECUTE
-    item_type: AGENT
-    name: DocumentAnalyzerAgent
     user_input: |
-      raw_invoice_documents
-
-  - type: CREATE
-    item_type: AGENT
-    name: DataExtractionAgent
+      raw_invoice_documents: |
+        Invoice #12345
+        Date: 2023-10-01
+        Total: $100.00
+    outputs: analyzed_invoice_data
 
   - type: EXECUTE
     item_type: AGENT
     name: DataExtractionAgent
-    user_input: |
-      analyzed_invoice_documents
-
-  - type: CREATE
-    item_type: AGENT
-    name: CalculationVerificationAgent
+    inputs: analyzed_invoice_data
+    outputs: extracted_invoice_information
 
   - type: EXECUTE
     item_type: AGENT
     name: CalculationVerificationAgent
-    user_input: |
-      extracted_invoice_data
-
-  - type: CREATE
-    item_type: AGENT
-    name: SummaryGenerationAgent
-
-  - type: EXECUTE
-    item_type: AGENT
-    name: SummaryGenerationAgent
-    user_input: |
-      verified_invoice_data
-
-  - type: CREATE
-    item_type: AGENT
-    name: ErrorDetectionAgent
+    inputs: extracted_invoice_information
+    outputs: verified_invoice_information
 
   - type: EXECUTE
     item_type: AGENT
     name: ErrorDetectionAgent
-    user_input: |
-      verified_invoice_data
+    inputs: verified_invoice_information
+    outputs: error_report
 
-  - type: CREATE
+  - type: EXECUTE
     item_type: AGENT
-    name: ComponentIntegrationAgent
+    name: SummaryGenerationAgent
+    inputs: verified_invoice_information
+    outputs: invoice_summary
 
   - type: EXECUTE
     item_type: AGENT
     name: ComponentIntegrationAgent
+    inputs:
+      - invoice_summary
+      - error_report
+    outputs: integrated_system
+
+  - type: EXECUTE
+    item_type: AGENT
+    name: ComponentEvolutionAgent
+    inputs: integrated_system
+    outputs: evolved_system
+
+  - type: EXECUTE
+    item_type: AGENT
+    name: ComponentCreationAgent
     user_input: |
-      structured_invoice_summary
-      error_report
+      identified_gaps: |
+        Missing functionality identified during execution
+    outputs: new_components

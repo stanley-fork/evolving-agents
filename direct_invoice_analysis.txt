@@ -1,51 +1,42 @@
-### Invoice Analysis
+**Invoice Analysis**
 
-#### 1. Extracted Key Information
-- **Invoice Number:** 12345
-- **Date:** 2023-05-15
-- **Vendor:** TechSupplies Inc.
-- **Vendor Address:** 123 Tech Blvd, San Francisco, CA 94107
-- **Bill To:** Acme Corporation
-- **Billing Address:** 456 Business Ave, New York, NY 10001
-- **Payment Terms:** Net 30
-- **Due Date:** 2023-06-14
+1. **Extracted Key Information:**
+   - **Invoice Number:** 12345
+   - **Date:** 2023-05-15
+   - **Vendor:** TechSupplies Inc.
+   - **Vendor Address:** 123 Tech Blvd, San Francisco, CA 94107
+   - **Bill To:** Acme Corporation
+   - **Billing Address:** 456 Business Ave, New York, NY 10001
+   - **Payment Terms:** Net 30
+   - **Due Date:** 2023-06-14
 
-#### 2. Line Items with Quantities and Amounts
-1. **Laptop Computer**
-   - Unit Price: $1,200.00
-   - Quantity: 2 units
-   - Total: $1,200.00 x 2 = $2,400.00
+2. **Line Items with Quantities and Amounts:**
+   - **Laptop Computer:** $1,200.00 each, 2 units
+     - Total: $1,200.00 x 2 = $2,400.00
+   - **External Monitor:** $300.00 each, 3 units
+     - Total: $300.00 x 3 = $900.00
+   - **Wireless Keyboard:** $50.00 each, 5 units
+     - Total: $50.00 x 5 = $250.00
 
-2. **External Monitor**
-   - Unit Price: $300.00
-   - Quantity: 3 units
-   - Total: $300.00 x 3 = $900.00
+3. **Verification of Calculations:**
+   - **Calculated Subtotal:**
+     - Laptops: $2,400.00
+     - Monitors: $900.00
+     - Keyboards: $250.00
+     - **Subtotal:** $2,400.00 + $900.00 + $250.00 = $3,550.00
+   - **Tax Calculation:**
+     - Tax Rate: 8.5%
+     - Calculated Tax: $3,550.00 x 0.085 = $301.75
+   - **Calculated Total Due:**
+     - Total: $3,550.00 + $301.75 = $3,851.75
 
-3. **Wireless Keyboard**
-   - Unit Price: $50.00
-   - Quantity: 5 units
-   - Total: $50.00 x 5 = $250.00
+4. **Potential Errors or Inconsistencies:**
+   - The provided subtotal of $2,950.00 does not match the calculated subtotal of $3,550.00.
+   - The provided tax amount of $250.75 does not match the calculated tax of $301.75.
+   - The provided total due of $3,200.75 does not match the calculated total of $3,851.75.
+   - There appears to be a significant discrepancy in the calculations, suggesting potential errors in the invoice.
 
-#### 3. Verification of Calculations
-- **Calculated Subtotal:**
-  - Laptop Computer: $2,400.00
-  - External Monitor: $900.00
-  - Wireless Keyboard: $250.00
-  - **Subtotal:** $2,400.00 + $900.00 + $250.00 = $3,550.00
-
-- **Tax Calculation:**
-  - Tax Rate: 8.5%
-  - Calculated Tax: $3,550.00 x 0.085 = $301.75
-
-- **Calculated Total Due:**
-  - Total: $3,550.00 + $301.75 = $3,851.75
-
-#### 4. Potential Errors or Inconsistencies
-- **Subtotal Discrepancy:** The provided subtotal of $2,950.00 does not match the calculated subtotal of $3,550.00.
-- **Tax Discrepancy:** The provided tax amount of $250.75 does not match the calculated tax of $301.75.
-- **Total Due Discrepancy:** The provided total due of $3,200.75 does not match the calculated total of $3,851.75.
-
-#### 5. Structured Summary with Insights
-- The invoice from TechSupplies Inc. to Acme Corporation contains discrepancies in the subtotal, tax, and total due amounts. The calculated figures based on the line items and tax rate do not align with the provided amounts.
-- **Action Required:** It is recommended to contact TechSupplies Inc. to clarify these discrepancies and ensure the invoice reflects the correct amounts. This will prevent any potential payment issues and maintain accurate financial records.
-- **Insight:** Always verify the calculations on invoices to ensure accuracy and prevent overpayment or underpayment. This practice is crucial for maintaining financial integrity and fostering good vendor relationships.
+5. **Structured Summary with Insights:**
+   - The invoice from TechSupplies Inc. to Acme Corporation contains discrepancies in the subtotal, tax, and total due amounts. The line item calculations suggest a higher subtotal and total due than what is listed on the invoice. This could be due to a clerical error or miscalculation in the invoice preparation.
+   - It is recommended that Acme Corporation contact TechSupplies Inc. to clarify these discrepancies and ensure accurate billing. This will help avoid any potential payment issues and maintain a good vendor-client relationship.
+   - Additionally, Acme Corporation should verify their internal records to ensure that the quantities and prices match their purchase order and expectations.
