@@ -1,27 +1,3 @@
-TASK REQUIREMENT:
-
-    Create a comprehensive medical diagnostic system that analyzes patient medical records to provide clinical insights. The system should:
-    
-    1. Extract and structure patient information, vital signs, medications, and symptoms from medical records
-    2. Analyze symptoms to identify possible medical conditions and their likelihood
-    3. Check for potential interactions between current medications and suggest adjustments if needed
-    4. Generate treatment recommendations based on the identified conditions and patient history
-    5. Provide appropriate medical disclaimers and highlight when further specialist consultation is needed
-    
-    The system should leverage existing medical components from the library when possible,
-    evolve them where improvements are needed, and create new components for missing functionality.
-    
-    The system must handle sensitive medical information appropriately and ensure all recommendations
-    include proper medical disclaimers. It should also identify when symptoms may indicate serious conditions
-    requiring immediate medical attention.
-    
-    Please generate a complete workflow for this medical diagnostic system.
-    
-
-AGENT THOUGHT PROCESS:
-Here is the complete YAML workflow for the comprehensive medical diagnostic system:
-
-```yaml
 scenario_name: Patient Data Processing and Alert System
 domain: general
 description: >
@@ -142,6 +118,3 @@ steps:
       - structured_patient_data
     outputs:
       - emergency_alerts
-```
-
-This workflow outlines the steps to process medical records, analyze data, and provide clinical insights while ensuring compliance with healthcare data privacy regulations.

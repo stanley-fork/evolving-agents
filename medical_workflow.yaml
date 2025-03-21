@@ -1,0 +1,142 @@
+scenario_name: Medical Record Processing Workflow
+domain: general
+description: >
+  This workflow processes raw medical records through a series of operations including document analysis, data extraction, validation, medical analysis, issue flagging, and summary generation. It aims to transform unstructured medical data into structured insights and reports.
+
+steps:
+  - type: DEFINE
+    item_type: AGENT
+    name: Document Analysis Agent
+    code_snippet: |
+      Develop an agent that uses NLP and pattern recognition to identify document types and structures. Integrate with the Medical Record Format Handler for format handling.
+
+  - type: DEFINE
+    item_type: AGENT
+    name: Data Extraction Agent
+    code_snippet: |
+      Implement an agent using machine learning models to extract key data points such as patient information, vital signs, medications, and diagnoses.
+
+  - type: DEFINE
+    item_type: AGENT
+    name: Data Validation Agent
+    code_snippet: |
+      Create an agent that checks for data consistency and completeness using predefined rules and validation algorithms.
+
+  - type: DEFINE
+    item_type: AGENT
+    name: Medical Analysis Agent
+    code_snippet: |
+      Develop an agent that uses medical knowledge bases and AI to identify abnormal findings and potential concerns in the data.
+
+  - type: DEFINE
+    item_type: AGENT
+    name: Issue Flagging Agent
+    code_snippet: |
+      Implement an agent that flags potential issues based on predefined criteria and thresholds.
+
+  - type: DEFINE
+    item_type: AGENT
+    name: Summary Generation Agent
+    code_snippet: |
+      Create an agent that generates a structured summary report with key insights and recommended follow-up actions using natural language generation techniques.
+
+  - type: DEFINE
+    item_type: TOOL
+    name: Medical Record Format Handler
+    code_snippet: |
+      Develop a tool to handle various medical record formats, ensuring compatibility with the Document Analysis Agent.
+
+  - type: DEFINE
+    item_type: TOOL
+    name: Component Integration Tool
+    code_snippet: |
+      Create a tool to integrate all agents and tools into a cohesive system, ensuring smooth data flow and interaction.
+
+  - type: DEFINE
+    item_type: TOOL
+    name: Component Evolution Tool
+    code_snippet: |
+      Develop a tool to evolve components as needed, although no existing components are currently available.
+
+  - type: DEFINE
+    item_type: TOOL
+    name: Component Creation Tool
+    code_snippet: |
+      Implement a tool to facilitate the creation of new components based on specified requirements.
+
+  - type: CREATE
+    item_type: AGENT
+    name: Document Analysis Agent
+
+  - type: CREATE
+    item_type: AGENT
+    name: Data Extraction Agent
+
+  - type: CREATE
+    item_type: AGENT
+    name: Data Validation Agent
+
+  - type: CREATE
+    item_type: AGENT
+    name: Medical Analysis Agent
+
+  - type: CREATE
+    item_type: AGENT
+    name: Issue Flagging Agent
+
+  - type: CREATE
+    item_type: AGENT
+    name: Summary Generation Agent
+
+  - type: CREATE
+    item_type: TOOL
+    name: Medical Record Format Handler
+
+  - type: CREATE
+    item_type: TOOL
+    name: Component Integration Tool
+
+  - type: CREATE
+    item_type: TOOL
+    name: Component Evolution Tool
+
+  - type: CREATE
+    item_type: TOOL
+    name: Component Creation Tool
+
+  - type: EXECUTE
+    item_type: AGENT
+    name: Document Analysis Agent
+    user_input: |
+      raw_medical_records
+
+  - type: EXECUTE
+    item_type: AGENT
+    name: Data Extraction Agent
+    user_input: |
+      structured_document_data
+
+  - type: EXECUTE
+    item_type: AGENT
+    name: Data Validation Agent
+    user_input: |
+      extracted_data
+
+  - type: EXECUTE
+    item_type: AGENT
+    name: Medical Analysis Agent
+    user_input: |
+      validated_data
+
+  - type: EXECUTE
+    item_type: AGENT
+    name: Issue Flagging Agent
+    user_input: |
+      analysis_results
+
+  - type: EXECUTE
+    item_type: AGENT
+    name: Summary Generation Agent
+    user_input: |
+      analysis_results
+      flagged_issues
