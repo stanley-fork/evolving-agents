@@ -20,7 +20,7 @@ Our toolkit provides:
 
 Instead of creating yet another agent framework, we build on existing frameworks like BeeAI and OpenAI Agents SDK to create a layer that enables agent autonomy, evolution, and self-governance - moving us closer to truly autonomous AI systems that improve themselves while staying within safe boundaries.
 
-## Architect-Zero: Our Flagship Example
+## Architect-Zero: Our Flagship Meta-Agent
 
 Our toolkit is best demonstrated through Architect-Zero, an agent that autonomously designs solutions to complex problems, leveraging LLM intelligence to find the optimal components for tasks.
 
@@ -33,18 +33,17 @@ architect_agent = await create_architect_zero(
     system_agent_factory=SystemAgentFactory.create_agent
 )
 
-# Give it a task to improve an invoice processing system
+# Give it a task to design a solution
 task_requirement = """
-Create an advanced invoice processing system that improves upon the basic version. The system should:
+Create a comprehensive medical diagnostic system that analyzes patient medical records to provide clinical insights. The system should:
 
-1. Use a more sophisticated document analyzer that can detect invoices with higher confidence
-2. Extract comprehensive information (invoice number, date, vendor, items, subtotal, tax, total)
-3. Verify calculations to ensure subtotal + tax = total
-4. Generate a structured summary with key insights
-5. Handle different invoice formats and detect potential errors
+1. Extract and structure patient information, vital signs, medications, and symptoms
+2. Analyze symptoms to identify possible medical conditions and their likelihood
+3. Check for potential interactions between current medications and suggest adjustments
+4. Generate treatment recommendations based on the identified conditions
+5. Provide appropriate medical disclaimers and highlight when specialist consultation is needed
 
-The system should leverage existing components from the library when possible,
-evolve them where improvements are needed, and create new components for missing functionality.
+The system should leverage existing components, evolve them where needed, and create new ones for missing functionality.
 """
 
 # Architect-Zero analyzes the requirements and designs a solution
@@ -57,64 +56,119 @@ Architect-Zero demonstrates the full capabilities of our toolkit:
 
 1. **LLM-Enhanced Analysis**: It intelligently extracts required capabilities from the task requirements
    ```
-   Extracted capabilities: ['document_analysis', 'data_extraction', 'calculation_verification', 'summary_generation', 'format_handling', 'error_detection', 'component_integration', 'component_evolution', 'component_creation']
+   Extracted capabilities: ['medical_record_analysis', 'symptom_analysis', 'medication_interaction_check', 'treatment_recommendation', 'medical_disclaimer_generation']
    ```
 
 2. **Smart Component Discovery**: It searches for components that match these capabilities using LLM-powered semantic matching
    ```
-   Found component for capability document_analysis using LLM matching: BasicInvoiceProcessor
+   Found component for capability medical_record_analysis using LLM matching: MedicalRecordAnalyzer
    ```
 
 3. **Capability-Based Design**: It designs a complete workflow with specialized components:
    ```yaml
-   scenario_name: Invoice Processing Workflow
-   domain: general
+   scenario_name: Medical Diagnostic Workflow
+   domain: healthcare
    description: >
-     This workflow processes invoice documents by analyzing, extracting data, verifying calculations, 
-     detecting errors, generating summaries, and integrating components into a cohesive system.
+     This workflow processes patient medical records to extract information, analyze symptoms,
+     identify possible conditions, check medication interactions, and recommend treatments
+     with appropriate medical disclaimers.
    
    steps:
      - type: EXECUTE
        item_type: AGENT
-       name: DocumentAnalyzerAgent
-       tool: AdvancedDocumentAnalyzer
+       name: MedicalRecordAnalyzer
        inputs:
-         user_input: |
-           Raw invoice documents to be analyzed
+         medical_record: |
+           PATIENT MEDICAL RECORD
+           # Full medical record here
        outputs:
-         - analyzed_invoice_documents
+         - structured_patient_data
     
-     # Additional steps for data extraction, calculation verification, etc.
+     # Additional steps for symptom analysis, medication interactions, etc.
    ```
 
 4. **Component Evolution and Creation**: It determines when to evolve existing components or create new ones:
    ```
    - type: DEFINE
      item_type: AGENT
-     name: CalculationVerificationAgent
+     name: TreatmentRecommender
      code_snippet: |
        # Implementation code
    ```
 
-5. **Workflow Execution**: The system executes this workflow, processing invoices through all components:
+5. **Workflow Execution**: The system executes this workflow, processing medical records through all components:
    ```
-   === INVOICE ANALYSIS ===
-   Invoice Number: 12345
-   Date: 2023-05-15
-   Vendor: TechSupplies Inc.
+   === MEDICAL ANALYSIS ===
+   Primary condition: Migraine with aura
+   Confidence: High
    
-   Verification of Calculations:
-   - Calculated Subtotal: $3,550.00
-   - Tax Rate: 8.5%
-   - Calculated Tax: $301.75
-   - Calculated Total Due: $3,851.75
+   Supporting evidence:
+   - Visual symptoms (flashing lights preceding headaches)
+   - Nausea accompanying headaches
+   - Blurred vision with headaches
+   - Partial response to screen time reduction
    
-   Potential Errors:
-   - Subtotal Discrepancy: The provided subtotal of $2,950.00 does not match the calculated subtotal
-   - Tax Discrepancy: The provided tax amount of $250.75 does not match the calculated tax
+   Medication concerns:
+   - Need for both preventive and acute migraine treatment
+   - Ensure new migraine medication doesn't interact with existing medications
    ```
 
-This example showcases the true potential of our toolkit - a meta-agent that can design, implement, and orchestrate complex multi-agent systems based on high-level requirements, leveraging LLM intelligence for component selection and creation.
+6. **System Evolution**: The system can evolve its analysis as new information becomes available:
+   ```
+   === Evolution of Analysis ===
+   New symptoms identified:
+   - Visual aura (flashing lights)
+   - Blurred vision with headaches
+   - Nausea with severe headaches
+   
+   Key insights from evolution:
+   - System recognized pattern shift from tension/hypertension to migraine
+   - Incorporated family history that became more relevant with new symptoms
+   ```
+
+This example showcases the true potential of our toolkit - a meta-agent that can design, implement, and orchestrate complex multi-agent systems based on high-level requirements, with the ability to evolve as new information becomes available.
+
+## Industry-Specific Examples
+
+### Finance: Invoice Processing System
+
+Our `architect_zero_financial_demo.py` example demonstrates how Architect-Zero designs a multi-agent invoice processing system:
+
+```python
+# Give Architect-Zero a financial task
+task_requirement = """
+Create an advanced invoice processing system that improves upon the basic version. The system should:
+
+1. Use a more sophisticated document analyzer to detect invoices with higher confidence
+2. Extract comprehensive information (invoice number, date, vendor, items, subtotal, tax, total)
+3. Verify calculations to ensure subtotal + tax = total
+4. Generate a structured summary with key insights
+5. Handle different invoice formats and detect potential errors
+"""
+
+# Architect-Zero designs a financial solution
+result = await architect_agent.run(task_requirement)
+```
+
+### Healthcare: Medical Diagnostic System
+
+Our `architect_zero_medical_demo.py` example shows how Architect-Zero creates a medical diagnostic system:
+
+```python
+# Give Architect-Zero a healthcare task
+task_requirement = """
+Create a comprehensive medical diagnostic system that analyzes patient medical records. The system should:
+
+1. Extract and structure patient information, vital signs, medications, and symptoms
+2. Analyze symptoms to identify possible medical conditions and their likelihood
+3. Check for potential interactions between current medications
+4. Generate treatment recommendations based on the identified conditions
+5. Provide appropriate medical disclaimers for all recommendations
+"""
+
+# Architect-Zero designs a healthcare solution
+result = await architect_agent.run(task_requirement)
+```
 
 ## Why is Firmware Essential in Autonomous Agent Evolution?
 
@@ -187,7 +241,7 @@ The Agent Bus facilitates communication between agents based on capabilities rat
 - **Resilient Architecture**: The system can continue functioning even when specific agents change
 - **Emergent Collaboration**: New collaboration patterns can form without explicit programming
 
-In our invoice processing example, the components registered their capabilities with the Agent Bus, allowing the system to find the right component for each processing stage automatically.
+In our medical example, the components registered their capabilities with the Agent Bus, allowing the system to find the right component for each diagnostic stage automatically.
 
 ## Key Features
 
@@ -230,8 +284,11 @@ pip install -e .
 # Install OpenAI Agents SDK
 pip install -r requirements-openai-agents.txt
 
-# Run the Architect-Zero example
-python examples/architect_zero_comprehensive_demo.py
+# Run the Finance example
+python examples/architect_zero_financial_demo.py
+
+# Run the Healthcare example
+python examples/architect_zero_medical_demo.py
 ```
 
 ## System Initialization Example
@@ -239,7 +296,7 @@ python examples/architect_zero_comprehensive_demo.py
 ```python
 # Initialize core components
 llm_service = LLMService(provider="openai", model="gpt-4o")
-smart_library = SmartLibrary("smart_library.json", llm_service)  # Now with LLM service
+smart_library = SmartLibrary("smart_library.json", llm_service)
 agent_bus = SimpleAgentBus("agent_bus.json")
 
 # Create the system agent
@@ -273,7 +330,7 @@ architect_agent = await create_architect_zero(
 ## Use Cases
 
 - **Document Processing**: Create specialized agents for different document types that collaborate to extract and analyze information
-- **Healthcare**: Medical agents communicating with pharmacy and insurance agents to coordinate patient care
+- **Healthcare**: Medical diagnostic agents communicating with pharmacy and insurance agents to coordinate patient care
 - **Financial Analysis**: Portfolio management agents collaborating with market analysis agents
 - **Customer Service**: Routing agents delegating to specialized support agents
 - **Multi-step Reasoning**: Break complex problems into components handled by specialized agents
