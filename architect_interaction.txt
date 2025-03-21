@@ -21,128 +21,105 @@ Here is the complete YAML workflow for the advanced invoice processing system:
 scenario_name: Invoice Processing Workflow
 domain: general
 description: >
-  This workflow processes invoice documents by analyzing, extracting data, verifying calculations, detecting errors, generating summaries, and integrating components into a cohesive system. It also evolves the system by creating new components as needed.
+  This workflow processes raw invoice documents through a series of operations including document analysis, data extraction, calculation verification, summary generation, error detection, and component integration to produce a comprehensive invoice processing system.
 
 steps:
+  - type: DEFINE
+    item_type: AGENT
+    name: DocumentAnalyzerAgent
+    code_snippet: |
+      Develop an agent that uses the AdvancedDocumentAnalyzer tool to perform sophisticated analysis of invoice documents, ensuring high confidence in invoice detection and handling various formats.
+
+  - type: DEFINE
+    item_type: AGENT
+    name: DataExtractionAgent
+    code_snippet: |
+      Develop an agent that utilizes the ComprehensiveDataExtractor tool to extract detailed information from invoices, including line items, totals, and tax information.
+
+  - type: DEFINE
+    item_type: AGENT
+    name: CalculationVerificationAgent
+    code_snippet: |
+      Develop an agent that uses the CalculationVerifier tool to ensure the accuracy of invoice calculations, verifying that the subtotal plus tax equals the total.
+
+  - type: DEFINE
+    item_type: AGENT
+    name: SummaryGenerationAgent
+    code_snippet: |
+      Develop an agent that uses the SummaryGenerator tool to create structured summaries of invoice data, highlighting key insights and metrics.
+
+  - type: DEFINE
+    item_type: AGENT
+    name: ErrorDetectionAgent
+    code_snippet: |
+      Develop an agent that uses the ErrorDetector tool to identify and flag potential errors in invoices, such as missing fields or incorrect calculations.
+
+  - type: DEFINE
+    item_type: AGENT
+    name: ComponentIntegrationAgent
+    code_snippet: |
+      Develop an agent responsible for integrating all components into a cohesive system, ensuring seamless data flow and interaction between agents and tools.
+
+  - type: CREATE
+    item_type: AGENT
+    name: DocumentAnalyzerAgent
+
   - type: EXECUTE
     item_type: AGENT
     name: DocumentAnalyzerAgent
-    tool: AdvancedDocumentAnalyzer
-    inputs:
-      user_input: |
-        Raw invoice documents to be analyzed
-    outputs:
-      - analyzed_invoice_documents
+    user_input: |
+      raw_invoice_documents
+
+  - type: CREATE
+    item_type: AGENT
+    name: DataExtractionAgent
 
   - type: EXECUTE
     item_type: AGENT
     name: DataExtractionAgent
-    tool: ComprehensiveDataExtractor
-    inputs:
-      - analyzed_invoice_documents
-    outputs:
-      - extracted_invoice_data
+    user_input: |
+      analyzed_invoice_documents
+
+  - type: CREATE
+    item_type: AGENT
+    name: CalculationVerificationAgent
 
   - type: EXECUTE
     item_type: AGENT
     name: CalculationVerificationAgent
-    tool: CalculationVerifier
-    inputs:
-      - extracted_invoice_data
-    outputs:
-      - verified_invoice_data
+    user_input: |
+      extracted_invoice_data
 
-  - type: EXECUTE
+  - type: CREATE
     item_type: AGENT
-    name: ErrorDetectionAgent
-    tool: ErrorDetectionTool
-    inputs:
-      - verified_invoice_data
-    outputs:
-      - error_report
+    name: SummaryGenerationAgent
 
   - type: EXECUTE
     item_type: AGENT
     name: SummaryGenerationAgent
-    tool: StructuredSummaryGenerator
-    inputs:
-      - verified_invoice_data
-    outputs:
-      - invoice_summary
+    user_input: |
+      verified_invoice_data
 
-  - type: DEFINE
+  - type: CREATE
+    item_type: AGENT
+    name: ErrorDetectionAgent
+
+  - type: EXECUTE
+    item_type: AGENT
+    name: ErrorDetectionAgent
+    user_input: |
+      verified_invoice_data
+
+  - type: CREATE
     item_type: AGENT
     name: ComponentIntegrationAgent
-    code_snippet: |
-      # Middleware design for integrating agents and tools
-      class ComponentIntegrationAgent:
-          def integrate(self, inputs):
-              # Logic to integrate components
-              pass
-    inputs:
-      - analyzed_invoice_documents
-      - extracted_invoice_data
-      - verified_invoice_data
-      - error_report
-      - invoice_summary
-    outputs:
-      - integrated_system
 
   - type: EXECUTE
     item_type: AGENT
     name: ComponentIntegrationAgent
-    inputs:
-      - analyzed_invoice_documents
-      - extracted_invoice_data
-      - verified_invoice_data
-      - error_report
-      - invoice_summary
-    outputs:
-      - integrated_system
-
-  - type: DEFINE
-    item_type: AGENT
-    name: ComponentEvolutionAgent
-    code_snippet: |
-      # Feedback loop implementation for system evolution
-      class ComponentEvolutionAgent:
-          def evolve(self, system):
-              # Logic to assess and improve system components
-              pass
-    inputs:
-      - integrated_system
-    outputs:
-      - evolved_system
-
-  - type: EXECUTE
-    item_type: AGENT
-    name: ComponentEvolutionAgent
-    inputs:
-      - integrated_system
-    outputs:
-      - evolved_system
-
-  - type: DEFINE
-    item_type: AGENT
-    name: ComponentCreationAgent
-    code_snippet: |
-      # Gap analysis and new component design
-      class ComponentCreationAgent:
-          def create(self, gaps):
-              # Logic to design new components
-              pass
-    inputs:
-      - identified_gaps
-    outputs:
-      - new_components
-
-  - type: EXECUTE
-    item_type: AGENT
-    name: ComponentCreationAgent
-    inputs:
-      - identified_gaps
-    outputs:
-      - new_components
+    user_input: |
+      structured_invoice_summary
+      error_report
 ```
 
-This workflow outlines the steps for processing invoices, including document analysis, data extraction, calculation verification, error detection, summary generation, and system integration and evolution.
+This workflow defines the steps and agents required to process invoices, ensuring comprehensive analysis, extraction, verification, and integration.
