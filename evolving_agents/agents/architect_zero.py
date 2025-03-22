@@ -38,6 +38,7 @@ class ArchitectZeroAgentInitializer:
         smart_library: SmartLibrary,
         agent_bus: SimpleAgentBus,
         system_agent_factory: Optional[callable] = None,
+        system_agent: Optional[ReActAgent] = None,
         tools: Optional[List[Tool]] = None
     ) -> ReActAgent:
         """
@@ -48,6 +49,7 @@ class ArchitectZeroAgentInitializer:
             smart_library: Smart library for component management
             agent_bus: Agent bus for component communication
             system_agent_factory: Optional factory function for creating the system agent
+            system_agent: Optional existing system agent instance (takes precedence over factory)
             tools: Optional additional tools to provide to the agent
             
         Returns:
@@ -56,21 +58,21 @@ class ArchitectZeroAgentInitializer:
         # Get the chat model from LLM service
         chat_model = llm_service.chat_model
         
-        # Create the system agent if factory provided
-        system_agent = None
-        if system_agent_factory:
-            system_agent = await system_agent_factory(
-                llm_service=llm_service,
-                smart_library=smart_library,
-                agent_bus=agent_bus
-            )
-        else:
-            # Create using the default factory
-            system_agent = await SystemAgentFactory.create_agent(
-                llm_service=llm_service,
-                smart_library=smart_library,
-                agent_bus=agent_bus
-            )
+        # Use provided system agent or create one using factory
+        if system_agent is None:
+            if system_agent_factory:
+                system_agent = await system_agent_factory(
+                    llm_service=llm_service,
+                    smart_library=smart_library,
+                    agent_bus=agent_bus
+                )
+            else:
+                # Create using the default factory
+                system_agent = await SystemAgentFactory.create_agent(
+                    llm_service=llm_service,
+                    smart_library=smart_library,
+                    agent_bus=agent_bus
+                )
         
         # Create workflow generator
         workflow_generator = WorkflowGenerator(llm_service, smart_library)
@@ -1036,7 +1038,8 @@ async def create_architect_zero(
     llm_service: LLMService,
     smart_library: SmartLibrary,
     agent_bus: SimpleAgentBus,
-    system_agent_factory: Optional[callable] = None
+    system_agent_factory: Optional[callable] = None,
+    system_agent: Optional[ReActAgent] = None
 ) -> ReActAgent:
     """
     Create and configure the Architect-Zero agent.
@@ -1046,6 +1049,7 @@ async def create_architect_zero(
         smart_library: Smart library for component management
         agent_bus: Agent bus for component communication
         system_agent_factory: Optional factory function for creating the system agent
+        system_agent: Optional existing system agent instance
         
     Returns:
         Configured Architect-Zero agent
@@ -1054,5 +1058,6 @@ async def create_architect_zero(
         llm_service=llm_service,
         smart_library=smart_library,
         agent_bus=agent_bus,
-        system_agent_factory=system_agent_factory
+        system_agent_factory=system_agent_factory,
+        system_agent=system_agent
     )

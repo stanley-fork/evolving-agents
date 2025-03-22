@@ -359,7 +359,7 @@ async def main():
         llm_service=llm_service,
         smart_library=smart_library,
         agent_bus=agent_bus,
-        system_agent_factory=SystemAgentFactory.create_agent
+        system_agent=system_agent
     )
     
     # Define invoice processing task
