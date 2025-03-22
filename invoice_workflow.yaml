@@ -1,102 +1,83 @@
 scenario_name: Invoice Processing Workflow
 domain: general
 description: >
-  This workflow processes raw invoice documents through a series of operations including document analysis, data extraction, calculation verification, error detection, and summary generation. Each step is handled by a dedicated agent to ensure accurate and efficient processing of invoice data.
+  This workflow processes invoices by analyzing documents, extracting data, verifying calculations, detecting errors, generating summaries, and integrating components into a cohesive system.
 
 steps:
   - type: DEFINE
     item_type: AGENT
     name: DocumentAnalyzerAgent
     code_snippet: |
-      Implement using DocumentAnalysisTool to handle various invoice formats and analyze document structure.
-    capabilities:
-      - document_analysis
-      - format_handling
+      Implement using AdvancedDocumentAnalyzer to handle various formats and analyze documents with high confidence.
 
   - type: DEFINE
     item_type: AGENT
     name: DataExtractionAgent
     code_snippet: |
-      Utilize DataExtractionTool to extract invoice number, date, vendor, items, subtotal, tax, and total.
-    capabilities:
-      - data_extraction
+      Implement using ComprehensiveDataExtractor to extract detailed information from invoices.
 
   - type: DEFINE
     item_type: AGENT
     name: CalculationVerificationAgent
     code_snippet: |
-      Use CalculationVerificationTool to ensure subtotal and tax add up to the total.
-    capabilities:
-      - calculation_verification
+      Implement using CalculationVerifier to ensure the accuracy of invoice calculations.
 
   - type: DEFINE
     item_type: AGENT
     name: ErrorDetectionAgent
     code_snippet: |
-      Implement using ErrorDetectionTool to identify and handle errors in invoice processing.
-    capabilities:
-      - error_detection
-      - format_handling
+      Implement using ErrorDetector to identify potential errors in invoice processing.
 
   - type: DEFINE
     item_type: AGENT
     name: SummaryGenerationAgent
     code_snippet: |
-      Leverage SummaryGenerationTool to create structured summaries with key insights.
-    capabilities:
-      - summary_generation
+      Implement using SummaryGenerator to create structured summaries of invoice data.
 
-  - type: CREATE
+  - type: DEFINE
     item_type: AGENT
-    name: DocumentAnalyzerAgent
-
-  - type: CREATE
-    item_type: AGENT
-    name: DataExtractionAgent
-
-  - type: CREATE
-    item_type: AGENT
-    name: CalculationVerificationAgent
-
-  - type: CREATE
-    item_type: AGENT
-    name: ErrorDetectionAgent
-
-  - type: CREATE
-    item_type: AGENT
-    name: SummaryGenerationAgent
+    name: ComponentIntegrationAgent
+    code_snippet: |
+      Integrate all components into a cohesive system, ensuring smooth data flow and interaction between agents.
 
   - type: EXECUTE
     item_type: AGENT
     name: DocumentAnalyzerAgent
     input_data:
       user_input: |
-        Raw invoice documents in various formats
+        Raw Invoice Document
 
   - type: EXECUTE
     item_type: AGENT
     name: DataExtractionAgent
     input_data:
       user_input: |
-        Analyzed invoice data from DocumentAnalyzerAgent
+        Analyzed Document
 
   - type: EXECUTE
     item_type: AGENT
     name: CalculationVerificationAgent
     input_data:
       user_input: |
-        Extracted invoice details from DataExtractionAgent
+        Extracted Data
 
   - type: EXECUTE
     item_type: AGENT
     name: ErrorDetectionAgent
     input_data:
       user_input: |
-        Verified invoice details from CalculationVerificationAgent
+        Verified Data
 
   - type: EXECUTE
     item_type: AGENT
     name: SummaryGenerationAgent
     input_data:
       user_input: |
-        Error-checked invoice details from ErrorDetectionAgent
+        Error-Checked Data
+
+  - type: EXECUTE
+    item_type: AGENT
+    name: ComponentIntegrationAgent
+    input_data:
+      user_input: |
+        Structured Summary

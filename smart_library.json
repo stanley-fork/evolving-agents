@@ -1,22 +1,22 @@
 [
   {
-    "id": "177c9871-39ac-4000-b0c3-4adf48c32c9b",
-    "name": "MedicalRecordAnalyzer",
+    "id": "9723f139-155e-49e7-a0f9-5b08a4bd9999",
+    "name": "BasicDocumentAnalyzer",
     "record_type": "TOOL",
-    "domain": "healthcare",
-    "description": "A tool that analyzes medical records to extract key patient information, history, and clinical data",
-    "code_snippet": "\nfrom typing import Dict, Any, List\nfrom pydantic import BaseModel, Field\nimport re\n\nfrom beeai_framework.context import RunContext\nfrom beeai_framework.emitter.emitter import Emitter\nfrom beeai_framework.tools.tool import StringToolOutput, Tool, ToolRunOptions\n\nclass MedicalRecordAnalyzerInput(BaseModel):\n    medical_record: str = Field(description=\"Medical record text to analyze\")\n\nclass MedicalRecordAnalyzer(Tool[MedicalRecordAnalyzerInput, ToolRunOptions, StringToolOutput]):\n    \"\"\"A tool that analyzes medical records to extract key patient information and clinical data.\"\"\"\n    name = \"MedicalRecordAnalyzer\"\n    description = \"Analyzes medical records to extract structured patient information, vital signs, and clinical data\"\n    input_schema = MedicalRecordAnalyzerInput\n\n    def _create_emitter(self) -> Emitter:\n        return Emitter.root().child(\n            namespace=[\"tool\", \"healthcare\", \"medical_record_analyzer\"],\n            creator=self,\n        )\n    \n    async def _run(self, input: MedicalRecordAnalyzerInput, options: ToolRunOptions | None, context: RunContext) -> StringToolOutput:\n        \"\"\"Analyze medical record to extract structured information.\"\"\"\n        record_text = input.medical_record\n        \n        # Extract patient information\n        patient_info = {}\n        name_match = re.search(r\"Name:\\s*([^\n]+)\", record_text)\n        if name_match:\n            patient_info[\"name\"] = name_match.group(1).strip()\n            \n        dob_match = re.search(r\"DOB:\\s*([^\n]+)\", record_text)\n        if dob_match:\n            patient_info[\"dob\"] = dob_match.group(1).strip()\n            \n        # Extract vital signs\n        vital_signs = {}\n        bp_match = re.search(r\"BP:\\s*([^\n]+)\", record_text)\n        if bp_match:\n            vital_signs[\"blood_pressure\"] = bp_match.group(1).strip()\n            \n        hr_match = re.search(r\"Heart Rate:\\s*([^\n]+)\", record_text)\n        if hr_match:\n            vital_signs[\"heart_rate\"] = hr_match.group(1).strip()\n            \n        temp_match = re.search(r\"Temperature:\\s*([^\n]+)\", record_text)\n        if temp_match:\n            vital_signs[\"temperature\"] = temp_match.group(1).strip()\n        \n        # Extract medications\n        medications = []\n        med_section = re.search(r\"CURRENT MEDICATIONS:(.*?)(?:\n\n|\n[A-Z]+)\", record_text, re.DOTALL)\n        if med_section:\n            med_text = med_section.group(1).strip()\n            med_lines = re.findall(r\"\\d+\\.\\s*([^\n]+)\", med_text)\n            for med in med_lines:\n                medications.append(med.strip())\n        \n        # Extract chief complaint\n        chief_complaint = \"\"\n        complaint_section = re.search(r\"CHIEF COMPLAINT:(.*?)(?:\n\n|\n[A-Z]+)\", record_text, re.DOTALL)\n        if complaint_section:\n            chief_complaint = complaint_section.group(1).strip()\n        \n        # Extract assessment and plan\n        assessment = \"\"\n        assessment_section = re.search(r\"ASSESSMENT:(.*?)(?:\n\n|\n[A-Z]+)\", record_text, re.DOTALL)\n        if assessment_section:\n            assessment = assessment_section.group(1).strip()\n            \n        plan = \"\"\n        plan_section = re.search(r\"PLAN:(.*?)(?:\n\n|$)\", record_text, re.DOTALL)\n        if plan_section:\n            plan = plan_section.group(1).strip()\n        \n        # Build response\n        result = {\n            \"patient_information\": patient_info,\n            \"vital_signs\": vital_signs,\n            \"current_medications\": medications,\n            \"chief_complaint\": chief_complaint,\n            \"assessment\": assessment,\n            \"plan\": plan\n        }\n        \n        import json\n        return StringToolOutput(json.dumps(result, indent=2))\n",
+    "domain": "document_processing",
+    "description": "A basic tool that analyzes documents to determine their type",
+    "code_snippet": "\nfrom typing import Dict, Any\nfrom pydantic import BaseModel, Field\n\nfrom beeai_framework.context import RunContext\nfrom beeai_framework.emitter.emitter import Emitter\nfrom beeai_framework.tools.tool import StringToolOutput, Tool, ToolRunOptions\n\nclass DocumentAnalyzerInput(BaseModel):\n    text: str = Field(description=\"Document text to analyze\")\n\nclass BasicDocumentAnalyzer(Tool[DocumentAnalyzerInput, ToolRunOptions, StringToolOutput]):\n    \"\"\"A basic tool that analyzes documents to determine their type.\"\"\"\n    name = \"BasicDocumentAnalyzer\"\n    description = \"Analyzes document content to determine if it's an invoice, receipt, or other document type\"\n    input_schema = DocumentAnalyzerInput\n\n    def _create_emitter(self) -> Emitter:\n        return Emitter.root().child(\n            namespace=[\"tool\", \"document\", \"analyzer\"],\n            creator=self,\n        )\n    \n    async def _run(self, input: DocumentAnalyzerInput, options: ToolRunOptions | None, context: RunContext) -> StringToolOutput:\n        \"\"\"Analyze document text to determine its type.\"\"\"\n        doc_text = input.text.lower()\n        \n        # Simple keyword matching\n        result = {\"type\": \"unknown\", \"confidence\": 0.0}\n        \n        if \"invoice\" in doc_text and (\"total\" in doc_text or \"amount\" in doc_text):\n            result = {\"type\": \"invoice\", \"confidence\": 0.7}\n        elif \"receipt\" in doc_text:\n            result = {\"type\": \"receipt\", \"confidence\": 0.6}\n        elif \"contract\" in doc_text:\n            result = {\"type\": \"contract\", \"confidence\": 0.6}\n        \n        import json\n        return StringToolOutput(json.dumps(result, indent=2))\n",
     "version": "1.0.0",
     "usage_count": 0,
     "success_count": 0,
     "fail_count": 0,
     "status": "active",
-    "created_at": "2025-03-22T00:03:39.983266",
-    "last_updated": "2025-03-22T00:03:39.983286",
+    "created_at": "2025-03-22T00:23:44.048271",
+    "last_updated": "2025-03-22T00:23:44.048277",
     "tags": [
-      "medical",
-      "healthcare",
-      "record analysis"
+      "document",
+      "analysis",
+      "basic"
     ],
     "metadata": {},
     "performance_metrics": {
@@ -29,44 +29,39 @@
     },
     "capabilities": [
       {
-        "id": "medical_record_analysis",
-        "name": "Medical Record Analysis",
-        "description": "Analyzes medical records to extract structured patient information and clinical data",
+        "id": "document_type_detection",
+        "name": "Document Type Detection",
+        "description": "Detects the type of document from its content",
         "context": {
           "required_fields": [
-            "medical_record_text"
+            "document_text"
           ],
           "produced_fields": [
-            "patient_info",
-            "vitals",
-            "medications",
-            "chief_complaint",
-            "assessment",
-            "plan"
+            "document_type",
+            "confidence_score"
           ]
         }
       }
     ]
   },
   {
-    "id": "d9bdbf54-36ce-44bb-bb3f-9428a1c89338",
-    "name": "SymptomAnalyzer",
+    "id": "8f50514c-2653-4c80-a096-442f2634d471",
+    "name": "BasicInvoiceProcessor",
     "record_type": "AGENT",
-    "domain": "healthcare",
-    "description": "An agent that analyzes patient symptoms and provides possible conditions based on clinical data",
-    "code_snippet": "\nfrom typing import List, Dict, Any, Optional\nimport re\n\nfrom beeai_framework.agents.react import ReActAgent\nfrom beeai_framework.agents.types import AgentMeta\nfrom beeai_framework.memory import TokenMemory\nfrom beeai_framework.backend.chat import ChatModel\nfrom beeai_framework.tools.tool import Tool\n\nclass SymptomAnalyzerInitializer:\n    \"\"\"\n    An agent that analyzes patient symptoms and provides possible conditions.\n    This agent can extract symptoms from medical records and suggest potential diagnoses.\n    \"\"\"\n    \n    @staticmethod\n    def create_agent(llm: ChatModel, tools: Optional[List[Tool]] = None) -> ReActAgent:\n        \"\"\"Create and configure the symptom analyzer agent.\"\"\"\n        # Use empty tools list if none provided\n        if tools is None:\n            tools = []\n            \n        # Define agent metadata\n        meta = AgentMeta(\n            name=\"SymptomAnalyzer\",\n            description=(\n                \"I am a symptom analysis agent that can extract symptoms from medical records, \"\n                \"categorize them by body system, and suggest possible diagnoses based on the \"\n                \"symptom pattern, vital signs, and patient history. \"\n                \"I always provide medical disclaimers and note when symptoms may have multiple \"\n                \"potential causes requiring further investigation.\"\n            ),\n            tools=tools\n        )\n        \n        # Create the agent\n        agent = ReActAgent(\n            llm=llm,\n            tools=tools,\n            memory=TokenMemory(llm),\n            meta=meta\n        )\n        \n        return agent\n        \n    @staticmethod\n    async def analyze_symptoms(structured_medical_data: Dict[str, Any]) -> Dict[str, Any]:\n        \"\"\"\n        Analyze symptoms from structured medical data.\n        \n        Args:\n            structured_medical_data: Dictionary containing structured medical record information\n            \n        Returns:\n            Analysis of symptoms and possible conditions\n        \"\"\"\n        # Extract chief complaint\n        chief_complaint = structured_medical_data.get(\"chief_complaint\", \"\")\n        \n        # Extract symptoms from chief complaint\n        symptoms = []\n        if \"headache\" in chief_complaint.lower():\n            symptoms.append(\"headache\")\n        if \"dizziness\" in chief_complaint.lower():\n            symptoms.append(\"dizziness\")\n        if \"fatigue\" in chief_complaint.lower():\n            symptoms.append(\"fatigue\")\n            \n        # Get vital signs\n        vital_signs = structured_medical_data.get(\"vital_signs\", {})\n        \n        # Determine abnormal vitals\n        abnormal_vitals = []\n        bp = vital_signs.get(\"blood_pressure\", \"\")\n        if bp:\n            # Extract systolic and diastolic if available\n            bp_match = re.search(r\"(\\d+)/(\\d+)\", bp)\n            if bp_match:\n                systolic = int(bp_match.group(1))\n                diastolic = int(bp_match.group(2))\n                if systolic > 140 or diastolic > 90:\n                    abnormal_vitals.append(\"elevated blood pressure\")\n        \n        # Analyze current medications\n        medications = structured_medical_data.get(\"current_medications\", [])\n        \n        # Basic possible conditions based on symptoms and vitals\n        possible_conditions = []\n        if \"headache\" in symptoms:\n            possible_conditions.append({\n                \"condition\": \"Tension headache\",\n                \"confidence\": 0.7,\n                \"explanation\": \"Common with stress and prolonged screen time\"\n            })\n            possible_conditions.append({\n                \"condition\": \"Migraine\",\n                \"confidence\": 0.5,\n                \"explanation\": \"Especially if there's history of migraines\"\n            })\n            \n            if \"elevated blood pressure\" in abnormal_vitals:\n                possible_conditions.append({\n                    \"condition\": \"Hypertension-induced headache\",\n                    \"confidence\": 0.6,\n                    \"explanation\": \"Related to elevated blood pressure readings\"\n                })\n        \n        # Add medical disclaimer\n        disclaimer = (\n            \"MEDICAL DISCLAIMER: This analysis is for informational purposes only and does not \"\n            \"constitute medical advice. The possible conditions suggested are not definitive diagnoses. \"\n            \"Always consult with a qualified healthcare provider for proper diagnosis and treatment.\"\n        )\n        \n        return {\n            \"identified_symptoms\": symptoms,\n            \"abnormal_vitals\": abnormal_vitals,\n            \"current_medications\": medications,\n            \"possible_conditions\": possible_conditions,\n            \"disclaimer\": disclaimer\n        }\n",
+    "domain": "document_processing",
+    "description": "A basic agent that processes invoice documents to extract information",
+    "code_snippet": "\nfrom typing import List, Dict, Any, Optional\nimport re\n\nfrom beeai_framework.agents.react import ReActAgent\nfrom beeai_framework.agents.types import AgentMeta\nfrom beeai_framework.memory import TokenMemory\nfrom beeai_framework.backend.chat import ChatModel\nfrom beeai_framework.tools.tool import Tool\n\nclass BasicInvoiceProcessorInitializer:\n    \"\"\"\n    A basic agent that processes invoice documents to extract information.\n    It can extract simple data like invoice number, date, and total amount.\n    \"\"\"\n    \n    @staticmethod\n    def create_agent(llm: ChatModel, tools: Optional[List[Tool]] = None) -> ReActAgent:\n        \"\"\"Create and configure the invoice processor agent.\"\"\"\n        # Use empty tools list if none provided\n        if tools is None:\n            tools = []\n            \n        # Define agent metadata\n        meta = AgentMeta(\n            name=\"BasicInvoiceProcessor\",\n            description=(\n                \"I am an invoice processing agent that can extract basic information from invoice documents \"\n                \"including invoice number, date, vendor, and total amount.\"\n            ),\n            tools=tools\n        )\n        \n        # Create the agent\n        agent = ReActAgent(\n            llm=llm,\n            tools=tools,\n            memory=TokenMemory(llm),\n            meta=meta\n        )\n        \n        return agent\n        \n    @staticmethod\n    async def process_invoice(invoice_text: str) -> Dict[str, Any]:\n        \"\"\"\n        Process an invoice to extract key information.\n        \n        Args:\n            invoice_text: The text of the invoice to process\n            \n        Returns:\n            Extracted invoice information\n        \"\"\"\n        # Extract invoice number\n        invoice_num_match = re.search(r'INVOICE #([\\w-]+)', invoice_text, re.IGNORECASE)\n        invoice_num = invoice_num_match.group(1) if invoice_num_match else \"Unknown\"\n        \n        # Extract date\n        date_match = re.search(r'Date:?\\s*([\\w\\d/-]+)', invoice_text, re.IGNORECASE)\n        date = date_match.group(1).strip() if date_match else \"Unknown\"\n        \n        # Extract vendor\n        vendor_match = re.search(r'Vendor:?\\s*([^\\n]+)', invoice_text, re.IGNORECASE)\n        vendor = vendor_match.group(1).strip() if vendor_match else \"Unknown\"\n        \n        # Extract total\n        total_match = re.search(r'Total\\s*(?:Due|Amount)?:?\\s*\\$?([\\d.,]+)', invoice_text, re.IGNORECASE)\n        total = total_match.group(1).strip() if total_match else \"Unknown\"\n        \n        return {\n            \"invoice_number\": invoice_num,\n            \"date\": date,\n            \"vendor\": vendor,\n            \"total\": total\n        }\n",
     "version": "1.0.0",
     "usage_count": 0,
     "success_count": 0,
     "fail_count": 0,
     "status": "active",
-    "created_at": "2025-03-22T00:03:39.985538",
-    "last_updated": "2025-03-22T00:03:39.985553",
+    "created_at": "2025-03-22T00:23:44.049215",
+    "last_updated": "2025-03-22T00:23:44.049223",
     "tags": [
-      "medical",
-      "symptom",
-      "diagnosis",
-      "healthcare"
+      "invoice",
+      "processing",
+      "basic"
     ],
     "metadata": {},
     "performance_metrics": {
@@ -79,68 +74,18 @@
     },
     "capabilities": [
       {
-        "id": "symptom_analysis",
-        "name": "Symptom Analysis",
-        "description": "Analyzes symptoms from medical data and suggests possible conditions",
+        "id": "invoice_data_extraction",
+        "name": "Invoice Data Extraction",
+        "description": "Extracts basic information from invoice documents",
         "context": {
           "required_fields": [
-            "patient_info",
-            "vitals",
-            "chief_complaint",
-            "medical_history"
+            "invoice_text"
           ],
           "produced_fields": [
-            "identified_symptoms",
-            "possible_conditions",
-            "analysis"
-          ]
-        }
-      }
-    ]
-  },
-  {
-    "id": "c565d52a-62bb-40bb-a842-7d47518bf485",
-    "name": "MedicationInteractionChecker",
-    "record_type": "TOOL",
-    "domain": "healthcare",
-    "description": "A tool that checks for potential interactions between medications",
-    "code_snippet": "\nfrom typing import Dict, Any, List\nfrom pydantic import BaseModel, Field\n\nfrom beeai_framework.context import RunContext\nfrom beeai_framework.emitter.emitter import Emitter\nfrom beeai_framework.tools.tool import StringToolOutput, Tool, ToolRunOptions\n\nclass MedicationInteractionInput(BaseModel):\n    medications: List[str] = Field(description=\"List of medications to check for interactions\")\n    allergies: List[str] = Field(description=\"List of patient allergies\", default_factory=list)\n\nclass MedicationInteractionChecker(Tool[MedicationInteractionInput, ToolRunOptions, StringToolOutput]):\n    \"\"\"A tool that checks for potential interactions between medications.\"\"\"\n    name = \"MedicationInteractionChecker\"\n    description = \"Analyzes a list of medications to identify potential harmful interactions and contraindications\"\n    input_schema = MedicationInteractionInput\n\n    def _create_emitter(self) -> Emitter:\n        return Emitter.root().child(\n            namespace=[\"tool\", \"healthcare\", \"medication_checker\"],\n            creator=self,\n        )\n    \n    async def _run(self, input: MedicationInteractionInput, options: ToolRunOptions | None, context: RunContext) -> StringToolOutput:\n        \"\"\"Check for interactions between medications.\"\"\"\n        medications = input.medications\n        allergies = input.allergies\n        \n        # Simple interaction database (this would be more comprehensive in a real system)\n        known_interactions = {\n            (\"lisinopril\", \"spironolactone\"): \"Hyperkalemia risk (moderately severe)\",\n            (\"lisinopril\", \"naproxen\"): \"Reduced antihypertensive efficacy (moderate)\",\n            (\"levothyroxine\", \"calcium\"): \"Reduced levothyroxine absorption (moderate)\",\n            (\"ibuprofen\", \"aspirin\"): \"Increased bleeding risk (moderate)\",\n            (\"sumatriptan\", \"ibuprofen\"): \"No significant interaction (mild)\",\n        }\n        \n        # Check for drug class interactions\n        class_interactions = {\n            (\"ACE inhibitor\", \"NSAID\"): \"May reduce antihypertensive effect and increase kidney injury risk\",\n            (\"ACE inhibitor\", \"potassium-sparing diuretic\"): \"Increased hyperkalemia risk\",\n            (\"thyroid medication\", \"antacid\"): \"Decreased thyroid medication absorption\"\n        }\n        \n        # Simple drug classification\n        drug_classifications = {\n            \"lisinopril\": [\"ACE inhibitor\"],\n            \"enalapril\": [\"ACE inhibitor\"],\n            \"ibuprofen\": [\"NSAID\"],\n            \"naproxen\": [\"NSAID\"],\n            \"spironolactone\": [\"potassium-sparing diuretic\"],\n            \"levothyroxine\": [\"thyroid medication\"],\n            \"omeprazole\": [\"proton pump inhibitor\"],\n        }\n        \n        # Check for allergy contraindications\n        allergy_contraindications = []\n        for allergy in allergies:\n            allergy_lower = allergy.lower()\n            if allergy_lower == \"penicillin\":\n                penicillin_drugs = [\"amoxicillin\", \"ampicillin\", \"penicillin v\"]\n                for med in medications:\n                    if any(drug in med.lower() for drug in penicillin_drugs):\n                        allergy_contraindications.append(f\"{med} contraindicated due to penicillin allergy\")\n            elif allergy_lower == \"sulfa drugs\":\n                sulfa_drugs = [\"sulfamethoxazole\", \"sulfadiazine\", \"sulfasalazine\"]\n                for med in medications:\n                    if any(drug in med.lower() for drug in sulfa_drugs):\n                        allergy_contraindications.append(f\"{med} contraindicated due to sulfa allergy\")\n        \n        # Find direct interactions\n        direct_interactions = []\n        for i, med1 in enumerate(medications):\n            for med2 in medications[i+1:]:\n                # Normalize medication names\n                med1_lower = med1.lower().split()[0]  # Take first word, ignore dosage\n                med2_lower = med2.lower().split()[0]  # Take first word, ignore dosage\n                \n                # Check both orderings of the medications\n                interaction = known_interactions.get((med1_lower, med2_lower)) or known_interactions.get((med2_lower, med1_lower))\n                if interaction:\n                    direct_interactions.append({\n                        \"medications\": [med1, med2],\n                        \"severity\": interaction.split(\"(\")[1].replace(\")\", \"\").strip() if \"(\" in interaction else \"unknown\",\n                        \"description\": interaction.split(\"(\")[0].strip() if \"(\" in interaction else interaction\n                    })\n        \n        # Find class-based interactions\n        class_based_interactions = []\n        for i, med1 in enumerate(medications):\n            med1_lower = med1.lower().split()[0]\n            med1_classes = drug_classifications.get(med1_lower, [])\n            \n            for med2 in medications[i+1:]:\n                med2_lower = med2.lower().split()[0]\n                med2_classes = drug_classifications.get(med2_lower, [])\n                \n                for c1 in med1_classes:\n                    for c2 in med2_classes:\n                        # Check both orderings of the classes\n                        class_interaction = class_interactions.get((c1, c2)) or class_interactions.get((c2, c1))\n                        if class_interaction:\n                            class_based_interactions.append({\n                                \"medications\": [med1, med2],\n                                \"drug_classes\": [c1, c2],\n                                \"description\": class_interaction\n                            })\n        \n        # Create comprehensive results\n        result = {\n            \"medications_analyzed\": medications,\n            \"direct_interactions\": direct_interactions,\n            \"class_based_interactions\": class_based_interactions,\n            \"allergy_contraindications\": allergy_contraindications,\n            \"disclaimer\": (\n                \"MEDICAL DISCLAIMER: This analysis is based on a simplified interaction database \"\n                \"and is not exhaustive. Always consult with a healthcare provider or pharmacist \"\n                \"for a complete medication interaction analysis.\"\n            )\n        }\n        \n        import json\n        return StringToolOutput(json.dumps(result, indent=2))\n",
-    "version": "1.0.0",
-    "usage_count": 0,
-    "success_count": 0,
-    "fail_count": 0,
-    "status": "active",
-    "created_at": "2025-03-22T00:03:40.017432",
-    "last_updated": "2025-03-22T00:03:40.017445",
-    "tags": [
-      "medical",
-      "medication",
-      "interaction",
-      "healthcare"
-    ],
-    "metadata": {},
-    "performance_metrics": {
-      "total_executions": 0,
-      "successful_executions": 0,
-      "average_execution_time": 0.0,
-      "capabilities": {},
-      "domains": {},
-      "last_execution": null
-    },
-    "capabilities": [
-      {
-        "id": "medication_interaction_check",
-        "name": "Medication Interaction Check",
-        "description": "Checks for potential interactions between medications and allergies",
-        "context": {
-          "required_fields": [
-            "medications",
-            "allergies"
-          ],
-          "produced_fields": [
-            "interactions",
-            "contraindications",
-            "warnings"
+            "invoice_number",
+            "date",
+            "vendor",
+            "total"
           ]
         }
       }

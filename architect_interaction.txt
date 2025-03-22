@@ -1,152 +1,106 @@
 TASK REQUIREMENT:
 
-    Create a comprehensive medical diagnostic system that analyzes patient medical records to provide clinical insights. The system should:
+    Create an advanced invoice processing system that improves upon the basic version in the library. The system should:
     
-    1. Extract and structure patient information, vital signs, medications, and symptoms from medical records
-    2. Analyze symptoms to identify possible medical conditions and their likelihood
-    3. Check for potential interactions between current medications and suggest adjustments if needed
-    4. Generate treatment recommendations based on the identified conditions and patient history
-    5. Provide appropriate medical disclaimers and highlight when further specialist consultation is needed
+    1. Use a more sophisticated document analyzer that can detect invoices with higher confidence
+    2. Extract comprehensive information (invoice number, date, vendor, items, subtotal, tax, total)
+    3. Verify calculations to ensure subtotal + tax = total
+    4. Generate a structured summary with key insights
+    5. Handle different invoice formats and detect potential errors
     
-    The system should leverage existing medical components from the library when possible,
+    The system should leverage existing components from the library when possible,
     evolve them where improvements are needed, and create new components for missing functionality.
     
-    The system must handle sensitive medical information appropriately and ensure all recommendations
-    include proper medical disclaimers. It should also identify when symptoms may indicate serious conditions
-    requiring immediate medical attention.
-    
-    Please generate a complete workflow for this medical diagnostic system.
+    Please generate a complete workflow for this invoice processing system.
     
 
 AGENT THOUGHT PROCESS:
-Here is the complete YAML workflow for the medical diagnostic system:
+Here is the complete YAML workflow for the advanced invoice processing system:
 
 ```yaml
-scenario_name: Medical Workflow Automation
+scenario_name: Invoice Processing Workflow
 domain: general
 description: >
-  This workflow automates the process of extracting patient data from medical records, analyzing symptoms, checking medication interactions, alerting for serious conditions, recommending treatments, and generating medical disclaimers. It ensures patient safety and compliance with medical guidelines.
+  This workflow processes invoices by analyzing documents, extracting data, verifying calculations, detecting errors, generating summaries, and integrating components into a cohesive system.
 
 steps:
   - type: DEFINE
     item_type: AGENT
-    name: Data Extraction Agent
+    name: DocumentAnalyzerAgent
     code_snippet: |
-      Develop a system to parse medical records and extract relevant patient data, including vital signs, medications, and symptoms. Use NLP techniques for unstructured data.
+      Implement using AdvancedDocumentAnalyzer to handle various formats and analyze documents with high confidence.
 
   - type: DEFINE
     item_type: AGENT
-    name: Symptom Analysis Agent
+    name: DataExtractionAgent
     code_snippet: |
-      Use machine learning models to analyze symptoms and match them with potential medical conditions using the Medical Knowledge Base.
+      Implement using ComprehensiveDataExtractor to extract detailed information from invoices.
 
   - type: DEFINE
     item_type: AGENT
-    name: Medication Interaction Agent
+    name: CalculationVerificationAgent
     code_snippet: |
-      Develop a system to cross-reference current medications with the Medication Interaction Database to identify potential interactions.
+      Implement using CalculationVerifier to ensure the accuracy of invoice calculations.
 
   - type: DEFINE
     item_type: AGENT
-    name: Serious Condition Alert Agent
+    name: ErrorDetectionAgent
     code_snippet: |
-      Implement a rule-based system to flag conditions that require immediate medical attention based on severity and urgency.
+      Implement using ErrorDetector to identify potential errors in invoice processing.
 
   - type: DEFINE
     item_type: AGENT
-    name: Treatment Recommendation Agent
+    name: SummaryGenerationAgent
     code_snippet: |
-      Use decision support algorithms to generate personalized treatment plans based on patient history and identified conditions.
+      Implement using SummaryGenerator to create structured summaries of invoice data.
 
   - type: DEFINE
     item_type: AGENT
-    name: Medical Disclaimer Agent
+    name: ComponentIntegrationAgent
     code_snippet: |
-      Generate disclaimers and alerts for further specialist consultation when necessary, ensuring legal compliance and patient safety.
-
-  - type: DEFINE
-    item_type: TOOL
-    name: Medical Records Database
-    code_snippet: |
-      Implement a secure database system with encryption and access controls to store and manage patient records.
-
-  - type: DEFINE
-    item_type: TOOL
-    name: Medical Knowledge Base
-    code_snippet: |
-      Develop a comprehensive library of medical knowledge, integrating existing medical literature and guidelines.
-
-  - type: DEFINE
-    item_type: TOOL
-    name: Medication Interaction Database
-    code_snippet: |
-      Create a database that catalogs known medication interactions, updated regularly with new pharmaceutical data.
-
-  - type: CREATE
-    item_type: AGENT
-    name: Data Extraction Agent
-
-  - type: CREATE
-    item_type: AGENT
-    name: Symptom Analysis Agent
-
-  - type: CREATE
-    item_type: AGENT
-    name: Medication Interaction Agent
-
-  - type: CREATE
-    item_type: AGENT
-    name: Serious Condition Alert Agent
-
-  - type: CREATE
-    item_type: AGENT
-    name: Treatment Recommendation Agent
-
-  - type: CREATE
-    item_type: AGENT
-    name: Medical Disclaimer Agent
-
-  - type: CREATE
-    item_type: TOOL
-    name: Medical Records Database
-
-  - type: CREATE
-    item_type: TOOL
-    name: Medical Knowledge Base
-
-  - type: CREATE
-    item_type: TOOL
-    name: Medication Interaction Database
+      Integrate all components into a cohesive system, ensuring smooth data flow and interaction between agents.
 
   - type: EXECUTE
     item_type: AGENT
-    name: Data Extraction Agent
-    input_data: Medical Records Database
+    name: DocumentAnalyzerAgent
+    input_data:
+      user_input: |
+        Raw Invoice Document
 
   - type: EXECUTE
     item_type: AGENT
-    name: Symptom Analysis Agent
-    input_data: Structured Patient Data, Medical Knowledge Base
+    name: DataExtractionAgent
+    input_data:
+      user_input: |
+        Analyzed Document
 
   - type: EXECUTE
     item_type: AGENT
-    name: Medication Interaction Agent
-    input_data: Structured Patient Data, Medication Interaction Database
+    name: CalculationVerificationAgent
+    input_data:
+      user_input: |
+        Extracted Data
 
   - type: EXECUTE
     item_type: AGENT
-    name: Serious Condition Alert Agent
-    input_data: Identified Conditions
+    name: ErrorDetectionAgent
+    input_data:
+      user_input: |
+        Verified Data
 
   - type: EXECUTE
     item_type: AGENT
-    name: Treatment Recommendation Agent
-    input_data: Identified Conditions, Structured Patient Data
+    name: SummaryGenerationAgent
+    input_data:
+      user_input: |
+        Error-Checked Data
 
   - type: EXECUTE
     item_type: AGENT
-    name: Medical Disclaimer Agent
-    input_data: Treatment Recommendations, Serious Condition Alerts
+    name: ComponentIntegrationAgent
+    input_data:
+      user_input: |
+        Structured Summary
 ```
 
-This YAML workflow outlines the steps and components needed to create a comprehensive medical diagnostic system. If you have any further questions or need additional modifications, feel free to ask!
+This workflow defines the steps and agents involved in processing invoices, from document analysis to component integration. If you have any further questions or need additional modifications, feel free to ask!
