@@ -1,133 +1,83 @@
 scenario_name: Invoice Processing Workflow
 domain: general
 description: >
-  This workflow processes raw invoice documents by analyzing, extracting, verifying, and summarizing the data. It integrates various components to ensure accurate and efficient invoice processing, including error detection and system evolution.
+  This workflow processes invoices by analyzing documents, extracting data, verifying calculations, detecting errors, generating summaries, and integrating components into a cohesive system.
 
 steps:
   - type: DEFINE
     item_type: AGENT
     name: DocumentAnalyzerAgent
     code_snippet: |
-      class DocumentAnalyzerAgent:
-          def analyze_documents(self, documents):
-              # Implement document analysis logic
-              pass
+      Implement using AdvancedDocumentAnalyzer to handle various formats and analyze documents with high confidence.
 
   - type: DEFINE
     item_type: AGENT
     name: DataExtractionAgent
     code_snippet: |
-      class DataExtractionAgent:
-          def extract_data(self, analyzed_data):
-              # Implement data extraction logic
-              pass
+      Implement using ComprehensiveDataExtractor to extract detailed information from invoices.
 
   - type: DEFINE
     item_type: AGENT
     name: CalculationVerificationAgent
     code_snippet: |
-      class CalculationVerificationAgent:
-          def verify_calculations(self, extracted_info):
-              # Implement calculation verification logic
-              pass
+      Implement using CalculationVerifier to ensure the accuracy of invoice calculations.
 
   - type: DEFINE
     item_type: AGENT
     name: ErrorDetectionAgent
     code_snippet: |
-      class ErrorDetectionAgent:
-          def detect_errors(self, verified_info):
-              # Implement error detection logic
-              pass
+      Implement using ErrorDetector to identify potential errors in invoice processing.
 
   - type: DEFINE
     item_type: AGENT
     name: SummaryGenerationAgent
     code_snippet: |
-      class SummaryGenerationAgent:
-          def generate_summary(self, verified_info):
-              # Implement summary generation logic
-              pass
+      Implement using SummaryGenerator to create structured summaries of invoice data.
 
   - type: DEFINE
     item_type: AGENT
     name: ComponentIntegrationAgent
     code_snippet: |
-      class ComponentIntegrationAgent:
-          def integrate_components(self, summary, error_report):
-              # Implement component integration logic
-              pass
-
-  - type: DEFINE
-    item_type: AGENT
-    name: ComponentEvolutionAgent
-    code_snippet: |
-      class ComponentEvolutionAgent:
-          def evolve_system(self, integrated_system):
-              # Implement system evolution logic
-              pass
-
-  - type: DEFINE
-    item_type: AGENT
-    name: ComponentCreationAgent
-    code_snippet: |
-      class ComponentCreationAgent:
-          def create_components(self, identified_gaps):
-              # Implement component creation logic
-              pass
+      Integrate all components into a cohesive system, ensuring smooth data flow and interaction between agents.
 
   - type: EXECUTE
     item_type: AGENT
     name: DocumentAnalyzerAgent
-    user_input: |
-      raw_invoice_documents: |
-        Invoice #12345
-        Date: 2023-10-01
-        Total: $100.00
-    outputs: analyzed_invoice_data
+    input_data:
+      user_input: |
+        Raw Invoice Document
 
   - type: EXECUTE
     item_type: AGENT
     name: DataExtractionAgent
-    inputs: analyzed_invoice_data
-    outputs: extracted_invoice_information
+    input_data:
+      user_input: |
+        Analyzed Document
 
   - type: EXECUTE
     item_type: AGENT
     name: CalculationVerificationAgent
-    inputs: extracted_invoice_information
-    outputs: verified_invoice_information
+    input_data:
+      user_input: |
+        Extracted Data
 
   - type: EXECUTE
     item_type: AGENT
     name: ErrorDetectionAgent
-    inputs: verified_invoice_information
-    outputs: error_report
+    input_data:
+      user_input: |
+        Verified Data
 
   - type: EXECUTE
     item_type: AGENT
     name: SummaryGenerationAgent
-    inputs: verified_invoice_information
-    outputs: invoice_summary
+    input_data:
+      user_input: |
+        Error-Checked Data
 
   - type: EXECUTE
     item_type: AGENT
     name: ComponentIntegrationAgent
-    inputs:
-      - invoice_summary
-      - error_report
-    outputs: integrated_system
-
-  - type: EXECUTE
-    item_type: AGENT
-    name: ComponentEvolutionAgent
-    inputs: integrated_system
-    outputs: evolved_system
-
-  - type: EXECUTE
-    item_type: AGENT
-    name: ComponentCreationAgent
-    user_input: |
-      identified_gaps: |
-        Missing functionality identified during execution
-    outputs: new_components
+    input_data:
+      user_input: |
+        Structured Summary
