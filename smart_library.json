@@ -1,6 +1,6 @@
 [
   {
-    "id": "9723f139-155e-49e7-a0f9-5b08a4bd9999",
+    "id": "c166066b-cfa3-4d7f-a2f8-d1d047f97b22",
     "name": "BasicDocumentAnalyzer",
     "record_type": "TOOL",
     "domain": "document_processing",
@@ -11,8 +11,8 @@
     "success_count": 0,
     "fail_count": 0,
     "status": "active",
-    "created_at": "2025-03-22T00:23:44.048271",
-    "last_updated": "2025-03-22T00:23:44.048277",
+    "created_at": "2025-03-22T00:36:52.968301",
+    "last_updated": "2025-03-22T00:36:52.968307",
     "tags": [
       "document",
       "analysis",
@@ -45,7 +45,7 @@
     ]
   },
   {
-    "id": "8f50514c-2653-4c80-a096-442f2634d471",
+    "id": "a4921f21-ec8f-4bdb-9c48-d5c852e7deec",
     "name": "BasicInvoiceProcessor",
     "record_type": "AGENT",
     "domain": "document_processing",
@@ -56,8 +56,8 @@
     "success_count": 0,
     "fail_count": 0,
     "status": "active",
-    "created_at": "2025-03-22T00:23:44.049215",
-    "last_updated": "2025-03-22T00:23:44.049223",
+    "created_at": "2025-03-22T00:36:52.968961",
+    "last_updated": "2025-03-22T00:36:52.968966",
     "tags": [
       "invoice",
       "processing",
