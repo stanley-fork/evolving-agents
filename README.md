@@ -311,7 +311,7 @@ architect_agent = await create_architect_zero(
     llm_service=llm_service,
     smart_library=smart_library,
     agent_bus=agent_bus,
-    system_agent_factory=SystemAgentFactory.create_agent
+    system_agent=system_agent
 )
 
 # Now you can use architect_agent.run() to solve complex problems
