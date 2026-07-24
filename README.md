@@ -73,7 +73,8 @@ Each piece of the problem is solved by one tool. None of them is exotic; the con
 ## Quick start
 
 ```bash
-python3.12 -m venv .venv && ./.venv/bin/pip install httpx websockets
+python3.12 -m venv .venv && ./.venv/bin/pip install -e .
+./.venv/bin/pip install -e ../agentvcs   # not on PyPI; clone it beside this repo
 cp .env.example .env    # add GEMINI_API_KEY (AI Studio) or OPENROUTER_API_KEY
 ```
 
