@@ -87,6 +87,14 @@ field, which is the naive form of the same idea.
 So a problem this repository solved in 2025 is still open in the tools that
 replaced it. That piece is coming back.
 
+## What happens to it now
+
+It is the umbrella, not a museum. **[PLAN.md](PLAN.md)** has the three
+milestones: the transfer and reframe are done, the dual-embedding resolver was
+recovered and measured as *no better* than plain description-matching, and the
+portable-definition conformance suite has not started. That last one would today
+read **one of three** — which is the honest number to publish first.
+
 ## Where the work is now
 
 - **[The thesis](https://evolvingagentslabs.github.io/thesis/)** — the through-line across the current experiments
