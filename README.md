@@ -1,5 +1,9 @@
 # Evolving Agents
 
+<p align="center">
+  <img src="docs/img/evolving-agents.jpg" alt="One empty outline on the left, drawn but never filled, becoming five solid shapes on the right — each traced back to where it came from" width="100%">
+</p>
+
 > **We got the decomposition right and the substrate wrong.**
 >
 > This repository was the Evolving Agents Toolkit (EAT). Its five subsystems were
