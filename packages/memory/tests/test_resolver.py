@@ -11,6 +11,8 @@ these measure the retrieval maths rather than an embedding model's mood.
 
 from __future__ import annotations
 
+import zlib
+
 import numpy as np
 import pytest
 
@@ -26,7 +28,14 @@ from evolving_memory.resolver import (
 
 
 class BagOfWordsEncoder:
-    """Deterministic hashed bag-of-words. Shared vocabulary → similar vectors."""
+    """Deterministic hashed bag-of-words. Shared vocabulary → similar vectors.
+
+    Buckets come from ``crc32`` and not from ``hash()``. Python randomises string
+    hashing per process, so ``hash(word) % dim`` puts a word in a different
+    bucket on every run — which silently changed which words collided, and
+    therefore every cosine in this file. This class claimed to be deterministic
+    for as long as it was not.
+    """
 
     def __init__(self, dim: int = 64) -> None:
         self._dim = dim
@@ -40,7 +49,7 @@ class BagOfWordsEncoder:
         for word in str(text).lower().split():
             word = word.strip(".,:;()[]\"'")
             if word:
-                vec[hash(word) % self._dim] += 1.0
+                vec[zlib.crc32(word.encode("utf-8")) % self._dim] += 1.0
         norm = np.linalg.norm(vec)
         return vec / norm if norm else vec
 

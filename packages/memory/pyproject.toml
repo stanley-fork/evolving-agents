@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "evolving-memory"
 version = "0.1.0"
 description = "Cognitive Trajectory Engine — topological memory graphs for LLM agents"
-readme = "LICENSE"
+readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "pydantic>=2.0,<3.0",

@@ -1,0 +1,83 @@
+name: tests
+
+# This repository had no CI at all until 2026-07-28. Three suites existed and
+# none of them had ever run in the same place, which is how a package that could
+# not `pip install` and a test double that was not deterministic both survived.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  agentvcs:
+    # The flagship, and the one with a property worth defending: zero runtime
+    # dependencies. Deliberately installed with nothing, so an accidental import
+    # fails here rather than in a user's project.
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install pytest
+      - run: python -m pytest tests -q
+        working-directory: packages/agentvcs
+        env:
+          PYTHONPATH: src
+
+  plugin:
+    # The hooks run as subprocesses under whatever interpreter the user's agent
+    # happens to use, so the oldest supported Python matters more here than the
+    # newest.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: pip install pytest
+      - run: python -m pytest plugin/tests -q
+
+  memory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install (this is a regression test — the manifest was unbuildable)
+        run: pip install -e ".[dev]"
+        working-directory: packages/memory
+      - run: python -m pytest tests -q
+        working-directory: packages/memory
+        env:
+          PYTHONPATH: src:tests
+          # Pin the seed the suite is checked against, then re-run under a
+          # different one. A test double that bucketed words with hash() looked
+          # fine for months because nothing ever varied this.
+          PYTHONHASHSEED: "0"
+
+  memory-determinism:
+    needs: memory
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        seed: ["1", "12345"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+        working-directory: packages/memory
+      - run: python -m pytest tests -q
+        working-directory: packages/memory
+        env:
+          PYTHONPATH: src:tests
+          PYTHONHASHSEED: ${{ matrix.seed }}
