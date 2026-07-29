@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "agentvcs": {
+      "command": "python3",
+      "args": ["-m", "agentvcs.mcp_server"],
+      "env": {
+        "PYTHONPATH": "${CLAUDE_PLUGIN_ROOT}/../packages/agentvcs/src"
+      }
+    }
+  }
+}
