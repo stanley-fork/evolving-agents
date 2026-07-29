@@ -4,112 +4,109 @@
   <img src="docs/img/evolving-agents.jpg" alt="One empty outline on the left, drawn but never filled, becoming five solid shapes on the right — each traced back to where it came from" width="100%">
 </p>
 
-> **We got the decomposition right and the substrate wrong.**
+> **The loop is solved. What happens after the fork is not.**
 >
-> This repository was the Evolving Agents Toolkit (EAT). Its five subsystems were
-> each rebuilt, separately and without noticing, on a substrate that makes them
-> verifiable. This is the map of where they went and what it cost.
+> A plugin for the [Claude Agent SDK](https://code.claude.com/docs/en/agent-sdk/overview)
+> that versions an agent's evolution — diff it, merge it, refuse to ship it when
+> the eval fails.
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 ---
 
-## What EAT was
+## The gap
 
-18,680 lines of Python across twelve subsystems — a SmartLibrary of versioned
-components, a SmartAgentBus for discovery and routing, Smart Memory, an evolution
-loop, and a governance layer called Firmware. Backed by MongoDB Atlas.
+The Agent SDK runs the loop, ships the tools, manages context, and enforces
+permissions. It also branches: `fork` gives you a second session starting from a
+copy of the first.
+
+Nothing brings the two back together. There is no merge, no diff between two
+sessions, nothing that refuses to promote an agent whose eval regressed, and the
+transcript is plain JSONL that anyone can edit. Sessions persist the
+*conversation* — the skills, subagents, model and goal that produced it are not
+versioned alongside it.
+
+That gap is this repository.
+
+| | Agent SDK | This plugin |
+|---|---|---|
+| Branch a session | `fork` | — |
+| Compare two branches | — | `avcs_diff` |
+| Rejoin them | — | `avcs_merge`, with a `--reconcile` seam for goal and trace |
+| Refuse to ship a regression | — | `avcs_freeze`, which fails unless the eval passes |
+| Prove a transcript wasn't edited | — | Ed25519-signed commits |
+| Keep the trace past compaction | summarised away | archived by the `PreCompact` hook |
+
+## Install
+
+```python
+from claude_agent_sdk import query, ClaudeAgentOptions
+
+options = ClaudeAgentOptions(
+    plugins=[{"type": "local", "path": "/path/to/evolving-agents/plugin"}],
+)
+```
+
+Full details in [`plugin/README.md`](plugin/README.md). The MCP server has **zero
+runtime dependencies** — standard library only, with a test that fails if that
+ever stops being true.
+
+## What is here
+
+| | |
+|---|---|
+| [`plugin/`](plugin/) | The Agent SDK plugin: MCP server + three hooks |
+| [`packages/agentvcs/`](packages/agentvcs/) | The version control itself — 214 tests, no dependencies |
+| [`packages/memory/`](packages/memory/) | Structured recall above the SDK's flat `.claude/` memory files. Works; measures no better than naive matching — see [PLAN.md](PLAN.md) |
+| [`demos/robot/`](demos/robot/) | A 2D robot that evolves its own skills, versioned with agentvcs |
+| [`legacy/eat/`](legacy/eat/) | The Evolving Agents Toolkit, 2025. Kept readable; see below |
+
+## Why this repository has a 2025 in it
+
+It was the Evolving Agents Toolkit: 18,680 lines across twelve subsystems — a
+component library, an agent bus, smart memory, an evolution loop, and a
+governance layer called Firmware. Backed by MongoDB Atlas.
 
 It had **three test functions.**
 
-That number is the whole story. EAT was not a product that failed; it was an
-architecture that was written down and never pinned to anything that could
-contradict it. The decomposition was right — right enough that every piece got
-independently re-derived over the following year.
+That number is the story. EAT was not a product that failed; it was an
+architecture written down and never pinned to anything that could contradict it.
 
-## The proof, in EAT's own source
+Most of it is now deleted, because the SDK does it better —
+[`docs/WHAT-WAS-DELETED.md`](docs/WHAT-WAS-DELETED.md) lists the 10,165 lines and
+what replaced each one. `Firmware` asked a model to *"never use dangerous
+imports"* in a string; a `PreToolUse` hook returning `permissionDecision: "deny"`
+stops the call whatever the model decided. We do not ship our own version of a
+problem that is already solved.
 
-`evolving_agents/firmware/firmware.py`:
+What survives in `legacy/eat/` is the ancestry of what ships today. Read
+`evolution/` if you read one thing: 337 lines that closed the loop between an
+agent changing and that change being kept, with nothing to verify the change was
+an improvement. `avcs_freeze` is the same idea with the missing half added.
 
-```python
-self.base_firmware = """
-You are an AI agent operating under strict governance rules:
-...
-- Never use dangerous imports (os, subprocess, etc.)
-"""
+## Evidence
+
+Claims here are measured, including the ones that came back flat.
+
+- **The dual-embedding resolver does not help.** EAT indexed every component
+  twice — once for what it is, once for what it is *for*. Rebuilt and measured:
+  80% acc@1 either way, no difference. The second axis is genuinely distinct
+  (`cosine = 0.753`); it just buys nothing on a modern encoder.
+- **This organisation's "byte-identical wire format" claim was wrong.** Two of
+  three opcode regexes matched; `HALT` had diverged in a way that changes what
+  parses. Found by writing the test instead of repeating the sentence.
+
+## Breaking change
+
+`pip install git+https://github.com/EvolvingAgentsLabs/evolving-agents` no longer
+installs an `evolving_agents` package — this is a monorepo now. Install what you
+want directly:
+
+```bash
+pip install ./packages/agentvcs
 ```
 
-That is governance by **asking**. It is a string.
-
-In [token-trie](https://github.com/EvolvingAgentsLabs/token-trie), every legal
-instruction is pre-tokenized into a trie of token IDs and the sampler's
-valid-next set is masked at each decoding step. The forbidden token is not
-discouraged — it has no path. A 350M-parameter model plays Tetris in a browser
-tab and *cannot* emit malformed output.
-
-Same intention. Twelve months and one substrate apart. The difference is the
-entire thesis, and you can diff it yourself.
-
-## Where the five subsystems went
-
-| EAT subsystem | Rebuilt as | What changed |
-|---|---|---|
-| **Firmware** — a prompt asking for good behaviour | [token-trie](https://github.com/EvolvingAgentsLabs/token-trie) | Constraint moved from the prompt to the decoder |
-| **Evolution loop** — 337 lines | [agentvcs](https://github.com/EvolvingAgentsLabs/agentvcs) | `freeze` refuses unless the eval passes; `--force` stamps `verified: false` rather than lying |
-| **Smart Memory** | [evolving-memory](https://github.com/EvolvingAgentsLabs/evolving-memory) | Behavioural tests: failures extract constraints, repetition raises confidence, domains stay isolated |
-| **Agents & workflow** | [skillos](https://github.com/EvolvingAgentsLabs/skillos) | Markdown as the executable, with an AST-verified benchmark instead of an LLM judge |
-| *(nothing)* | [skillos_robot](https://github.com/EvolvingAgentsLabs/skillos_robot) | EAT had no embodiment. This one has firmware, CAD and an ESP32 |
-| *(nothing)* | [sleep-harness](https://github.com/EvolvingAgentsLabs/sleep-harness) | EAT had no security story beyond the Firmware prompt |
-
-## What that bought
-
-| | EAT | Now |
-|---|---:|---:|
-| Test functions | **3** | 190 · 795 · 182 · 39 across the four core repos |
-| Governance | a prompt string | a token that cannot be emitted |
-| Infrastructure | MongoDB Atlas | zero runtime dependencies; runs in a browser tab |
-| Evidence | none published | pre-registered hypotheses, including the refuted ones |
-
-## What it cost — two things were lost
-
-**The SmartAgentBus is gone, deliberately.** 1,050 lines of agent registry and
-runtime routing. Nothing replaces it: agentvcs versions a sub-agent swarm as a
-mergeable graph, which is topology, not routing. It was dropped because it was
-welded to MongoDB and because MCP is eating that problem. If an agent needs to
-discover another at runtime today, there is no answer here.
-
-**The dual-embedding resolver is gone, and that one was a mistake.** EAT
-indexed every component twice — `content_embedding` for *what a thing is*, and
-`applicability_embedding` for *what it is for* — and resolved tasks against the
-second. Today the ecosystem resolves skills by matching against a description
-field, which is the naive form of the same idea.
-
-So a problem this repository solved in 2025 is still open in the tools that
-replaced it. That piece is coming back.
-
-## What happens to it now
-
-It is the umbrella, not a museum. **[PLAN.md](PLAN.md)** has the three
-milestones: the transfer and reframe are done, the dual-embedding resolver was
-recovered and measured as *no better* than plain description-matching, and the
-portable-definition conformance suite has not started. That last one would today
-read **one of three** — which is the honest number to publish first.
-
-## Where the work is now
-
-- **[The thesis](https://evolvingagentslabs.github.io/thesis/)** — the through-line across the current experiments
-- **[Evolving Agents Labs](https://evolvingagentslabs.github.io)** — all of it, labelled by how much evidence stands behind each part
-
-## The code
-
-Still here, unchanged, on the default branch. It runs if you give it a MongoDB
-Atlas cluster. The original README is preserved at
-[`docs/README-EAT-2025.md`](docs/README-EAT-2025.md), including its two sunset
-notices — one of which pointed at a repository that no longer exists.
-
-Left in place rather than deleted, because the diff between `firmware.py` and a
-token trie is the most direct argument this organisation has, and it only works
-if both halves stay readable.
+The 2025 package sits at `legacy/eat/` with its original `setup.py`, unchanged.
 
 ---
 

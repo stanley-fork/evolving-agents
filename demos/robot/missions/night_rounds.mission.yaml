@@ -1,0 +1,66 @@
+odysseyVersion: "0.1"
+kind: Mission
+
+metadata:
+  name: night-rounds-2d
+  description: >
+    Florence, a 2D night-shift ward robot, runs the night round: visit every room,
+    check every patient, and report every anomaly. A Gemma 4 SPECIALIST plans the
+    route; a Gemma-driven pilot (native function-calling) executes it in the sim2d
+    simulator. No GPU, no real hardware, no VLA weights.
+  tags: [night-rounds, healthcare, gemma, sim2d, evolving-robot]
+
+objective: |
+  Run the night round of the ward: visit Room 101, Room 102, Room 103, and the
+  Pharmacy, check on each room's patient, and file every anomaly you confirm with
+  report_status before the round ends.
+
+acceptance_criteria: |
+  The robot reaches every checkpoint (within arrive radius) AND correctly reports
+  every patient anomaly present in the episode.
+
+robot:
+  # Free-form embodiment label. The engine runs without a ProviderRegistry, so this is
+  # never resolved against odyssey's embodiment catalog (see scripts/run_mission.py).
+  embodiment: ward_bot_2d
+  agents:
+    - id: pilot
+      role: PILOT
+      model:
+        source: huggingface
+        base: google/gemma-4-26b-a4b-it   # a label; the pilot calls Gemma over REST
+    - id: route-planner
+      role: SPECIALIST
+      model:
+        source: huggingface
+        base: google/gemma-4-26b-a4b-it
+
+tasks:
+  # Formal warm-up. A 2D nav robot has no VLA to fine-tune, so training is a no-op
+  # stub routed to odyssey's CPUMockRunner (config.runner). The substance is the eval.
+  - name: warmup
+    kind: training
+    training_type: demonstration
+    agent_id: pilot
+    dataset:
+      source: local
+      ref: none
+      format: parquet
+    config:
+      runner: cpu_mock
+
+  - name: rounds-eval
+    kind: evaluation
+    evaluation_type: custom     # -> selects Sim2DRunner
+    benchmark_name: night-rounds-2d
+    num_episodes: 1
+    config:
+      max_steps: 40
+      arrive_radius_m: 0.6
+      skill: patient-check      # the skill the dream engine evolves (trace metadata)
+      # pilot: scripted         # uncomment to force the no-API geometry pilot
+
+leaderboard:
+  publish: false
+graph:
+  contribute: false

@@ -1,0 +1,208 @@
+"""DreamEngine orchestrator — runs the 4-phase dream cycle (SWS → REM → Consolidation → Compaction)."""
+
+from __future__ import annotations
+
+import logging
+from datetime import datetime, timezone
+
+from ..config import CTEConfig
+from ..embeddings.encoder import EmbeddingEncoder
+from ..isa.opcodes import ISA_VERSION
+from ..llm.base import BaseLLMProvider
+from ..models.strategy import DreamJournalEntry
+from ..storage.sqlite_store import SQLiteStore
+from ..storage.vector_index import VectorIndex
+from .adapters.default_adapter import DefaultAdapter
+from .chunker import HierarchicalChunker
+from .compactor import MemoryCompactor
+from .connector import TopologicalConnector
+from .curator import TraceCurator
+from .domain_adapter import DreamDomainAdapter
+from .migration import MigrationTransform
+
+logger = logging.getLogger(__name__)
+
+
+class DreamEngine:
+    """Orchestrates the 4-phase dream cycle over unprocessed trace sessions."""
+
+    def __init__(
+        self,
+        llm: BaseLLMProvider,
+        store: SQLiteStore,
+        index: VectorIndex,
+        encoder: EmbeddingEncoder,
+        config: CTEConfig,
+        adapter: DreamDomainAdapter | None = None,
+    ) -> None:
+        self._llm = llm
+        self._store = store
+        self._index = index
+        self._encoder = encoder
+        self._config = config
+        self._adapter = adapter or DefaultAdapter()
+        self._curator = TraceCurator(llm, domain_adapter=self._adapter)
+        self._chunker = HierarchicalChunker(llm, domain_adapter=self._adapter)
+        self._connector = TopologicalConnector(store, index, encoder, config.dream, llm, domain_adapter=self._adapter)
+        self._compactor = MemoryCompactor(llm, store, config.dream, self._adapter)
+        self._migration_transforms: list[MigrationTransform] = []
+
+    def register_migration(self, transform: MigrationTransform) -> None:
+        """Register a cognitive migration transform for Phase 0.
+
+        Transforms are applied to legacy nodes during the dream cycle's
+        Phase 0 migration. They allow the LLM to re-evaluate and enrich
+        nodes when the ISA version changes.
+        """
+        self._migration_transforms.append(transform)
+        logger.info(
+            "Registered migration: %s -> %s",
+            transform.from_version, transform.to_version,
+        )
+
+    async def dream(self) -> DreamJournalEntry:
+        """Run a full dream cycle over all unprocessed sessions."""
+        journal = DreamJournalEntry()
+
+        # Phase 0: Migrate legacy data to current ISA version
+        await self._migrate_legacy_data(journal)
+
+        sessions = self._store.get_unprocessed_sessions()
+        if not sessions:
+            journal.phase_log.append("No unprocessed sessions found")
+            journal.ended_at = datetime.now(timezone.utc)
+            return journal
+
+        # Collect all traces
+        all_traces = []
+        for session in sessions:
+            all_traces.extend(session.traces)
+
+        # Limit traces per cycle
+        traces = all_traces[: self._config.dream.max_traces_per_cycle]
+        journal.traces_processed = len(traces)
+
+        # Phase 1: SWS — curate traces (ISA: EXTRACT_CONSTRAINT, MARK_CRITICAL)
+        journal.phase_log.append(f"SWS: curating {len(traces)} traces")
+        curated = await self._curator.curate(
+            traces, min_actions=self._config.dream.min_actions_for_trace
+        )
+        journal.phase_log.append(f"SWS: {len(curated)} traces curated")
+
+        total_constraints = sum(len(c.negative_constraints) for c in curated)
+        journal.constraints_extracted = total_constraints
+
+        # Phase 2: REM — create hierarchical nodes (ISA: BUILD_PARENT, BUILD_CHILD)
+        journal.phase_log.append(f"REM: chunking {len(curated)} curated traces")
+        chunks = await self._chunker.chunk(curated)
+        journal.phase_log.append(f"REM: {len(chunks)} chunks created")
+
+        # Phase 3: Consolidation — edges, embeddings, merge (algorithmic)
+        journal.phase_log.append("Consolidation: connecting nodes")
+        stats = await self._connector.consolidate(chunks)
+        journal.nodes_created = stats["nodes_created"]
+        journal.nodes_merged = stats["nodes_merged"]
+        journal.edges_created = stats["edges_created"]
+        journal.cross_edges_created = stats.get("cross_edges_created", 0)
+        journal.phase_log.append(
+            f"Consolidation: {stats['nodes_created']} created, "
+            f"{stats['nodes_merged']} merged, {stats['edges_created']} edges"
+            f" ({journal.cross_edges_created} cross-trace)"
+        )
+
+        # Phase 4: Compaction — LLM-powered summarization of verbose nodes
+        if self._config.dream.enable_compaction:
+            nodes_compacted = await self._compactor.compact(journal)
+            journal.nodes_compacted = nodes_compacted
+
+        # Mark sessions as processed
+        for session in sessions:
+            self._store.mark_session_processed(session.session_id)
+
+        journal.ended_at = datetime.now(timezone.utc)
+        self._store.save_journal_entry(journal)
+        return journal
+
+    async def _migrate_legacy_data(self, journal: DreamJournalEntry) -> None:
+        """Phase 0 — migrate and enrich legacy nodes/traces to current ISA version.
+
+        This runs during every dream cycle as reconsolidation. It:
+        1. Re-stamps legacy isa_version fields
+        2. Applies registered MigrationTransforms (LLM-powered enrichment)
+
+        Transforms allow the LLM to retroactively re-evaluate legacy nodes
+        under new cognitive rules — e.g. adding risk assessment, compliance
+        tags, or restructuring memory content.
+        """
+        legacy_nodes = self._store.get_legacy_parent_nodes(ISA_VERSION)
+        nodes_enriched = 0
+
+        if legacy_nodes:
+            for node in legacy_nodes:
+                # Apply matching migration transforms (LLM-powered enrichment)
+                enriched = await self._apply_transforms(node, journal)
+                if enriched:
+                    nodes_enriched += 1
+                # Re-stamp to current ISA version
+                self._store.update_parent_node_isa_version(node.node_id, ISA_VERSION)
+
+            journal.nodes_migrated = len(legacy_nodes)
+            journal.phase_log.append(
+                f"Phase 0: migrated {len(legacy_nodes)} legacy parent nodes to ISA {ISA_VERSION}"
+            )
+            if nodes_enriched > 0:
+                journal.phase_log.append(
+                    f"Phase 0: enriched {nodes_enriched} nodes via cognitive migration transforms"
+                )
+            logger.info(
+                "Migrated %d legacy parent nodes to ISA %s (%d enriched)",
+                len(legacy_nodes), ISA_VERSION, nodes_enriched,
+            )
+
+        legacy_trace_count = self._store.get_legacy_trace_count(ISA_VERSION)
+        if legacy_trace_count > 0:
+            # Bulk update traces
+            self._store._conn.execute(
+                "UPDATE trace_entries SET isa_version = ? WHERE isa_version != ?",
+                (ISA_VERSION, ISA_VERSION),
+            )
+            self._store._conn.commit()
+            journal.traces_migrated = legacy_trace_count
+            journal.phase_log.append(
+                f"Phase 0: migrated {legacy_trace_count} legacy traces to ISA {ISA_VERSION}"
+            )
+            logger.info("Migrated %d legacy traces to ISA %s", legacy_trace_count, ISA_VERSION)
+
+    async def _apply_transforms(
+        self, node: ParentNode, journal: DreamJournalEntry,
+    ) -> bool:
+        """Apply registered migration transforms to a legacy node.
+
+        Returns True if any transform was applied.
+        """
+        if not self._migration_transforms:
+            return False
+
+        children = self._store.get_child_nodes_for_parent(node.node_id)
+        applied = False
+
+        for transform in self._migration_transforms:
+            if node.isa_version == transform.from_version:
+                try:
+                    node, children = await transform.transform(node, children, self._llm)
+                    # Persist the enriched node and children
+                    self._store.save_parent_node(node)
+                    for child in children:
+                        self._store.save_child_node(child)
+                    applied = True
+                    logger.info(
+                        "Applied migration %s->%s to node %s",
+                        transform.from_version, transform.to_version, node.node_id,
+                    )
+                except Exception:
+                    logger.exception(
+                        "Migration transform %s->%s failed for node %s",
+                        transform.from_version, transform.to_version, node.node_id,
+                    )
+
+        return applied
