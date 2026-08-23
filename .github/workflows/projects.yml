@@ -39,6 +39,16 @@ on:
     paths:
       - "projects/**"
       - ".github/workflows/projects.yml"
+      # The published-numbers job now builds the demo and resolves what it shows
+      # back to the projects' artifacts, so the sources that decide what the demo
+      # shows are inputs to this workflow as much as the artifacts are. Without
+      # these, a change to the desk that broke a citation would land green: the
+      # only job that checks citations would not have run.
+      - "ai-ui/**"
+      - "scripts/**"
+      - "README.md"
+      - "README.es.md"
+      - "doc/**"
   workflow_dispatch:
 
 # `cancel-in-progress` is deliberately FALSE here, and `ci.yml` is right to set
