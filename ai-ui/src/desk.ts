@@ -101,6 +101,19 @@ export interface DeskView {
   scopeLabel: string;
   harness: string;
   at: number;
+  /**
+   * When this page was generated, as a short stamp shown in the chrome.
+   *
+   * Not decoration and not telemetry. A published page is served through a CDN
+   * and a browser cache, and "I am looking at the same thing as before" is
+   * otherwise unanswerable without opening the network tab — which is a thing
+   * nobody does and a thing nobody should have to do. It is the smallest fact
+   * that settles it.
+   *
+   * `undefined` on a live server, where the question does not arise: what you
+   * are looking at is what the server just rendered.
+   */
+  builtAt?: number;
   docs: DeskDoc[];
   agents: DeskAgent[];
   people: string[];
@@ -249,6 +262,10 @@ body{overflow:hidden}
    is behind one plus sign. */
 .menubar{padding:4px 12px;gap:10px;font-size:11px}
 .menubar .sim{font-size:10px}
+/* When this file was generated. The one mark on the page that answers "am I
+   looking at a cached copy", which is otherwise a network-tab question. */
+.menubar .build{margin-left:9px;padding:1px 7px;border:1px solid var(--line);border-radius:999px;
+  background:var(--face);color:var(--dim);font-size:10px;cursor:help}
 .menubar #counts{color:var(--dim)}
 .menubar .right{font-size:10px;opacity:.55}
 .menubar button.quiet{border-color:#b8b3a8;box-shadow:none;background:transparent;color:#4a4e53}
@@ -256,7 +273,8 @@ body{overflow:hidden}
 .make{position:relative;display:inline-flex}
 .make>button{font-weight:700;padding:1px 8px;line-height:1.35}
 .makemenu{position:absolute;top:calc(100% + 5px);left:0;z-index:500;display:flex;flex-direction:column;
-  min-width:150px;background:var(--face);border:1px solid #000;box-shadow:3px 3px 0 rgba(0,0,0,.4);padding:3px}
+  min-width:150px;background:var(--face);border:1px solid var(--line);border-radius:var(--r-sm);
+  box-shadow:var(--sh-2);padding:4px}
 .makemenu[hidden]{display:none}
 .makemenu button{border:0;box-shadow:none;background:transparent;text-align:left;padding:4px 8px}
 .makemenu button:hover{background:#2f6fb5;color:#fff}
@@ -481,7 +499,8 @@ select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 
 /* Ask. The selection is the noun, so the field only needs the verb. */
 .ask{margin-top:10px;border-top:1px solid #ded9d0;padding-top:8px}
-.ask input{font:inherit;font-size:11px;width:100%;padding:3px 6px;border:1px solid #000;
+.ask input{font:inherit;font-size:11.5px;width:100%;padding:5px 8px;border:1px solid var(--line-2);
+  border-radius:var(--r-sm);
   background:var(--paper);box-shadow:inset 1px 1px 0 var(--dark)}
 .ask button{font-size:11px;padding:2px 10px;margin-top:5px}
 .ask .answer{margin-top:6px;padding:6px 8px;background:#f0ece4;border:1px solid #ded9d0;
@@ -2257,7 +2276,15 @@ export function renderDeskHtml(view: DeskView): string {
       <button id="newproj">New project</button>
     </span></span>
   <button id="reload" class="quiet" title="Re-read the state">Refresh</button>
-  <span class="right" title="harness ${esc(view.harness)}"><span id="stamp">${esc(new Date(view.at).toISOString())}</span></span>
+  <span class="right" title="harness ${esc(view.harness)}${
+    view.builtAt ? ` · built ${new Date(view.builtAt).toISOString()}` : ""
+  }"><span id="stamp">${esc(new Date(view.at).toISOString())}</span>${
+    view.builtAt
+      ? `<span class="build" title="When this file was generated. If this has not changed, you are looking at a cached copy.">build ${esc(
+          new Date(view.builtAt).toISOString().slice(5, 16).replace("T", " "),
+        )}</span>`
+      : ""
+  }</span>
 </div>
 <div class="win newform" id="newagentform" style="display:none">
   <div class="bar"><span class="box"></span><h2>New agent</h2><span class="box zoom"></span></div>

@@ -284,6 +284,9 @@ const html = renderDeskHtml({
   // flow beneath it correctly said "43 hours ago" -- a page that exists to show
   // state, showing a state nobody could have been in.
   at: DEMO_AT,
+  // When this file was generated, so a reader can tell a new build from a cached
+  // one without opening the network tab.
+  builtAt: Date.now(),
   docs: cocDocs,
   agents: coc.agents as never,
   people: ["matias", "ada", "priya"],

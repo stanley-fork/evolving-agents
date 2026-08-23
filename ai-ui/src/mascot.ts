@@ -516,7 +516,7 @@ export const MASCOT_CSS = `
    the system talking: it is one agent answering for itself, and the difference
    should be visible before either of them is read. */
 .crtsay{position:fixed;z-index:389;width:252px;max-width:calc(100vw - 28px);
-  background:var(--paper);border:1px solid #000;box-shadow:3px 3px 0 rgba(0,0,0,.4);
+  background:var(--paper);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh-2);
   padding:7px 9px 8px;display:none;font-size:11px;line-height:1.42}
 .crtsay.on{display:block}
 .crtsay .who{font:700 10px/1 var(--mono);letter-spacing:.04em;color:#3b3f44;
@@ -538,8 +538,9 @@ export const MASCOT_CSS = `
 .cubisay .brain button{font:inherit;font-size:11px;padding:2px 9px}
 .cubisay .brain .row{display:flex;gap:5px;margin-top:5px}
 .cubisay .brain input{flex:1 1 auto;min-width:0;font:inherit;font-size:11px;padding:2px 5px;
-  border:1px solid #000;background:#fff}
-.cubisay .brain .bar{height:9px;border:1px solid #000;background:#fff;margin-top:5px}
+  border:1px solid var(--line-2);border-radius:3px;background:#fff}
+.cubisay .brain .bar{height:8px;border:1px solid var(--line-2);border-radius:999px;background:#fff;
+  margin-top:6px;overflow:hidden}
 .cubisay .brain .bar i{display:block;height:100%;background:var(--cubi,#C8B79A);
   background-image:repeating-linear-gradient(90deg,rgba(0,0,0,.18) 0 2px,transparent 2px 4px)}
 .cubisay .brain .ans{margin-top:6px;font-size:11px;white-space:pre-wrap}
