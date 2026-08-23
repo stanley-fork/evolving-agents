@@ -440,7 +440,7 @@ export const SIMULATION_JS = String.raw`
         next.result = REPLIES[agent] || ('Step ' + next.index + ' completed.');
         next.attempts = [{
           n: 1, state: 'done', runId: 'run-' + next.index + 'a7f3c210', error: null,
-          digest: digestFor(agent, next.index), source: 'run.reply',
+          observation: { digest: digestFor(agent, next.index), source: 'run.reply' },
         }];
         if (doc.steps.every((s) => s.state === 'done')) doc.state = 'waiting';
       }, 1600);
@@ -545,8 +545,10 @@ export function demoWorld(): {
             state: "done",
             runId: `run-${index}a7f3c210`,
             error: null,
-            digest: `${agent.toLowerCase().slice(0, 8)}00${index}`,
-            source: "run.reply",
+            observation: {
+              digest: `${agent.toLowerCase().slice(0, 8)}00${index}`,
+              source: "run.reply",
+            },
           },
         ]
       : [],

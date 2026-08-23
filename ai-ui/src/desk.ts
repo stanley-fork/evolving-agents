@@ -44,6 +44,8 @@ import { SIMULATION_JS } from "./simulate.ts";
 import { TOUR_CSS, TOUR_JS } from "./tour.ts";
 import { MASCOT_CSS, MASCOT_JS } from "./mascot.ts";
 import { CREATURES_JS, CREATURE_CSS } from "./creatures.ts";
+import { BUS_JS } from "./bus.ts";
+import { INSPECTOR_JS } from "./inspector.ts";
 
 export interface DeskDoc {
   id: string;
@@ -151,7 +153,7 @@ body{overflow:hidden}
 .surface{position:relative;width:2400px;height:1600px}
 
 /* A document on the desk. Same folded-corner idea as the explorer, at object size. */
-.docnode{position:absolute;width:260px;background:var(--paper);border:1px solid #000;
+.docnode{position:absolute;width:284px;background:var(--paper);border:1px solid #000;
   box-shadow:3px 3px 0 rgba(0,0,0,.35);user-select:none;touch-action:none}
 .docnode.dragging{box-shadow:6px 6px 0 rgba(0,0,0,.35);z-index:50}
 .docnode.over{outline:2px dashed #2f6fb5;outline-offset:2px}
@@ -177,9 +179,18 @@ body{overflow:hidden}
 .sparkcap{font:10px/1.3 var(--mono);color:var(--dim);margin-top:2px}
 .sparkcap b{color:#7d2419;font-weight:700}
 
-/* The stack: cubes resting on the document, offset so the pile reads as a pile. */
-.stack{min-height:26px;margin-top:8px;padding:4px;border:1px dashed #c6c1b7;
-  display:flex;flex-wrap:wrap;gap:3px;align-items:center}
+/* The stack: the flow's agents, in the order the flow visits them.
+   A wrapped row of chips, which is what this was, is a *set* -- it says these
+   agents are involved and nothing about who hands to whom. A flow has an order,
+   and drawing it as an unordered pile threw that away before the wires could
+   show it.
+   Zigzag rather than a straight column so every hop has horizontal travel as
+   well as vertical: a wire between two cubes stacked exactly above each other is
+   a vertical line a few pixels long, which is a wire nobody can see or click. */
+.stack{min-height:26px;margin-top:8px;padding:5px 4px;border:1px dashed #c6c1b7;
+  display:flex;flex-direction:column;gap:9px}
+.stack .acube.instack:nth-child(odd){align-self:flex-start}
+.stack .acube.instack:nth-child(even){align-self:flex-end}
 .stack.empty::before{content:"drop an agent here";font-size:10px;color:#a9a49a}
 
 /* An agent cube, at object size: big enough to grab, still a cube. */
@@ -214,6 +225,62 @@ body{overflow:hidden}
 .acube.merging{z-index:40;transition:transform .42s steps(11),opacity .42s steps(4);opacity:0}
 /* Walking between places: whole pixels, never a glide. */
 .acube.moving{transition:transform .45s steps(12)}
+
+/* ---- the wires -----------------------------------------------------------
+   The flows of information, drawn.
+
+   Below the cubes and above the documents, and pointer-events:none on the
+   layer with stroke on the hit paths only: a wire has to be clickable without
+   the whole surface becoming a click target, or dragging a document stops
+   working the moment a wire crosses it.
+
+   Four states, four different marks, and the differences are deliberately not
+   only colour. The unknown state is dashed *and* thin *and* grey, because the one thing
+   this picture must never do is let "nobody recorded this" read as "this went
+   fine" -- to a colourblind reader, at a glance, or in a screenshot. */
+.wires{position:absolute;inset:0;pointer-events:none;z-index:30;overflow:visible}
+.wires path.w{fill:none;stroke-linecap:round}
+.wires path.hit{fill:none;stroke:transparent;stroke-width:12;pointer-events:stroke;cursor:pointer}
+.wires path.w.carried{stroke:#2f6fb5;stroke-width:2}
+.wires path.w.ignored{stroke:#b5651d;stroke-width:2.5;stroke-dasharray:1 5}
+.wires path.w.blocked{stroke:#a52a2a;stroke-width:2.5}
+.wires path.w.unknown{stroke:#8d8d8d;stroke-width:1.25;stroke-dasharray:5 5}
+.wires g.sel path.w{stroke-width:4}
+.wires g.sel path.w.unknown{stroke-width:2.5}
+/* The packet. A real thing on a real wire -- clicking it opens what moved. */
+.wires circle.pkt{r:3.5;pointer-events:none}
+.wires circle.pkt.carried{fill:#2f6fb5}
+.wires circle.pkt.ignored{fill:#b5651d}
+.wires circle.pkt.blocked{fill:#a52a2a}
+/* No packet is drawn on an unknown wire: there is nothing to draw. */
+.wirekey{font:10px var(--mono);fill:#3b3f44}
+
+/* ---- the inspector -------------------------------------------------------
+   One panel, bound to the selection, with two positions. */
+.insp .sw{display:flex;gap:0;margin:2px 0 8px}
+.insp .sw button{flex:1 1 0;font-size:10px;letter-spacing:.04em}
+.insp .sw button[aria-selected="true"]{box-shadow:inset -1px -1px 0 var(--lite),inset 1px 1px 0 var(--dark);
+  background:#dcd8cc;font-weight:700}
+.insp .fld{display:grid;grid-template-columns:96px 1fr;gap:3px 8px;font-size:11px;margin:0 0 2px;
+  align-items:start}
+.insp .fld .k{color:var(--dim);text-transform:lowercase}
+.insp .fld .v{color:#26292d;word-break:break-word}
+.insp .fld .v code{font-family:var(--mono);font-size:10px}
+/* An address, not a label. It is a link because you are meant to open it. */
+.insp .at{display:block;font-family:var(--mono);font-size:10px;color:#2f6fb5;text-decoration:underline;
+  margin-top:1px;cursor:pointer;background:none;border:0;box-shadow:none;padding:0;text-align:left}
+.insp .fnd{border:1px solid #000;padding:7px 9px;margin-top:8px;background:var(--paper)}
+.insp .fnd .vd{font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
+.insp .fnd.ok .vd{color:#2c6e2f}
+.insp .fnd.problem .vd{color:#a52a2a}
+/* Unknown is drawn as its own thing rather than as a pale version of one of the
+   others, because it is not a weaker verdict -- it is the refusal to give one. */
+.insp .fnd.unknown{background:repeating-linear-gradient(45deg,#f2f0ea,#f2f0ea 6px,#e8e5dd 6px,#e8e5dd 12px)}
+.insp .fnd.unknown .vd{color:#6b6b6b}
+.insp .fnd .sy{margin:4px 0 0;font-size:12px;line-height:1.45}
+.insp .fnd .ct{margin-top:6px;font-size:10px;color:var(--dim)}
+.insp .bytes{font-family:var(--mono);font-size:10px;line-height:1.5;background:#16181a;color:#d7dde3;
+  padding:7px 8px;margin-top:6px;max-height:230px;overflow:auto;white-space:pre-wrap;word-break:break-word}
 
 .shelf{position:absolute;left:0;top:0;bottom:0;width:150px;padding:26px 8px 8px;
   background:rgba(0,0,0,.06);border-right:1px solid rgba(0,0,0,.25)}
@@ -369,7 +436,7 @@ select{font:inherit;font-size:11px}
  * from ([creatures.ts](creatures.ts)) go inside the closure, ahead of the code
  * that calls them.
  */
-const DESK_JS = "(() => {\n" + CREATURES_JS + String.raw`
+const DESK_JS = "(() => {\n" + CREATURES_JS + BUS_JS + INSPECTOR_JS + String.raw`
   const S = window.__DESK__;
   // Published so the mascot builds its body from the same string rather than
   // from a copy of it. One sprite, one definition, one species -- the copy is
@@ -520,6 +587,30 @@ const DESK_JS = "(() => {\n" + CREATURES_JS + String.raw`
       return;
     }
     const flowId = onto.dataset.id;
+    /**
+     * Dropping the system agent on something means *inspect it*, not *run in it*.
+     *
+     * This is [doc/15](../../doc/15-generated-interaction.md) phase 5, which was
+     * specified and never built: dragging one agent onto another thing declares a
+     * relationship rather than issuing a command, and the desk writes the
+     * relationship down. Here the relationship is "INSPECTOR is reading this
+     * flow", and what gets written is the finding and the address it cites.
+     *
+     * It spends nothing and appends no step. An inspector that changed what it
+     * inspects would not be an inspector, and giving it a step in the flow it is
+     * auditing is exactly that.
+     */
+    if (d.id === 'INSPECTOR') {
+      delete layout.cubes[d.id].onDoc;
+      layout.cubes[d.id] = { x, y, pinned: true };
+      saveLayout();
+      inspectMode = 'agent';
+      select('doc', flowId);
+      render();
+      say('INSPECTOR is reading "' + (S.docs.find((x) => x.id === flowId) || {}).title +
+          '". It reads; it does not run, write or publish. Nothing was spent.', 5200);
+      return;
+    }
     // Picked up and put back down on the same document. That is not an
     // instruction, it is a change of mind -- and appending a second step for the
     // same agent because a hand wobbled over the document it was already on is
@@ -547,6 +638,132 @@ const DESK_JS = "(() => {\n" + CREATURES_JS + String.raw`
   window.addEventListener('pointermove', moveDrag);
   window.addEventListener('pointerup', endDrag);
   window.addEventListener('pointercancel', endDrag);
+
+
+  // ---- the wires ----------------------------------------------------------
+  /**
+   * The flows of information, drawn on the surface.
+   *
+   * ## Why this exists
+   *
+   * A flow used to be a list of steps in a panel. You could read that a step ran
+   * and that the next one ran after it; you could not watch anything *move*, and
+   * "the flow of information" was a phrase rather than a picture. This draws the
+   * graph [bus.ts](bus.ts) derives: agents are the nodes, handoffs are wires, and
+   * what travelled is a thing you can click.
+   *
+   * ## The rule it is built to keep
+   *
+   * > A wire carries a real artifact or it carries nothing.
+   *
+   * A hop with no recorded observation is drawn *unknown* -- thin, grey, dashed,
+   * and with **no packet on it**, because there is nothing to draw. It is not
+   * green. Every tidy diagram of a pipeline ever made says an arrow that was
+   * drawn is an arrow that worked, and that is the assumption this whole surface
+   * exists to refuse.
+   *
+   * ## Geometry
+   *
+   * Positions come from the live DOM rather than from the layout, because a cube
+   * can be mid-walk, mid-drag, or inside a document's stack -- three different
+   * layout modes -- and only the browser knows where it actually is. Recomputed
+   * on every render and on scroll, which is cheap: the whole surface is a few
+   * dozen wires.
+   */
+  let bus = { nodes: [], wires: [], load: {} };
+  const wireById = (id) => bus.wires.find((w) => w.id === id);
+
+  const recomputeBus = () => {
+    bus = busOf(S.docs.map((d) => ({ id: d.id, title: d.title, trace: d.trace || { steps: [] } })));
+  };
+
+  /** Where a cube for this agent, in this flow, actually is right now. */
+  const cubeBox = (agent, flowId) => {
+    const el = document.querySelector(
+      '.acube:not(.merging)[data-key="' + CSS.escape(agent + '@' + flowId) + '"]',
+    ) || document.querySelector('.acube:not(.merging)[data-id="' + CSS.escape(agent) + '"]');
+    return el ? el.getBoundingClientRect() : null;
+  };
+
+  function renderWires() {
+    const svg = document.getElementById('wires');
+    if (!svg) return;
+    const sr = surface.getBoundingClientRect();
+    const NS = 'http://www.w3.org/2000/svg';
+    const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Several hops between the same pair inside one flow are one wire on screen.
+    // Five queued handoffs between two agents is a busy wire, not five wires --
+    // the same rule the creatures follow for an agent with a queue.
+    const drawn = new Map();
+    for (const w of bus.wires) {
+      const k = w.flowId + '|' + w.from + '|' + w.to;
+      const prev = drawn.get(k);
+      // The worst state wins the drawing. A pair that carried once and dropped
+      // once has a problem, and averaging it away is how a picture launders one.
+      const rank = { carried: 0, unknown: 1, blocked: 2, ignored: 3 };
+      if (!prev || rank[w.state] > rank[prev.state]) drawn.set(k, w);
+    }
+
+    const frag = document.createDocumentFragment();
+    for (const w of drawn.values()) {
+      const a = cubeBox(w.from, w.flowId), b = cubeBox(w.to, w.flowId);
+      if (!a || !b) continue;
+      const x1 = a.left + a.width / 2 - sr.left, y1 = a.top + a.height / 2 - sr.top;
+      const x2 = b.left + b.width / 2 - sr.left, y2 = b.top + b.height / 2 - sr.top;
+      if (Math.abs(x1 - x2) < 1 && Math.abs(y1 - y2) < 1) continue;
+      // A shallow arc rather than a straight line: two wires between the same
+      // pair of columns overlap exactly when both are straight, and the second
+      // one then does not exist as far as a reader is concerned.
+      const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+      const dx = x2 - x1, dy = y2 - y1;
+      const len = Math.max(1, Math.hypot(dx, dy));
+      const bow = Math.min(26, len * 0.22);
+      const cx = mx - (dy / len) * bow, cy = my + (dx / len) * bow;
+      const d = 'M' + x1 + ' ' + y1 + ' Q' + cx + ' ' + cy + ' ' + x2 + ' ' + y2;
+
+      const g = document.createElementNS(NS, 'g');
+      if (selected && selected.kind === 'wire' && selected.id === w.id) g.setAttribute('class', 'sel');
+
+      const path = document.createElementNS(NS, 'path');
+      path.setAttribute('class', 'w ' + w.state);
+      path.setAttribute('d', d);
+      const pid = 'wp-' + w.id.replace(/[^A-Za-z0-9_-]/g, '_');
+      path.setAttribute('id', pid);
+      g.appendChild(path);
+
+      const hit = document.createElementNS(NS, 'path');
+      hit.setAttribute('class', 'hit');
+      hit.setAttribute('d', d);
+      hit.addEventListener('pointerdown', (ev) => { ev.stopPropagation(); select('wire', w.id); });
+      g.appendChild(hit);
+
+      // The packet. Only where something was actually recorded, and only when
+      // the reader has not asked for stillness.
+      if (w.packet && !reduced) {
+        const c = document.createElementNS(NS, 'circle');
+        c.setAttribute('class', 'pkt ' + w.state);
+        c.setAttribute('r', '3.5');
+        const m = document.createElementNS(NS, 'animateMotion');
+        m.setAttribute('dur', (2.4 + (w.fromIndex % 3) * 0.35) + 's');
+        m.setAttribute('repeatCount', 'indefinite');
+        // An ignored hop's packet stops where it landed and stays there. It did
+        // arrive; nothing downstream used it. A dot that keeps sailing through
+        // would be drawing a delivery that did not happen.
+        if (w.state === 'ignored') m.setAttribute('keyPoints', '0;0.82;0.82');
+        if (w.state === 'ignored') m.setAttribute('keyTimes', '0;0.55;1');
+        if (w.state === 'ignored') m.setAttribute('calcMode', 'linear');
+        const mp = document.createElementNS(NS, 'mpath');
+        mp.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '#' + pid);
+        mp.setAttribute('href', '#' + pid);
+        m.appendChild(mp);
+        c.appendChild(m);
+        g.appendChild(c);
+      }
+      frag.appendChild(g);
+    }
+    svg.replaceChildren(frag);
+  }
 
   // ---- selection panel ----------------------------------------------------
   /**
@@ -699,25 +916,210 @@ const DESK_JS = "(() => {\n" + CREATURES_JS + String.raw`
     };
   };
 
+  // ---- the inspector ------------------------------------------------------
+  /**
+   * Which position the inspector is in.
+   *
+   * Position *read* is NeXT's inspector: the object's real fields, and you do the
+   * looking. Position *agent* hands the same object to a system agent and shows what it
+   * came back with. Sticky across selections on purpose -- somebody who has
+   * asked once is usually asking about the next thing too.
+   */
+  let inspectMode = 'read';
+
+  const setMode = (m) => { inspectMode = m; renderPanel(); };
+
+  /** One field row. The from-address is an address, so it is drawn as something to open. */
+  const fieldHtml = (f) =>
+    '<div class="fld"><span class="k">' + escape_(f.label) + '</span>' +
+    '<span class="v">' + escape_(f.value) +
+    (f.from ? '<button class="at" data-open="' + escape_(f.from) + '">' + escape_(f.from) + '</button>' : '') +
+    '</span></div>';
+
+  /**
+   * A finding, drawn.
+   *
+   * assertCited runs on the way in and throws on a verdict with no address.
+   * That is deliberate: the demo whose entire argument is "a claim needs an
+   * address" must not be capable of rendering a claim without one, and a loud
+   * failure in the client is the only version of that rule anybody would notice.
+   */
+  const findingHtml = (f) => {
+    assertCited(f);
+    return '<div class="fnd ' + f.verdict + '">' +
+      '<div class="vd">' + (f.verdict === 'unknown' ? 'unknown' : f.verdict === 'ok' ? 'no problem found' : 'problem') + '</div>' +
+      '<p class="sy">' + escape_(f.says) + '</p>' +
+      (f.cites.length
+        ? '<div class="ct">read: ' + f.cites.map((c) =>
+            '<button class="at" data-open="' + escape_(c.at) + '">' + escape_(c.at) + '</button>').join('') + '</div>'
+        : '<div class="ct">nothing to read — that is why this is unknown</div>') +
+      '<div class="ct">' + escape_(f.cost) + '</div>' +
+      '</div>';
+  };
+
+  /**
+   * The switch, and the sentence under it.
+   *
+   * The sentence is not decoration. A person who presses "ask an agent" without
+   * knowing that the answer is a claim rather than a lookup will read it as a
+   * lookup, and the whole point is the difference between the two.
+   */
+  const switchHtml = () =>
+    '<div class="sw"><button id="m-read"' + (inspectMode === 'read' ? ' aria-selected="true"' : '') + '>Read it</button>' +
+    '<button id="m-agent"' + (inspectMode === 'agent' ? ' aria-selected="true"' : '') + '>Ask an agent</button></div>';
+
+  const wireSwitch = (p) => {
+    const r = p.querySelector('#m-read'), a = p.querySelector('#m-agent');
+    if (r) r.onclick = () => setMode('read');
+    if (a) a.onclick = () => setMode('agent');
+    for (const b of p.querySelectorAll('button.at'))
+      b.onclick = () => openArtifact(b.dataset.open);
+  };
+
+  /**
+   * Open the thing a citation points at.
+   *
+   * In the published demo there is no filesystem, so this shows the address and
+   * what is known about it rather than pretending to have fetched bytes. What it
+   * does **not** do is fabricate a file: an inspector that renders plausible
+   * contents for a path it cannot read would be the exact lie the citation
+   * exists to prevent, and it would be undetectable.
+   */
+  const openArtifact = (at) => {
+    const p = document.getElementById('panel');
+    const known = artifactNote(at);
+    const box = p.querySelector('.opened');
+    const html = '<div class="bytes">' + escape_(at) + '\n\n' + escape_(known) + '</div>';
+    if (box) box.innerHTML = html;
+    else p.querySelector('.win-body').insertAdjacentHTML('beforeend', '<div class="opened">' + html + '</div>');
+  };
+
+  /**
+   * What the desk honestly knows about an address.
+   *
+   * Every string here names a real path in the repository. The check in
+   * scripts/check-demo-provenance.py resolves each one and fails the build if
+   * it has moved -- which is the difference between a citation and a decoration.
+   */
+  const artifactNote = (at) => {
+    if (/h0\.json$/.test(at))
+      return 'projects/hemo-verified/gates/reports/h0.json\n' +
+        'The attested H0 run: 98 rows, composite AUC 0.9056331246990852, the content hash of\n' +
+        'all seven oracles, and the stack that produced them (python 3.13.12, numpy 2.5.2,\n' +
+        'scipy 1.18.1, x86_64).\n\n' +
+        'No bytes are shown here because this page has no filesystem. Open the file in the\n' +
+        'repository — it is the same artifact the numbers above were read out of, and\n' +
+        'test/hemo-demo.test.ts fails the build if they stop agreeing.';
+    if (/thresholds\.yaml$/.test(at))
+      return 'projects/hemo-verified/oracles/thresholds.yaml\n' +
+        'The seven oracles and their thresholds, declared before any row was scored.\n' +
+        'Written by an agent that never sees the result — which is the only structural\n' +
+        'defence against a threshold moving to meet an outcome.';
+    if (/reproduce\.py$/.test(at))
+      return 'projects/hemo-verified/eval/reproduce.py\n' +
+        'Same environment: bit-identical or fail. Different environment: classified rather\n' +
+        'than judged, because a number produced somewhere else has not disagreed with\n' +
+        'anything yet.';
+    if (/gate\.report|report_A/.test(at))
+      return 'projects/coclea-sr/gates/reports/\n' +
+        '135 gate checks, each a JSON record of what was measured, what was declared before\n' +
+        'the run, and which one the verdict came from. They ran green on a GitHub runner in\n' +
+        '23m27s — the first time outside the author’s machine.';
+    if (/^flow:/.test(at)) {
+      const m = /^flow:(.*)#step-(\d+)$/.exec(at);
+      const doc = m ? S.docs.find((d) => d.id === m[1]) : null;
+      const st = doc ? (doc.trace.steps || []).find((x) => String(x.index) === m[2]) : null;
+      if (!st) return 'The flow store has no step at this address.';
+      // The record itself, not a description of it. This is the line the verdict
+      // above was read out of, and it is here so the reader can disagree with it.
+      return 'flow ' + doc.title + ' · step ' + st.index + '\n' +
+        'agent: ' + (st.agent || 'none') + '\n' +
+        'state: ' + st.state + '\n' +
+        (st.attempts || []).map((a) => 'attempt ' + a.n + ' · ' + (a.runId || 'no run') + ' · ' +
+          (a.digest ? a.digest + ' ' + (a.source || '') : 'no observation') +
+          (a.error ? ' · ' + a.error : '')).join('\n') +
+        (st.result ? '\n\n' + st.result : '');
+    }
+    if (/^agents\//.test(at))
+      return 'An agent is a markdown file. This is the declaration: what it is for, which\n' +
+        'tools it may use, and which agents it may delegate to. Nothing else defines it.';
+    return 'This address is recorded on the hop above. This page has no filesystem, so the\n' +
+      'address is shown rather than the bytes — and no contents are invented for it.';
+  };
+
   const renderPanel = () => {
     const p = document.getElementById('panel');
     if (!selected) { p.style.display = 'none'; return; }
     p.style.display = 'block';
+    p.classList.add('insp');
+    /**
+     * A wire, which is a thing you can select now.
+     *
+     * Before this the desk had no noun for "the handoff between these two
+     * agents". You could select an agent or a document, so the only questions
+     * you could ask were about a box -- and the interesting failures in this
+     * repository all live between two boxes.
+     */
+    if (selected.kind === 'wire') {
+      const w = wireById(selected.id);
+      if (!w) { selected = null; p.style.display = 'none'; return; }
+      const i = inspectWire(w);
+      p.querySelector('h2').textContent = 'Inspector';
+      p.querySelector('.win-body').innerHTML =
+        '<h4>' + escape_(i.title) + '</h4>' +
+        '<div class="dim">' + escape_(i.kind) + ' · ' + escape_(w.state) + '</div>' +
+        switchHtml() +
+        (inspectMode === 'read'
+          ? i.fields.map(fieldHtml).join('')
+          : findingHtml(inspectWireWithAgent(w))) +
+        (w.state === 'unknown'
+          ? '<div class="note">Drawn thin, grey and dashed, and carrying no packet. That is not ' +
+            'the same picture as a hop that worked, and it must not be.</div>'
+          : '');
+      wireSwitch(p);
+      return;
+    }
     if (selected.kind === 'doc') {
       const doc = S.docs.find((d) => d.id === selected.id);
       if (!doc) { selected = null; p.style.display = 'none'; return; }
       const next = doc.steps.find((s) => s.state === 'pending' || s.state === 'running');
-      if (tab === 'trace') {
+      if (tab === 'trace' && inspectMode === 'read') {
+        p.querySelector('h2').textContent = 'Inspector';
         p.querySelector('.win-body').innerHTML =
           '<h4>' + escape_(doc.title) + '</h4>' +
+          switchHtml() +
           '<div class="tabs"><button id="tab-state">State</button>' +
           '<button id="tab-trace" aria-selected="true">Trace</button></div>' +
           traceHtml(doc);
         p.querySelector('#tab-state').onclick = () => { tab = 'state'; renderPanel(); };
+        wireSwitch(p);
+        return;
+      }
+      p.querySelector('h2').textContent = 'Inspector';
+      /**
+       * The second position, on a whole flow.
+       *
+       * This is the gesture the redesign is for: you do not read the trace and
+       * work it out, you put an agent on it. What makes that worth having rather
+       * than a chat box is directly below the sentence -- the address it read.
+       */
+      if (inspectMode === 'agent') {
+        p.querySelector('.win-body').innerHTML =
+          '<h4>' + escape_(doc.title) + '</h4>' +
+          '<div class="dim">flow · ' + escape_(doc.state) + '</div>' +
+          switchHtml() +
+          findingHtml(inspectFlowWithAgent(doc.id, doc.title, bus.wires)) +
+          '<div class="dim" style="margin-top:8px">' + escape_(busSummary({
+            nodes: bus.nodes,
+            wires: bus.wires.filter((w) => w.flowId === doc.id),
+            load: bus.load,
+          })) + '</div>';
+        wireSwitch(p);
         return;
       }
       p.querySelector('.win-body').innerHTML =
         '<h4>' + escape_(doc.title) + '</h4>' +
+        switchHtml() +
         '<div class="tabs"><button id="tab-state" aria-selected="true">State</button>' +
         '<button id="tab-trace">Trace</button></div>' +
         '<div class="dim">' + escape_(doc.state) + ' · ' + doc.done + '/' + doc.total + ' steps done</div>' +
@@ -774,6 +1176,7 @@ const DESK_JS = "(() => {\n" + CREATURES_JS + String.raw`
         renderPanel();
         replayHandovers(doc);
       };
+      wireSwitch(p);
       wireActions(p, doc);
       wireAsk(p, doc);
       const b = p.querySelector('#adv');
@@ -803,9 +1206,20 @@ const DESK_JS = "(() => {\n" + CREATURES_JS + String.raw`
         ran += (s.attempts || []).length;
         if (s.state === 'running') running = { doc: m.doc, step: s };
       }
+      p.querySelector('h2').textContent = 'Inspector';
+      if (inspectMode === 'agent') {
+        p.querySelector('.win-body').innerHTML =
+          '<h4>' + escape_(a.name) + '</h4>' +
+          '<div class="dim">agent</div>' +
+          switchHtml() +
+          findingHtml(inspectAgentWithAgent(a, bus.load[a.name]));
+        wireSwitch(p);
+        return;
+      }
       p.querySelector('.win-body').innerHTML =
         '<h4>' + escape_(a.name) + '</h4>' +
         '<div class="dim">' + a.tools.map(escape_).join(' ') + '</div>' +
+        switchHtml() +
         '<p style="margin:6px 0 0">' + escape_(a.description) + '</p>' +
         (running
           ? '<div class="note warn">Running <strong>step ' + running.step.index + '</strong> of "' +
@@ -823,6 +1237,7 @@ const DESK_JS = "(() => {\n" + CREATURES_JS + String.raw`
           : '<div class="dim" style="margin-top:8px">Not in any flow. It is waiting on the shelf.</div>') +
         (a.missing ? '<div class="note warn">Declared in a subagents list with no file behind it. A declared name is a claim; a file is a fact.</div>'
                    : '<div class="note">Drag this onto a document to give it a step in that flow. It keeps the steps it already has — an agent in two flows is two of it.</div>');
+      wireSwitch(p);
     }
   };
 
@@ -1119,6 +1534,11 @@ const DESK_JS = "(() => {\n" + CREATURES_JS + String.raw`
     painted = true;
     renderDrawer();
     renderLive();
+    // After the cubes, never before: the wires are measured off the live DOM,
+    // and measuring them against last frame's positions draws every hop one
+    // render behind the creature it is attached to.
+    recomputeBus();
+    renderWires();
     renderPanel();
   }
 
@@ -1213,6 +1633,24 @@ const DESK_JS = "(() => {\n" + CREATURES_JS + String.raw`
         el.style.top = (c.y + d.dy) + 'px';
       }
       el.classList.toggle('pinned', !!(layout.cubes[w.a.name] || {}).pinned);
+
+      /**
+       * Where this agent sits in its flow's order.
+       *
+       * renderCubes walks S.agents, which is declaration order, so the stack
+       * used to list a flow's agents in whatever order somebody wrote the agent
+       * files -- and the wires then drew the flow's real sequence as a tangle
+       * across an arrangement that disagreed with it. Flex order fixes the
+       * picture without reordering the DOM, so nothing a creature is doing gets
+       * interrupted by a re-parent.
+       */
+      if (w.flowId) {
+        const d = S.docs.find((x) => x.id === w.flowId);
+        const first = d ? (d.steps.find((st) => st.agent === w.a.name) || {}).index : undefined;
+        el.style.order = first === undefined ? '99' : String(first);
+      } else {
+        el.style.order = '';
+      }
 
       const doing = doingOf(w.a.name, w.flowId);
       el.classList.toggle('busy', !!doing);
@@ -1623,7 +2061,8 @@ export function renderDeskHtml(view: DeskView): string {
 </div>
 <div class="desk deskbg hasdrawer">
   <div class="surface" id="surface">
-    <div class="shelf"><h3>Agents</h3></div>
+    <div class="shelf"><h3>Palette</h3></div>
+    <svg class="wires" id="wires" aria-hidden="true"></svg>
   </div>
   <div class="drawer" id="drawer"></div>
 </div>

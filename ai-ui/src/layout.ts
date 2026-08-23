@@ -91,10 +91,21 @@ export interface ProposeOptions {
   shelfWidth?: number;
 }
 
+/**
+ * `docHeight` is a *footprint*, not a measurement, and it is now much taller.
+ *
+ * A document's agents used to be a wrapped row of chips two lines deep. They are
+ * now a chain, one agent per row in step order, so the wires between them can be
+ * seen and clicked — and the tallest flow in the demo measures 326px, not 190. Leaving the
+ * old number in place put the second row of documents on top of the first: every
+ * node is absolutely positioned, so they do not push each other apart, they just
+ * paint over one another and the lower half of each flow disappears under the
+ * next one. Visible only by looking at the screen, which is how it was found.
+ */
 const DEFAULTS = {
   width: 1200,
-  docWidth: 260,
-  docHeight: 190,
+  docWidth: 284,
+  docHeight: 344,
   gap: 28,
   shelfX: 14,
   shelfWidth: 150,

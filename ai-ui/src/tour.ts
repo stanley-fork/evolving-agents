@@ -2,10 +2,21 @@
  * Play — the demo, driving itself.
  *
  * A person who opens the desk sees an arrangement and no idea what any of it is
- * for. The gestures that make it worth having — a cube dropped on a document
- * becoming a real step, the digest saying what it stands for, an answer read out
- * of the trace — are all invisible until somebody performs one, and a visitor on
- * a website will not.
+ * for. The gestures that make it worth having — following a packet along a wire,
+ * opening what it carried, putting an agent on a flow and then checking the
+ * artefact it cites — are all invisible until somebody performs one, and a
+ * visitor on a website will not.
+ *
+ * ## What it is about
+ *
+ * Two real projects, and the beat it exists for is the seventh: the system agent
+ * makes a claim, and one click puts you in front of the thing it read. Everything
+ * before it is setup for that, and everything after it is the same move on the
+ * project where no closed form exists.
+ *
+ * It used to narrate an invented web project for seven of thirteen beats and
+ * never reach the cochlea gate at all — the best thing in the repository, three
+ * clicks away and never shown.
  *
  * ## It drives the real client. It does not play a movie.
  *
@@ -126,106 +137,155 @@ export const TOUR_JS = String.raw`
     el.click();
   };
 
-  const beats = [
+  const COCLEA_BEATS = [
     async () => {
-      cap('A document is a flow. The cubes on it are the agents that have work in it.');
-      const d = docByTitle('Ledger currency rewrite');
-      await select(d);
-      await sleep(2200);
+      cap('Everything here is an agent. Each box is a thing with a name, a file, and a list of tools it is allowed to use — not a label on a diagram.');
+      const c = cubeNamed('DERIVADOR');
+      if (c) await select(c);
+      await sleep(3000);
     },
     async () => {
-      cap('The digest says how many attempts it stands for, and over what window — fifteen attempts become one object, never the last one.');
-      await sleep(3400);
-    },
-    async () => {
-      cap('The menu is derived from this flow, not fixed. Every entry carries the evidence behind it and says whether pressing it spends.');
-      const m = document.querySelector('.menu');
-      if (m) await pointAt(m, 800);
-      await sleep(3200);
-    },
-    async () => {
-      cap('Ask reads the trace, never the goal. The goal is what somebody meant to happen — it reads like an answer even when the work was never done.');
-      const q = document.getElementById('q');
-      if (q) {
-        q.value = '';
-        const text = 'what did this actually produce?';
-        await pointAt(q, 600);
-        for (const ch of text) {
-          if (stop) return;
-          q.value += ch;
-          q.dispatchEvent(new Event('input', { bubbles: true }));
-          await sleep(38);
-        }
-        await press(document.getElementById('qgo'));
+      cap('A flow is a path through them, and the lines are the handoffs. The dot travelling one is what actually moved — click it and you get the address it was recorded at.');
+      const w = document.querySelector('.wires path.hit');
+      if (w) {
+        const r = w.getBoundingClientRect();
+        await moveHand(r.left + r.width / 2, r.top + r.height / 2, 800);
+        w.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1 }));
       }
-      await sleep(2600);
-    },
-    async () => {
-      cap('Now a real write: dropping a cube on a document appends a step — the same instruction composing an agent tree would have written.');
-      const cube = cubeNamed('ReviewAgent') || cubeNamed('LedgerLead');
-      const target = docByTitle('Duplicate ledger rows');
-      if (cube && target) await dragOnto(cube, target);
-      await sleep(2400);
-    },
-    async () => {
-      cap('Advancing runs it, and the panel states the cost before the button is pressed.');
-      const d = docByTitle('Duplicate ledger rows');
-      if (d) await select(d);
-      await sleep(1200);
-      await press(document.getElementById('adv'));
       await sleep(3600);
     },
     async () => {
-      cap('The Trace face answers a different question: not where is this, but what happened — including a step that ran and carried nothing forward.');
-      const t = document.getElementById('tab-trace');
-      await press(t);
+      cap('Two chains, the same six agents, the same six steps. Both were built the same way. One is frozen and one is held.');
+      const d = docByTitle('flux assembly');
+      if (d) await select(d);
+      await sleep(3000);
+    },
+    async () => {
+      cap('Nothing in either trace separates them. Every step ran, settled and reported — and one of these chains is wrong in every number it produced.');
+      const d = docByTitle('apex boundary');
+      if (d) await select(d);
+      await sleep(3400);
+    },
+    async () => {
+      cap('What separates them is a gate: an oracle declared before the run. GATE-A01 measured 2.592e-4 against a tolerance of 1.0e-4, so this result cannot freeze.');
+      await press(document.getElementById('tab-trace'));
+      await sleep(4600);
+    },
+    async () => {
+      /**
+       * The gesture the whole redesign is for, and a real drag.
+       *
+       * Dropping one agent onto a thing declares a relationship — doc/15 phase
+       * 5, specified in March and unbuilt until now. INSPECTOR has one tool,
+       * read, so the relationship it declares is "I am reading this", and the
+       * desk writes down the finding and the address rather than adding a step.
+       */
+      cap('Or do not read it yourself — put an agent on it. Drag INSPECTOR onto the flow. It has one tool: read.');
+      const c = cubeNamed('INSPECTOR');
+      const d = docByTitle('apex boundary');
+      if (c && d) await dragOnto(c, d);
       await sleep(4200);
     },
     async () => {
-      // The scope selector navigates -- against a real server that is a fresh
-      // read, and the tour is not allowed to fake it. So it really does change
-      // the scope, and picks up on the other side.
-      cap('One more scope. Memory here is not a store: it is agents, building a knowledge base a small window can navigate. Switching scope reloads, and the tour continues there.');
-      const sel = document.getElementById('scope');
-      const wanted = [...sel.options].find((o) => o.value.indexOf('memory') >= 0);
-      if (!wanted) return;                       // no memory scope: end here
-      await pointAt(sel, 700);
-      await sleep(1400);
-      sel.value = wanted.value;
-      resumeAt(MEMORY_BEAT);
-      sel.dispatchEvent(new Event('change', { bubbles: true }));
-      await sleep(6000);                         // the navigation takes it from here
+      cap('And this is the part that matters: under the sentence is the artefact it read. One click, and you are looking at what it looked at.');
+      const a = document.querySelector('.fnd button.at');
+      if (a) await press(a);
+      await sleep(4400);
     },
-    // --- the memory lab, after the reload ------------------------------------
     async () => {
-      cap('Two flows index the same notes, with the same five agents. Both are green, and one of them is wrong.');
-      const d = docByTitle('the index that drifted');
+      cap('When there is nothing to read, it is required to say unknown — not to guess. A hop nobody recorded is drawn thin, grey and dashed, and it carries no packet at all.');
+      const u = document.querySelector('.wires g:has(path.w.unknown) path.hit')
+        || document.querySelector('.wires path.w.unknown');
+      if (u) {
+        const r = u.getBoundingClientRect();
+        await moveHand(r.left + r.width / 2, r.top + r.height / 2, 700);
+        u.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1 }));
+      }
+      await sleep(4200);
+    },
+    async () => {
+      cap('Ask reads the trace, never the goal. The goal is what somebody meant to happen — it reads like an answer even when the work was never done.');
+      await press(document.getElementById('m-read'));
+      const q = document.getElementById('q');
+      if (q) {
+        q.value = '';
+        for (const ch of 'what did this actually produce?') {
+          if (stop) return;
+          q.value += ch;
+          q.dispatchEvent(new Event('input', { bubbles: true }));
+          await sleep(34);
+        }
+        await press(document.getElementById('qgo'));
+      }
+      await sleep(2800);
+    },
+    async () => {
+      cap('And a flow with a step still to run states the cost before the button is pressed. Advancing spends a model call, and the panel says so first.');
+      const d = docByTitle('GATE-D1');
       if (d) await select(d);
+      await sleep(1400);
+      await press(document.getElementById('adv'));
       await sleep(3400);
     },
     async () => {
-      cap('The digest says a step used nothing it was given — on a flow where every step reported cleanly and every strip is green.');
-      await sleep(3600);
-    },
-    async () => {
-      cap('The Trace face names the instrument that caught it: this note claims 663 characters of a passage that is 1,105, so following its range lands on different words.');
-      await press(document.getElementById('tab-trace'));
-      await sleep(5200);
-    },
-    async () => {
-      cap('It looks exactly like the notes around it — written by a model that got the judgement right and the mechanics wrong. That is why the check is code and not a prompt.');
-      hand.style.opacity = '0';
-      await sleep(2200);
-    },
-    async () => {
-      cap('That is the desk. Everything you just watched was a real gesture against a real client — drag anything, it is yours now.');
-      hand.style.opacity = '0';
+      cap('The other project. Here there is no closed form to check against — so the judge itself goes on trial. Switching scope reloads, and the tour continues there.');
+      const sel = document.getElementById('scope');
+      const wanted = [...sel.options].find((o) => o.value.indexOf('hemo') >= 0);
+      if (!wanted) return;
+      await pointAt(sel, 700);
       await sleep(1500);
+      sel.value = wanted.value;
+      resumeAt(HEMO_BEAT);
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+      await sleep(6000);
     },
   ];
 
-  /** The index of the first beat that runs after the scope change. */
-  const MEMORY_BEAT = beats.length - 5;
+  /**
+   * The beats that run after the scope change.
+   *
+   * A separate array rather than an offset into one. The offset version shipped
+   * as beats.length minus four when the answer was eleven, so the tour crossed the
+   * navigation and resumed one beat *late* — silently skipping the beat that
+   * introduces the project. An index computed by counting entries by hand is a
+   * number that goes wrong every time somebody adds a beat, and nothing checks
+   * it. This cannot be wrong: the resume point is where the second list starts.
+   */
+  const HEMO_BEATS = [
+    async () => {
+      cap('98 predictions built from exact solutions and corrupted by amounts chosen in advance, so the true error is known rather than estimated.');
+      const d = docByTitle('physics checks');
+      if (d) await select(d);
+      await sleep(3600);
+    },
+    async () => {
+      cap('The panel scores 0.9056 against a kill threshold of 0.80 written down before the run. Alone, six of its seven oracles are near a coin flip — A5 is 0.5209.');
+      await press(document.getElementById('tab-trace'));
+      await sleep(5000);
+    },
+    async () => {
+      cap('That number is the one almost nobody publishes. You only get it by measuring your own judge, and the artefact records the hash of all seven oracles and the exact stack that produced them.');
+      hand.style.opacity = '0';
+      await sleep(4200);
+    },
+    async () => {
+      cap('And the open question, left open: A4 alone read 0.706 here and 0.652 elsewhere. Different machines, so the honest verdict is not "disagrees" — it is unknown, and the desk draws it that way.');
+      const d = docByTitle('second machine');
+      if (d) await select(d);
+      await sleep(1000);
+      await press(document.getElementById('m-agent'));
+      await sleep(5000);
+    },
+    async () => {
+      cap('That is the desk. Every box is an agent, every line is a handoff, and every claim has an address. Drag anything — it is yours now.');
+      hand.style.opacity = '0';
+      await sleep(1800);
+    },
+  ];
+
+  const beats = [...COCLEA_BEATS, ...HEMO_BEATS];
+  /** Where the tour picks up on the other side of the navigation. */
+  const HEMO_BEAT = COCLEA_BEATS.length;
 
   /**
    * Carry the tour across a real navigation.

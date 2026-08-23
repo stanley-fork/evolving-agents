@@ -269,8 +269,10 @@ function chain(
               error: null,
               // A fingerprint of the numbers, so the observability instrument
               // reads movement in the signal rather than in the prose.
-              digest: `s${Math.abs(Math.round(energy(st.series) * 1000)) % 100000}`,
-              source: "run.reply",
+              observation: {
+                digest: `s${Math.abs(Math.round(energy(st.series) * 1000)) % 100000}`,
+                source: "run.reply",
+              },
             },
           ],
       series: pending ? undefined : round3(st.series),

@@ -285,7 +285,12 @@ function attempt(state: string, digest: string | null, runId: string, error: str
       state,
       runId,
       error,
-      ...(digest ? { digest, source: "gate.report" } : {}),
+      // `observation: { digest, source }`, not a flat `digest`. This helper's
+      // own comment above claimed to be "the shape the desk actually reads"
+      // while getting this half wrong: `traceOf` reads `a.observation?.digest`,
+      // so every attempt here recorded nothing. Same class of defect as the one
+      // the comment describes, in the fix for it.
+      ...(digest ? { observation: { digest, source: "gate.report" } } : {}),
     },
   ];
 }

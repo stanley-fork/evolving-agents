@@ -183,8 +183,7 @@ function flow(
               state: "done",
               runId: `run-${id}-${index}`,
               error: null,
-              digest: note.hash.slice(0, 10),
-              source: "run.reply",
+              observation: { digest: note.hash.slice(0, 10), source: "run.reply" },
             },
           ],
       // The index card is the numbers this step produced, drawn as a shape: how

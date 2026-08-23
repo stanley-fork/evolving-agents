@@ -496,8 +496,17 @@ function chain(
         error: st.ok ? null : `gate ${st.gate} did not pass`,
         // The digest fingerprints the numbers, so the observability instrument
         // reads movement in the measurement rather than in the prose.
-        digest: `g${Math.abs(Math.round((st.series?.[0] ?? index + 1) * 1e9)) % 100000}`,
-        source: "gate.report",
+        //
+        // **Nested under `observation`, which it was not.** `traceOf` reads
+        // `attempt.observation.digest`; a flat `digest` here parsed, typechecked
+        // and rendered — as `no observation` under every step of both chains,
+        // with the trace face reporting "not enough to say" about a flow that
+        // had recorded six. Found by drawing the handoffs: a quiet fallback in a
+        // panel is invisible, and twelve grey dashed wires are not.
+        observation: {
+          digest: `g${Math.abs(Math.round((st.series?.[0] ?? index + 1) * 1e9)) % 100000}`,
+          source: "gate.report",
+        },
       },
     ],
     ...(st.series ? { series: st.series.map((v) => round(v, 9)) } : {}),

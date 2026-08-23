@@ -20,6 +20,7 @@ import { dspAgents, dspFlows } from "../src/dsp-demo.ts";
 import { memoryAgents, memoryFlows } from "../src/memory-demo.ts";
 import { cochleaAgents, cochleaFlows } from "../src/cochlea-demo.ts";
 import { cochleaProjectFlows } from "../src/cochlea-project.ts";
+import { hemoAgents, hemoFlows } from "../src/hemo-demo.ts";
 import { channelsFor, workChannel } from "../../ai-flows/src/channels.ts";
 import { propose } from "../src/layout.ts";
 import { MEMORY_LEVELS } from "../src/memory.ts";
@@ -90,10 +91,36 @@ const layoutFor = (
     { width: 1180 },
   );
 
+/**
+ * The system agent, in every scope.
+ *
+ * ## Why it is an agent and not a feature
+ *
+ * The desk could have grown an "explain this" button. It would have been less
+ * code and it would have been the wrong shape, because a button is a capability
+ * of the tool and this is a *participant*: `INSPECTOR` has a name, a file, a
+ * declared set of tools, and it shows up on the desk next to the agents whose
+ * work it reads. If it could do something no other agent could, the claim
+ * "everything is an agent" would be decoration on a special case.
+ *
+ * Its tool list is the argument in miniature. `read` and nothing else: it may
+ * open what it is pointed at, and it may not run anything, write anything, or
+ * publish anything. An inspector that could change what it inspects is not an
+ * inspector.
+ */
+const INSPECTOR = {
+  name: "INSPECTOR",
+  description:
+    "Reads a hop, an agent or a flow and says what the record supports — and says unknown when the record supports nothing.",
+  tools: ["read"],
+  child: false,
+  missing: false,
+};
+
 /** The signal lab: the same desk, on numbers instead of prose. */
 const dsp = {
   scopeId: "group:signal-lab",
-  agents: dspAgents(),
+  agents: [...dspAgents(), INSPECTOR],
   raw: dspFlows(DEMO_AT) as unknown as Array<Record<string, unknown>>,
 };
 
@@ -129,15 +156,22 @@ const layout = layoutFor(
  */
 const coc = {
   scopeId: "group:cochlea-lab",
-  agents: [...cochleaAgents(), ...projectAgents()],
-  // The two gate flows, plus the three that show the project being built rather
-  // than judged: the falsification whose artefact was a decision, GATE-D1 in
-  // flight, and the memory agents indexing the project's own decision record.
-  //
-  // Newest first, because the desk lists in the order it is given and a visitor
-  // should land on work in progress rather than on something frozen thirty-one
-  // hours ago.
-  raw: [...cochleaProjectFlows(DEMO_AT), ...cochleaFlows(DEMO_AT)] as unknown as Array<
+  agents: [...cochleaAgents(), ...projectAgents(), INSPECTOR],
+  /**
+   * The two gate flows first, then the three that show the project being built
+   * rather than judged.
+   *
+   * This order is reversed from what it was, and the reason is the layout rather
+   * than recency. A document is now as tall as its flow is long, so three per row
+   * is what fits, and whatever comes fourth lands below the fold behind the Play
+   * bar. The two membrane chains — visibly identical, one frozen, one held at a
+   * red gate — are the single picture this whole scope exists to show, and they
+   * were the two that fell off the bottom.
+   *
+   * "Newest first" was a good rule for a list. It is the wrong rule for a
+   * surface where position decides what a visitor sees at all.
+   */
+  raw: [...cochleaFlows(DEMO_AT), ...cochleaProjectFlows(DEMO_AT)] as unknown as Array<
     Record<string, unknown>
   >,
 };
@@ -174,8 +208,24 @@ function projectAgents() {
 /** The knowledge base being built: the same desk, pointed at reading. */
 const mem = {
   scopeId: "group:memory-lab",
-  agents: memoryAgents(),
+  agents: [...memoryAgents(), INSPECTOR],
   raw: memoryFlows(DEMO_AT) as unknown as Array<Record<string, unknown>>,
+};
+
+/**
+ * The second real project: the one where truth is not derivable.
+ *
+ * See [hemo-demo.ts](../src/hemo-demo.ts) for why two projects rather than one.
+ * In short: the cochlea scope shows what to do when the answer has a closed
+ * form, and a repository that only showed that half would be making a claim
+ * about a narrow world. This is the other half — no oracle exists, so the judge
+ * itself is measured and the measurement is published with the hash of what
+ * produced it.
+ */
+const hem = {
+  scopeId: "group:hemo-verified",
+  agents: [...hemoAgents(), INSPECTOR],
+  raw: hemoFlows(DEMO_AT) as unknown as Array<Record<string, unknown>>,
 };
 
 const dspNames = dsp.agents.map((a) => a.name);
@@ -186,32 +236,60 @@ const memNames = mem.agents.map((a) => a.name);
 const memDocs = projectDocs(mem.raw, memNames);
 const memLayout = layoutFor(mem.scopeId, mem.raw, memNames);
 
+const hemNames = hem.agents.map((a) => a.name);
+const hemDocs = projectDocs(hem.raw, hemNames);
+const hemLayout = layoutFor(hem.scopeId, hem.raw, hemNames);
+
 const cocNames = coc.agents.map((a) => a.name);
 const cocDocs = projectDocs(coc.raw, cocNames);
 const cocLayout = layoutFor(coc.scopeId, coc.raw, cocNames);
 
+/**
+ * What the desk offers, in the order it offers it.
+ *
+ * The two real projects are first and the invented one is last, which is the
+ * opposite of how this shipped. The demo used to land on `group:web-project-demo`
+ * — *Ledger currency rewrite*, *Duplicate ledger rows* — a project that does not
+ * exist, while `coclea-sr` (135 gate checks, green on a GitHub runner in 23m27s)
+ * was the fourth option in a dropdown and `hemo-verified` was not there at all.
+ * A visitor's first screen was fiction and everything real was behind a select.
+ *
+ * The labels are what the things are called, not their internal ids. A scope
+ * called `group:cochlea-lab` tells a stranger nothing; `coclea-sr` is a
+ * directory they can go and read.
+ */
 const SCOPES = [
-  { scopeId: "group:web-project-demo", label: "group:web-project-demo" },
-  { scopeId: dsp.scopeId, label: dsp.scopeId },
-  { scopeId: mem.scopeId, label: mem.scopeId },
-  { scopeId: coc.scopeId, label: coc.scopeId },
+  { scopeId: coc.scopeId, label: "coclea-sr — truth is derivable" },
+  { scopeId: hem.scopeId, label: "hemo-verified — truth is not derivable" },
+  { scopeId: mem.scopeId, label: "memory lab — green and wrong" },
+  { scopeId: dsp.scopeId, label: "signal lab — ran and carried nothing" },
+  { scopeId: "group:web-project-demo", label: "a made-up web project" },
 ];
 
+/**
+ * The first screen is a real project.
+ *
+ * Rendered with the cochlea scope rather than the invented one, because the
+ * first screen is the only one most visitors will see and it should be work that
+ * happened. `coclea-sr` over `hemo-verified` for the landing for one reason: its
+ * two chains are visibly identical and one of them is wrong, which is a picture.
+ * H0's argument is a table, and a table is the second thing you show somebody.
+ */
 const html = renderDeskHtml({
-  scopeId: "group:web-project-demo",
-  scopeLabel: "group:web-project-demo",
+  scopeId: coc.scopeId,
+  scopeLabel: SCOPES[0]!.label,
   harness: "simulated",
   // DEMO_AT, not 0. The desk renders this as `new Date(at).toISOString()`, so a
   // zero here published `1970-01-01T00:00:00.000Z` in the chrome while every
   // flow beneath it correctly said "43 hours ago" -- a page that exists to show
   // state, showing a state nobody could have been in.
   at: DEMO_AT,
-  docs,
-  agents: world.agents as never,
+  docs: cocDocs,
+  agents: coc.agents as never,
   people: ["matias", "ada", "priya"],
   notes: [],
   memoryLevels: MEMORY_LEVELS,
-  layout,
+  layout: cocLayout,
   scopes: SCOPES,
   simulate: true,
 });
@@ -246,6 +324,20 @@ const channelsOf = (scopeId: string, docs: DeskDoc[]) => [
 ];
 
 const worlds = {
+  "group:web-project-demo": {
+    docs,
+    agents: [...(world.agents as unknown as typeof INSPECTOR[]), INSPECTOR],
+    layout,
+    notes: [],
+    channels: channelsOf("group:web-project-demo", docs),
+  },
+  [hem.scopeId]: {
+    docs: hemDocs,
+    agents: hem.agents,
+    layout: hemLayout,
+    notes: [],
+    channels: channelsOf(hem.scopeId, hemDocs),
+  },
   [dsp.scopeId]: {
     docs: dspDocs,
     agents: dsp.agents,
@@ -259,13 +351,6 @@ const worlds = {
     layout: memLayout,
     notes: [],
     channels: channelsOf(mem.scopeId, memDocs),
-  },
-  [coc.scopeId]: {
-    docs: cocDocs,
-    agents: coc.agents,
-    layout: cocLayout,
-    notes: [],
-    channels: channelsOf(coc.scopeId, cocDocs),
   },
 };
 const withWorlds = html.replace(
@@ -287,5 +372,8 @@ console.log(
   `  ${memDocs.length} document(s), ${mem.agents.length} agent(s) in the memory lab, no server`,
 );
 console.log(
-  `  ${cocDocs.length} document(s), ${coc.agents.length} agent(s) in the cochlea lab`,
+  `  ${cocDocs.length} document(s), ${coc.agents.length} agent(s) in coclea-sr — the landing scope`,
+);
+console.log(
+  `  ${hemDocs.length} document(s), ${hem.agents.length} agent(s) in hemo-verified`,
 );
