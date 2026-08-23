@@ -118,10 +118,38 @@ export interface ThreadWorld {
   threads: Thread[];
   /** The widest X any rope reaches, so a renderer can scale to it. */
   span: number;
+  /**
+   * What X actually is, and the field a renderer must not ignore.
+   *
+   * `clock` — every attempt carried `startedAt`, so X is epoch milliseconds and
+   * a gap on screen is a gap that happened. Panning left is going back in time.
+   *
+   * `sequence` — the store recorded no clock for at least one attempt, so X is
+   * step order and every step is the same width. **The axis must say so.** A
+   * surface that labels sequence as time is drawing durations nobody measured,
+   * which is the same failure as drawing an unrecorded hop like one that worked.
+   */
+  basis: "clock" | "sequence";
+  /** In `clock`, the epoch ms of the earliest and latest thing recorded. */
+  t0: number;
+  t1: number;
 }
 
-/** How much of a step's slot is rest, leaving the remainder for the crossing. */
+/** In `sequence`, how much of a step's slot is rest; the rest is the crossing. */
 const REST = 0.68;
+
+/**
+ * In `clock`, how much of the gap between two steps the crossing occupies.
+ *
+ * A handoff is not instantaneous and it is not half the flow. The rope leaves
+ * when the producing step closed and arrives when the next one opened, so this
+ * only matters when the two touch exactly — then the crossing borrows a sliver
+ * from the receiving step so the rope has somewhere to bend.
+ */
+const MIN_CROSS_MS = 20_000;
+
+/** Room in front of the earliest step, so a person's question can be drawn. */
+const LEAD_MS = 4 * 60_000;
 
 interface ThreadDoc {
   id: string;
@@ -142,6 +170,26 @@ function obs(step: FlowTrace["steps"][number]) {
     if (a.digest) return { digest: a.digest, source: a.source };
   }
   return { digest: null as string | null, source: null as string | null };
+}
+
+/**
+ * When a step opened and closed, from its attempts.
+ *
+ * First open to last close, across every attempt: a step that failed twice and
+ * succeeded on the third took as long as all three took. `null` for `end` when
+ * the last attempt never closed, which is what a held step looks like and must
+ * keep looking like.
+ */
+function stepSpan(step: FlowTrace["steps"][number]): { start: number | null; end: number | null } {
+  let start: number | null = null;
+  let end: number | null = null;
+  for (const a of step.attempts) {
+    if (a.startedAt != null && (start === null || a.startedAt < start)) start = a.startedAt;
+    if (a.finishedAt != null && (end === null || a.finishedAt > end)) end = a.finishedAt;
+  }
+  // An attempt that is still open ends the step's clock: it has not finished.
+  if (step.attempts.some((a) => a.startedAt != null && a.finishedAt == null)) end = null;
+  return { start, end };
 }
 
 /**
@@ -210,8 +258,45 @@ export function threadsOf(docs: ThreadDoc[], humanLabel = "you"): ThreadWorld {
     return name;
   };
 
+  /**
+   * Which basis the data can actually support, decided once for the whole world.
+   *
+   * All-or-nothing on purpose. Mixing a clock-drawn thread with a
+   * sequence-drawn one on a single axis puts two incomparable things in the same
+   * picture and invites a reader to compare their widths — which is a duration
+   * claim about a step nobody timed. If any settled attempt lacks a start, the
+   * whole world falls back to sequence and says so.
+   */
+  const settled = docs.flatMap((d) =>
+    d.trace.steps.filter((s) => s.agent).flatMap((s) => s.attempts),
+  );
+  const basis: ThreadWorld["basis"] =
+    settled.length > 0 && settled.every((a) => a.startedAt != null) ? "clock" : "sequence";
+
+  let t0 = Infinity;
+  let t1 = -Infinity;
+  if (basis === "clock") {
+    for (const a of settled) {
+      if (a.startedAt != null && a.startedAt < t0) t0 = a.startedAt;
+      const e = a.finishedAt ?? a.startedAt;
+      if (e != null && e > t1) t1 = e;
+    }
+    /**
+     * The axis starts before the earliest recorded moment.
+     *
+     * A person asked for the first thread, and asking took time nobody wrote
+     * down. Without room in front of it that opening crossing had nowhere to go
+     * and came out with zero width — a segment nobody can see or click, and an
+     * assertion that the question was instantaneous.
+     *
+     * The lead-in is the one segment on the page drawn from a convention rather
+     * than from a record, and it is the only one.
+     */
+    t0 -= LEAD_MS;
+  }
+
   const threads: Thread[] = [];
-  let span = 0;
+  let widest = 0;
 
   docs.forEach((doc, ordinal) => {
     const steps = doc.trace.steps.filter((s) => s.agent).sort((a, b) => a.index - b.index);
@@ -221,16 +306,70 @@ export function threadsOf(docs: ThreadDoc[], humanLabel = "you"): ThreadWorld {
     const rests: Rest[] = [];
     const crosses: Cross[] = [];
 
-    // The thought starts with the human and crosses into the first agent.
+    /**
+     * Where a step sits on the axis.
+     *
+     * In `clock`, X is minutes since the earliest recorded moment in the world,
+     * so a step's width **is** how long it took and the space between two steps
+     * is time nobody was working. In `sequence` every step gets an identical
+     * slot, which is the honest picture when no clock exists — and the axis says
+     * which of the two it is drawing.
+     *
+     * A step that started and never closed is given a minimum width rather than
+     * zero: it is running or held, it has a position on the page, and a segment
+     * of zero length is a segment nobody can click.
+     */
+    const MIN_REST = 1.2;
+    /**
+     * `after` is where the thread had got to, and it is not optional.
+     *
+     * A step that has not started has no timestamp, and the first version fell
+     * back to `t0` for it — so a pending step was drawn at the very beginning of
+     * the world and its thread stretched across the whole axis to reach it.
+     * GATE-D1, whose last steps are pending, came out spanning seventy-two hours
+     * of a seventy-two hour window: a picture of a flow that has been running
+     * for three days, of a flow that started forty minutes ago.
+     *
+     * A step that has not begun belongs **just after the last thing that did**.
+     * That is a statement about order, which is known, rather than about time,
+     * which is not — and the renderer draws it dim so the distinction survives.
+     */
+    let after = 0;
+    const at = (s: (typeof steps)[number], i: number) => {
+      if (basis !== "clock") {
+        const base = i + (1 - REST);
+        after = base + 1;
+        return { x0: base, x1: base + REST };
+      }
+      const sp = stepSpan(s);
+      const x0 = sp.start != null ? (sp.start - t0) / 60_000 : after + MIN_CROSS_MS / 60_000;
+      const x1 = sp.end != null ? (sp.end - t0) / 60_000 : x0 + MIN_REST;
+      const out = { x0, x1: Math.max(x1, x0 + MIN_REST) };
+      if (out.x1 > after) after = out.x1;
+      return out;
+    };
+
+    /**
+     * The first step is measured twice, and that is deliberate.
+     *
+     * `at` advances `after`, so calling it here to find the lead-in and again in
+     * the loop below would move the cursor twice. The loop is the one that
+     * counts, so the cursor is put back.
+     */
     const first = steps[0]!;
+    const firstAt = at(first, 0);
+    after = 0;
+    // A person's question has no recorded duration, so the opening crossing is
+    // given a lead-in rather than pretending to know when they started thinking.
+    const lead = basis === "clock" ? Math.min(LEAD_MS / 60_000, firstAt.x0) : 1 - REST;
     crosses.push({
       flowId: doc.id,
       from: "@human",
       to: first.agent!,
       fromIndex: -1,
       toIndex: first.index,
-      x0: 0,
-      x1: 1 - REST,
+      x0: Math.max(0, firstAt.x0 - lead),
+      x1: firstAt.x0,
       // Always `carried`: the human posing the question is the one handoff in
       // the system that is not in question. Marking it `unknown` because no
       // observation was recorded would be pedantry pretending to be rigour.
@@ -241,15 +380,15 @@ export function threadsOf(docs: ThreadDoc[], humanLabel = "you"): ThreadWorld {
     });
 
     steps.forEach((s, i) => {
-      const base = i + (1 - REST);
+      const here = at(s, i);
       const o = obs(s);
       rests.push({
         flowId: doc.id,
         lane: s.agent!,
         index: s.index,
         state: s.state,
-        x0: base,
-        x1: base + REST,
+        x0: here.x0,
+        x1: here.x1,
         result: s.result,
         digest: o.digest,
         source: o.source,
@@ -287,14 +426,26 @@ export function threadsOf(docs: ThreadDoc[], humanLabel = "you"): ThreadWorld {
           : `step ${s.index} closed with an observation`;
       }
 
+      /**
+       * The crossing runs from when this step closed to when the next opened.
+       *
+       * That is the honest span of a handoff, and in `clock` it is often the
+       * most interesting width on the page: a long crossing is time a thought
+       * spent going nowhere. When the two steps touch exactly, the crossing
+       * borrows `MIN_CROSS_MS` so the rope has room to bend.
+       */
+      const there = at(next, i + 1);
+      const min = MIN_CROSS_MS / 60_000;
+      const cx0 = here.x1;
+      const cx1 = basis === "clock" ? Math.max(there.x0, cx0 + min) : here.x1 + (1 - REST);
       crosses.push({
         flowId: doc.id,
         from: s.agent!,
         to: next.agent!,
         fromIndex: s.index,
         toIndex: next.index,
-        x0: base + REST,
-        x1: base + 1,
+        x0: cx0,
+        x1: cx1,
         state,
         because,
         digest: o.digest,
@@ -337,11 +488,18 @@ export function threadsOf(docs: ThreadDoc[], humanLabel = "you"): ThreadWorld {
     }
 
     const end = crosses[crosses.length - 1]!.x1;
-    if (end > span) span = end;
+    if (end > widest) widest = end;
     threads.push({ flowId: doc.id, title: doc.title, state: doc.state, ordinal, rests, crosses, delivered });
   });
 
-  return { lanes, threads, span };
+  return {
+    lanes,
+    threads,
+    span: widest,
+    basis,
+    t0: basis === "clock" ? t0 : 0,
+    t1: basis === "clock" ? t1 : 0,
+  };
 }
 
 /**

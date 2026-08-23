@@ -45,6 +45,27 @@ export interface TraceAttempt {
   digest: string | null;
   source: string | null;
   error: string | null;
+  /**
+   * When the attempt opened and closed, in epoch milliseconds.
+   *
+   * ## Why these were missing, and why that mattered
+   *
+   * `ai-flows`' store has recorded `Attempt.startedAt` and `Attempt.finishedAt`
+   * since the beginning. This projection dropped both — so every surface built
+   * on it had **no clock at all**, and "the desk has no time axis" was not a
+   * limit of the data. It was a lossy projection between the store and the
+   * screen, and nothing failed when it happened.
+   *
+   * That is the more expensive kind of gap: the desk laid documents out in a
+   * grid because it had no other option available *to it*, while the answer sat
+   * one hop upstream. `threads.ts` needs a real clock, and this is where it was.
+   *
+   * `null` when the store has none — never inferred, never filled in with the
+   * flow's `updatedAt` or with anything else. A surface that draws a duration
+   * from a guessed timestamp is drawing a measurement it did not take.
+   */
+  startedAt: number | null;
+  finishedAt: number | null;
 }
 
 export interface TraceStep {
@@ -112,6 +133,9 @@ export interface RawStep {
     runId: string | null;
     error: string | null;
     observation: { digest: string; source: string } | null;
+    /** From the store's `Attempt`. Optional here; absent stays absent. */
+    startedAt?: number;
+    finishedAt?: number | null;
   }>;
 }
 
@@ -190,6 +214,11 @@ export function traceOf(
           digest: a.observation?.digest ?? null,
           source: a.observation?.source ?? null,
           error: a.error,
+          // `?? null`, never a fallback to some other field. An absent clock has
+          // to stay absent all the way to the surface, so a renderer can tell
+          // *this took four minutes* from *nobody wrote down how long this took*.
+          startedAt: a.startedAt ?? null,
+          finishedAt: a.finishedAt ?? null,
         })),
         ...(s.series ? { series: s.series } : {}),
         ...(flagged

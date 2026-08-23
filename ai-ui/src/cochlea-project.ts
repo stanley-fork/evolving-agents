@@ -278,13 +278,49 @@ interface Step {
  * is the one thing it may not do — and the only instrument that caught it was
  * looking at the screen.
  */
-function attempt(state: string, digest: string | null, runId: string, error: string | null) {
+/**
+ * One slot per step, and what a step occupies inside it.
+ *
+ * Added when `trace.ts` stopped dropping the store's `startedAt`/`finishedAt`.
+ * Without them every attempt in this scope had no clock, and because the thread
+ * view refuses to mix a clock-drawn thread with a sequence-drawn one on a single
+ * axis, one scope with no timestamps forced the whole surface onto sequence —
+ * where every step is the same width and none of the durations are real.
+ */
+const SLOT_MS = 8 * 60_000;
+const TAKES = [4 * 60_000, 6 * 60_000, 2 * 60_000, 5 * 60_000, 3 * 60_000, 7 * 60_000, 2 * 60_000];
+
+function attempt(
+  state: string,
+  digest: string | null,
+  runId: string,
+  error: string | null,
+  /**
+   * When this step's slot opened, relative to its flow's `updatedAt`.
+   *
+   * Passed in rather than derived, because these three flows are the project
+   * *being built* and they overlapped — several things in flight at once is what
+   * that looks like, and it is the only place in the demo where two threads hold
+   * one agent at the same moment. Deriving each flow's times from its own end
+   * would have laid them end to end and drawn a sequence that did not happen.
+   */
+  opened?: number,
+) {
   return [
     {
       n: 1,
       state,
       runId,
       error,
+      ...(opened === undefined
+        ? {}
+        : {
+            startedAt: opened,
+            // A step that is still running has no finish. `null`, never a guess:
+            // GATE-D1's running step is the one live thing in this demo, and
+            // giving it an end would draw work as over that is still going.
+            finishedAt: state === "running" || state === "pending" ? null : opened + TAKES[0]!,
+          }),
       // `observation: { digest, source }`, not a flat `digest`. This helper's
       // own comment above claimed to be "the shape the desk actually reads"
       // while getting this half wrong: `traceOf` reads `a.observation?.digest`,
@@ -381,6 +417,7 @@ function falsificationFlow(at: number): Record<string, unknown> {
       s.digest,
       `run-falsified-${i}`,
       s.state === "failed" ? "GATE-C02: the traveling wave runs the wrong way" : null,
+      at - 72 * 3600_000 - (said.length - i) * SLOT_MS,
     ),
     contribution: { carried: 1, inputTokens: 2000, note: s.note },
   }));
@@ -449,7 +486,15 @@ function pathologyFlow(at: number): Record<string, unknown> {
     intent: s.intent,
     result: s.result,
     attempts:
-      s.state === "pending" ? [] : attempt(s.state, s.digest, `run-pathology-${i}`, null),
+      s.state === "pending"
+        ? []
+        : attempt(
+            s.state,
+            s.digest,
+            `run-pathology-${i}`,
+            null,
+            at - 9 * 60_000 - (5 - i) * SLOT_MS,
+          ),
     ...(s.note ? { contribution: { carried: 1, inputTokens: 2000, note: s.note } } : {}),
   }));
 
@@ -485,7 +530,16 @@ function decisionIndexFlow(at: number): Record<string, unknown> {
       result:
         `Wrote ${n.id}: "${n.title}". ${n.chars} chars at ${n.source.from}-${n.source.to}, ` +
         `hash ${n.hash}. verifyNote: ${bad.length ? bad.join("; ") : "clean"}.`,
-      attempts: attempt("done", `index${String(i).padStart(5, "0")}`, `run-index-${i}`, null),
+      attempts: attempt(
+        "done",
+        `index${String(i).padStart(5, "0")}`,
+        `run-index-${i}`,
+        null,
+        // Overlapping GATE-D1 on purpose: indexing the decisions and running the
+        // pathology gate were both in flight, and two threads through one lane
+        // at one moment is the picture the desk drew as a small badge.
+        at - 26 * 60_000 - (7 - i) * SLOT_MS,
+      ),
       contribution: {
         carried: 1,
         inputTokens: 2000,
@@ -507,7 +561,7 @@ function decisionIndexFlow(at: number): Record<string, unknown> {
       (complaints.length
         ? `But the corpus has an order: ${complaints[0]}`
         : "Supersession check clean."),
-    attempts: attempt("done", "coverage001", "run-index-coverage", null),
+    attempts: attempt("done", "coverage001", "run-index-coverage", null, at - 12 * 60_000),
     contribution: {
       carried: 1,
       inputTokens: 2000,

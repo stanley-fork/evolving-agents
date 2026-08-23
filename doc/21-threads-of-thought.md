@@ -141,11 +141,97 @@ Six questions, and the sketch answers four of them.
 
 ---
 
-## 6. Status
+## 6. The clock was already there, and the projection was dropping it
+
+The strongest thing this sketch found is not about the sketch.
+
+`ai-flows`' store has recorded `Attempt.startedAt` and `Attempt.finishedAt` since
+the beginning. **`trace.ts` dropped both.** Every surface built on that projection
+therefore had no clock at all — so "the desk has no time axis" was never a limit
+of the data. It was a lossy hop between the store and the screen, and nothing
+failed when it happened.
+
+That is the expensive kind of gap: the desk laid documents out in a grid because
+it had no other option *available to it*, while the answer sat one call upstream.
+Carrying the two fields through is four lines. What it changes:
+
+- **A step's width is how long it took.** Not a slot.
+- **The space between two steps is time nobody was working**, which is often the
+  most interesting width on the page.
+- **The two membrane chains ran thirty hours apart.** On the desk they looked
+  like a pair. They are not a pair; they are a run and a re-run a day later, and
+  no surface had ever said so.
+- **A test of mine was asserting something false.** It claimed the two chains
+  contend for the same agents "at the same steps" — true on a sequence axis, and
+  false about the world. The clock deleted it. That is the surface's own argument
+  turned on its own test suite, which is the only place it counts.
+
+Two rules had to be written down to keep it honest:
+
+**The basis is all-or-nothing and it is stated.** If any settled attempt lacks a
+start, the whole world falls back to sequence and the panel says so in as many
+words. Mixing a clock-drawn thread with a sequence-drawn one on one axis puts two
+incomparable things in a picture and invites a reader to compare their widths.
+
+**A step that has not begun has no time, and is not given one.** The first
+version fell back to the start of the world for a step with no attempts, so
+GATE-D1 — whose last two steps are pending — was drawn spanning the entire
+seventy-two hour window: a flow that started forty minutes ago, drawn as three
+days of work. A step that has not begun belongs just after the last one that did.
+That is a statement about *order*, which is known, and it is drawn dim and hollow
+so it cannot be read as a statement about time.
+
+---
+
+## 7. Motion, and the only rule that makes it worth having
+
+> **Everything that moves is a measurement. If nothing moves, nothing is
+> happening.**
+
+That rule is what separates this from a screensaver, and it is expensive to keep.
+Exactly one thing on the surface animates on its own: a segment whose step is
+`running` — an attempt that started and never closed, which is a fact in the
+store. The animation loop **cancels itself** when it finds none, so a still
+surface is a true statement rather than an idle one. Verified in a browser: on
+the scope with one open step the dash offset advances; on the settled scopes
+`requestAnimationFrame` is not scheduled at all.
+
+It also produced a bug worth recording, and the bug is the rule working. Zooming
+in resolves a collapsed band into its steps and therefore *creates* a running
+rope — and nothing was waking the loop. The one open step in the demo sat
+motionless, so the surface said *nothing is happening* about something that was.
+Waking on every redraw is the only place that catches it, because every case ends
+in a redraw.
+
+**Zoom is the answer to a hundred threads, and it has to aggregate rather than
+shrink.** Below fifty-eight pixels a thread is not drawn step by step: there is
+nothing to see, and the marks would be lying about their own precision. It
+collapses to one band that states what it stands for — *6 steps · 58m*. That is
+`zoom.ts`'s existing rule, which exists because a viewer sampling at one rate
+cannot faithfully observe change faster than half of it, and a picture that
+pretends otherwise invites a reader to find structure in aliasing.
+
+**On colour: hue is identity, and Apple's dark system palette is used for it.**
+`systemBlue`, `systemOrange`, `systemGreen`, `systemPurple`, `systemPink` and the
+rest, in a fixed order so a thread keeps its colour across a zoom, a pan and a
+scene change. State never moves the hue — it moves luminance and texture. Two
+channels, two meanings, one legend that states both.
+
+**And the biology, since it was raised.** The agent files are the DNA: stored,
+inert, and copied from. A thread is the transcript — one strand, carrying a task
+through the machinery, folding where it must. The agents are the proteins that
+act on it. The braid is the one place the double helix is literally right: two
+transcripts held by one machine at one moment. In this data there is no such
+moment — the surface says so rather than drawing the mark unexplained — and the
+mark exists, tested, for the first time there is.
+
+---
+
+## 8. Status
 
 **A sketch.** It does not replace the desk, it is not linked from the website,
 and it has not been measured against anything. `ai-ui/src/threads.ts` is the
-layout, with nine tests asserting the properties above;
+layout, with fourteen tests asserting the properties above;
 `ai-ui/scripts/build-threads.ts` renders it to one self-contained file over the
 two real projects.
 

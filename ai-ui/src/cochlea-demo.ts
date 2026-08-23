@@ -405,6 +405,10 @@ interface Step {
  * step 2. Every other sentence, and every other gate verdict, is identical until
  * step 6.
  */
+/** One slot per stage, and what each stage actually occupies inside it. */
+const STAGE_MS = 11 * 60_000;
+const STAGE_TAKES = [7 * 60_000, 9 * 60_000, 2 * 60_000, 4 * 60_000, 8 * 60_000, 3 * 60_000];
+
 function chain(
   id: string,
   title: string,
@@ -507,6 +511,18 @@ function chain(
           digest: `g${Math.abs(Math.round((st.series?.[0] ?? index + 1) * 1e9)) % 100000}`,
           source: "gate.report",
         },
+        /**
+         * When this attempt opened and closed.
+         *
+         * The store has always recorded these; `trace.ts` used to drop them, so
+         * no surface had a clock. Supplied here because this scope is simulated
+         * and says so in the chrome — the same licence under which its digests
+         * are made up. The durations differ per stage because a derivation and a
+         * grid sweep do not take the same time, and a picture where every step
+         * is the same width is a picture with no duration in it at all.
+         */
+        startedAt: updatedAt - (stages.length - index) * STAGE_MS,
+        finishedAt: updatedAt - (stages.length - index) * STAGE_MS + STAGE_TAKES[index % STAGE_TAKES.length]!,
       },
     ],
     ...(st.series ? { series: st.series.map((v) => round(v, 9)) } : {}),

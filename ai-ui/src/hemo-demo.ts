@@ -191,6 +191,17 @@ interface Stage {
   note: string;
 }
 
+/**
+ * One slot per stage, and what each stage occupies inside it.
+ *
+ * Supplied because this scope is simulated and says so, and because a thread
+ * view whose every step is the same width is a picture with no duration in it.
+ * The shape is chosen from what the work is: declaring seven oracles is quick,
+ * scoring 98 rows against all of them is not.
+ */
+const SLOT_MS = 13 * 60_000;
+const TAKES = [3 * 60_000, 11 * 60_000, 9 * 60_000, 6 * 60_000, 2 * 60_000, 4 * 60_000];
+
 function flow(
   id: string,
   title: string,
@@ -212,6 +223,14 @@ function flow(
         runId: `run-${id}-${index}`,
         error: st.state === "done" ? null : `held at step ${index}`,
         observation: st.observation,
+        startedAt: updatedAt - (stages.length - index) * SLOT_MS,
+        // A step that never closed has no finish. `null`, not a guess — the one
+        // held step in this scope is the whole argument of the A4 flow, and
+        // inventing an end for it would draw a duration nobody measured.
+        finishedAt:
+          st.state === "done"
+            ? updatedAt - (stages.length - index) * SLOT_MS + TAKES[index % TAKES.length]!
+            : null,
       },
     ],
     ...(st.series ? { series: st.series } : {}),

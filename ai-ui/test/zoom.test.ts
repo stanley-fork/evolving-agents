@@ -37,6 +37,11 @@ function attempts(n: number, state = "done") {
     digest: `d${i}`,
     source: "captured",
     error: null,
+    // The digest is what this file is about, and it has never needed a clock.
+    // `null` rather than a number on purpose: a fixture that invents timestamps
+    // teaches the reader that these tests depend on them, and they do not.
+    startedAt: null,
+    finishedAt: null,
   }));
 }
 
