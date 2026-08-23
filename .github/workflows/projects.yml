@@ -148,6 +148,18 @@ jobs:
         # says the runs still hold, and this only says that what got published
         # is what was produced.
         run: python3 scripts/check-coclea-results.py
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version-file: ai-base/.node-version
+      - name: The demo's numbers, and the addresses its inspector cites
+        # The demo now lands on two real projects and its inspector cites the
+        # artifacts it read. Both are worth exactly as much as the citations are
+        # true, and a citation is only true until somebody regenerates an
+        # artifact. Built here rather than read from the website repository so
+        # this checks what the current source produces.
+        run: |
+          cd ai-ui && node scripts/build-demo.ts --out /tmp/demo.html
+          cd .. && python3 scripts/check-demo-provenance.py --demo /tmp/demo.html
 
   verify-page:
     name: The verification page's logic

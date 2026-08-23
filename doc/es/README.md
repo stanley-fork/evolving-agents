@@ -75,6 +75,7 @@ Documentos sobre el trabajo, no sobre el sistema.
 | [07 · Política de congelado](07-freeze-policy.md) | Qué significa "congelado" para los otros repos de la organización, operativamente |
 | [08 · Roadmap](08-roadmap.md) | Milestones en orden de dependencia, con los bloqueos dichos con honestidad |
 | [19 · Qué haría que esto importe](19-what-would-make-this-matter.md) | El repositorio completo leído desde afuera: qué corre, para quién es, qué es genuinamente distinto, y un plan ordenado por el hecho de que hay un autor y ningún usuario. **Incluye la deriva que encontró y el check que ahora la frena** |
+| [20 · Todo es un agente](20-everything-is-an-agent.md) | El rediseño del escritorio, del demo y del tour: los agentes como los objetos, los traspasos como cables que se pueden abrir, un Inspector con una segunda posición que le entrega el objeto a un agente — y la regla de que cada hallazgo cita el artefacto que leyó. **Incluye los tres defectos que encontró dibujar los flujos** |
 
 ## Reglas de la casa
 

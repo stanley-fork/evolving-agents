@@ -62,6 +62,47 @@ The failure mode to design against: a generated layout that rearranges itself
 under the user's hands. **Rule: the system proposes on state change; it never
 re-arranges what the user has touched.**
 
+### A fifth property, added 2026-08-23
+
+Four properties held up on re-reading. One was written too small, and the
+correction is in [doc 20](20-everything-is-an-agent.md).
+
+**Steerable** says the user can act on what they see. The stronger version — and
+the one ai-os can do that a diagram cannot — is:
+
+**Delegable.** You can put an agent on it. Not "you can inspect this object", but
+*you can hand this object to an agent and get back what it found*. The inspector
+is not a feature of the tool, it is a participant: `INSPECTOR` has a name, a
+file, and one declared tool, `read`. If it could do something no other agent
+could, "everything is an agent" would be decoration on a special case.
+
+And the property that makes delegation worth more than a chat window, which is
+the one rule of this whole surface:
+
+> **Every finding cites the artifact it read, and the citation is an address.**
+
+When the agent has nothing to read it is required to return `unknown` — not a
+hedge, not a plausible reading — and the desk draws that differently from an
+answer. That is `freezeVerdict`'s split between `blockers` and `unknown`
+([doc 19 §4](19-what-would-make-this-matter.md)) expressed as an affordance
+rather than as a paragraph.
+
+### And the metaphor moved
+
+The desk below was decided against System 7, which was right for *documents laid
+out in space*. It is wrong for *information moving between live things*, because
+nothing on a System 7 desk moves unless you move it — and the flows of
+information are the thing this surface most needs to show.
+
+The reference is NeXT: the object palette, the canvas, the single **Inspector**
+bound to the selection, and above all the **connections you could see and
+inspect**. In Interface Builder you dragged a wire from one object to another and
+the connection became real, in the file. Nobody typed it. Here the objects are
+agents and the wires are handoffs — with the thing that moved travelling along
+one, openable.
+
+The System 7 chrome stays. What it is a metaphor *for* changed.
+
 ## The metaphor: a desk, not a dashboard — decided 2026-08-09
 
 The four words above say what the canvas *does*. They say nothing about what it

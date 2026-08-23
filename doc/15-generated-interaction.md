@@ -5,9 +5,11 @@
 <sub>One object, three times, each with more of it visible — and a fork whose two branches both survive, one of them unresolved.</sub>
 
 > **Part reference, part specification, and the banner says which per section.**
-> Phases 1–4 are built and tested (`ai-ui`, `ai-flows`). Phase 5 is specified and
-> not built. The falsification for all of it is [04's stopwatch](04-ai-ui.md#how-this-gets-falsified),
-> **which has still not run** — so nothing here is claimed to help, only to work.
+> Phases 1–4 are built and tested (`ai-ui`, `ai-flows`). Phase 5's **gesture** is
+> built as of 2026-08-23 and its **write** is not — see the section below for why
+> that split is deliberate. The falsification for all of it is
+> [04's stopwatch](04-ai-ui.md#how-this-gets-falsified), **which has still not
+> run** — so nothing here is claimed to help, only to work.
 
 ## What made the GUI disruptive, and what did not
 
@@ -170,7 +172,7 @@ never re-arranges what a person touched — and today that guarantee is
 notice it being destroyed. A pinned node that cannot animate is how the page says
 it without a legend. `prefers-reduced-motion` disables all three.
 
-## Phase 5 · The gesture that edits the system — **specification, not built**
+## Phase 5 · The gesture that declares a relationship — **half built, 2026-08-23**
 
 Drag cube `ReviewAgent` onto cube `MigrationAgent`. That *is* declaring it a
 subagent. The model writes the diff to `MigrationAgent.md`, shows it, and a person
@@ -181,10 +183,28 @@ edits **the definition of the system**, not its data. It is possible here and
 almost nowhere else, because in ai-os the agents are markdown files. The desk
 stops being a viewer of ai-os and becomes an editor of it.
 
-**Not built, deliberately.** It writes to a scope's workspace through a path the
-desk does not currently have, and it is the one item on this list where being
-wrong edits the system rather than a record of it. It should follow the stopwatch,
-not precede it.
+### What was built, and what deliberately was not
+
+The redesign in [doc 20](20-everything-is-an-agent.md) built the **gesture** and
+left the **write** alone, which is a real split rather than a compromise.
+
+**Built:** dragging `INSPECTOR` onto a flow declares a relationship — *this agent
+is reading this flow* — and the desk acts on the declaration instead of appending
+a step. The drop is the whole instruction; nothing is typed. That is the shape of
+the gesture, working, on a system agent whose only tool is `read`.
+
+**Not built:** the write to `MigrationAgent.md`. It is the one item on this list
+where being wrong edits the system rather than a record of it, it needs a path
+into a scope's workspace the desk does not have, and it should follow the
+stopwatch rather than precede it. Nothing has changed about that argument.
+
+**Why `INSPECTOR` was the safe one to start with.** A relationship that only ever
+*reads* cannot corrupt the thing it declares itself about. If the gesture turns
+out to be wrong — ambiguous, too easy to trigger by accident, unreadable to
+somebody who has not been told — the cost of finding that out is a panel showing
+the wrong finding, not a modified agent file. Building the dangerous version
+first would have made the gesture and the write fail together, with no way to
+tell which one was the mistake.
 
 ## What running it found — 2026-08-11 [ran]
 
