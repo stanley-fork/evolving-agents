@@ -226,6 +226,47 @@ body{overflow:hidden}
 /* Walking between places: whole pixels, never a glide. */
 .acube.moving{transition:transform .45s steps(12)}
 
+/* ---- the chrome, quieted -------------------------------------------------
+   Overrides on top of the shared bar, not edits to it: vocabulary.ts styles
+   every surface in this repository and the desk does not get to decide how the
+   explorer looks.
+
+   The bar carried nine controls at equal weight above the thing they act on,
+   and none of them is what a visitor came to do. What is left is what changes
+   what you are looking at -- the scope -- and everything that *makes* something
+   is behind one plus sign. */
+.menubar{padding:4px 12px;gap:10px;font-size:11px}
+.menubar .sim{font-size:10px}
+.menubar #counts{color:var(--dim)}
+.menubar .right{font-size:10px;opacity:.55}
+.menubar button.quiet{border-color:#b8b3a8;box-shadow:none;background:transparent;color:#4a4e53}
+.menubar button.quiet:hover{background:var(--face)}
+.make{position:relative;display:inline-flex}
+.make>button{font-weight:700;padding:1px 8px;line-height:1.35}
+.makemenu{position:absolute;top:calc(100% + 5px);left:0;z-index:500;display:flex;flex-direction:column;
+  min-width:150px;background:var(--face);border:1px solid #000;box-shadow:3px 3px 0 rgba(0,0,0,.4);padding:3px}
+.makemenu[hidden]{display:none}
+.makemenu button{border:0;box-shadow:none;background:transparent;text-align:left;padding:4px 8px}
+.makemenu button:hover{background:#2f6fb5;color:#fff}
+
+/* ---- focus --------------------------------------------------------------
+   Selecting a flow should make it the thing you are looking at. Everything else
+   steps back rather than disappearing: a desk where the unselected work vanished
+   would be a desk that had answered a question nobody asked. */
+.deskbg.focused .docnode{opacity:.42;filter:saturate(.55)}
+.deskbg.focused .docnode.sel{opacity:1;filter:none;box-shadow:5px 5px 0 rgba(0,0,0,.4)}
+.deskbg.focused .wires g{opacity:.28}
+.deskbg.focused .wires g.inflow{opacity:1}
+@media (prefers-reduced-motion: no-preference){
+  .docnode{transition:opacity .18s linear,filter .18s linear}
+}
+
+/* The wire swatches in the key, drawn with the same rules as the wires. */
+.key .wkey{flex:1 1 100%}
+.key li.wk{align-items:center;gap:7px;padding:2px 0;line-height:1.35}
+.key li.wk svg{flex:0 0 auto}
+.key li.wk b{font-weight:700}
+
 /* ---- the wires -----------------------------------------------------------
    The flows of information, drawn.
 
@@ -252,7 +293,11 @@ body{overflow:hidden}
 .wires g.sel path.w{stroke-width:4}
 .wires g.sel path.w.unknown{stroke-width:2.5}
 /* The packet. A real thing on a real wire -- clicking it opens what moved. */
-.wires circle.pkt{r:3.5;pointer-events:none}
+/* The packet is the hero: the only thing on this surface that moves, and the
+   brightest mark on it. Everything else holds still so that motion means one
+   thing -- information travelling. */
+.wires circle.pkt{r:4.5;pointer-events:none;stroke:#fff;stroke-width:1.25;
+  filter:drop-shadow(0 0 3px rgba(0,0,0,.35))}
 .wires circle.pkt.carried{fill:#2f6fb5}
 .wires circle.pkt.ignored{fill:#b5651d}
 .wires circle.pkt.blocked{fill:#a52a2a}
@@ -750,6 +795,7 @@ const DESK_JS = "(() => {\n" + CREATURES_JS + BUS_JS + INSPECTOR_JS + String.raw
       }
 
       const g = document.createElementNS(NS, 'g');
+      g.dataset.flow = w.flowId;
       if (selected && selected.kind === 'wire' && selected.id === w.id) g.setAttribute('class', 'sel');
 
       const path = document.createElementNS(NS, 'path');
@@ -770,7 +816,7 @@ const DESK_JS = "(() => {\n" + CREATURES_JS + BUS_JS + INSPECTOR_JS + String.raw
       if (w.packet && !reduced) {
         const c = document.createElementNS(NS, 'circle');
         c.setAttribute('class', 'pkt ' + w.state);
-        c.setAttribute('r', '3.5');
+        c.setAttribute('r', '4.5');
         const m = document.createElementNS(NS, 'animateMotion');
         m.setAttribute('dur', (2.4 + (w.fromIndex % 3) * 0.35) + 's');
         m.setAttribute('repeatCount', 'indefinite');
@@ -793,6 +839,11 @@ const DESK_JS = "(() => {\n" + CREATURES_JS + BUS_JS + INSPECTOR_JS + String.raw
       frag.appendChild(g);
     }
     svg.replaceChildren(frag);
+    // The groups were just rebuilt, so whatever was in focus has to be marked
+    // again. Without this a poll silently un-focuses the flow somebody is
+    // reading -- the same class of bug as the panel that lost its answer every
+    // five seconds.
+    if (typeof focus === 'function') focus();
   }
 
   // ---- selection panel ----------------------------------------------------
@@ -805,9 +856,30 @@ const DESK_JS = "(() => {\n" + CREATURES_JS + BUS_JS + INSPECTOR_JS + String.raw
    * to the other. Whoever else wants to know now hears it from the surface that
    * decided it.
    */
+  /**
+   * Bring the selection forward and step everything else back.
+   *
+   * Not hiding: a desk where unselected work vanished would have answered a
+   * question nobody asked. The unselected documents dim and desaturate, their
+   * wires go quiet, and the one you picked keeps its full contrast -- which is
+   * the only way a six-agent chain crossing a surface with four other chains on
+   * it is followable at all.
+   */
+  const focus = () => {
+    const deck = document.querySelector('.deskbg');
+    const flowId = selected && (selected.kind === 'doc' ? selected.id
+      : selected.kind === 'wire' ? (wireById(selected.id) || {}).flowId : null);
+    deck.classList.toggle('focused', !!flowId);
+    for (const el of surface.querySelectorAll('.docnode'))
+      el.classList.toggle('sel', el.dataset.id === flowId);
+    for (const g of document.querySelectorAll('.wires g'))
+      g.classList.toggle('inflow', g.dataset.flow === flowId);
+  };
+
   const select = (kind, id) => {
     selected = { kind, id };
     renderPanel();
+    focus();
     window.dispatchEvent(new CustomEvent('desk:select', { detail: { kind: kind, id: id } }));
   };
 
@@ -1079,8 +1151,21 @@ const DESK_JS = "(() => {\n" + CREATURES_JS + BUS_JS + INSPECTOR_JS + String.raw
 
   const renderPanel = () => {
     const p = document.getElementById('panel');
-    if (!selected) { p.style.display = 'none'; return; }
-    p.style.display = 'block';
+    /**
+     * Nothing selected is not nothing to say.
+     *
+     * The panel used to disappear, which left a gap in the rail and taught a
+     * visitor nothing. It now holds the key — the same one that used to be a
+     * separate permanent window — so the vocabulary is read once, in the place
+     * the answers will appear, and is replaced by the first thing clicked.
+     */
+    if (!selected) {
+      p.querySelector('h2').textContent = 'Inspector';
+      p.querySelector('.win-body').innerHTML = (S.key || '') +
+        '<div class="note">Click any box, any line, or the dot travelling one. ' +
+        'Whatever you pick, this panel becomes about it.</div>';
+      return;
+    }
     p.classList.add('insp');
     /**
      * A wire, which is a thing you can select now.
@@ -1092,7 +1177,7 @@ const DESK_JS = "(() => {\n" + CREATURES_JS + BUS_JS + INSPECTOR_JS + String.raw
      */
     if (selected.kind === 'wire') {
       const w = wireById(selected.id);
-      if (!w) { selected = null; p.style.display = 'none'; return; }
+      if (!w) { selected = null; renderPanel(); return; }
       const i = inspectWire(w);
       p.querySelector('h2').textContent = 'Inspector';
       p.querySelector('.win-body').innerHTML =
@@ -1118,7 +1203,7 @@ const DESK_JS = "(() => {\n" + CREATURES_JS + BUS_JS + INSPECTOR_JS + String.raw
     }
     if (selected.kind === 'doc') {
       const doc = S.docs.find((d) => d.id === selected.id);
-      if (!doc) { selected = null; p.style.display = 'none'; return; }
+      if (!doc) { selected = null; renderPanel(); return; }
       const next = doc.steps.find((s) => s.state === 'pending' || s.state === 'running');
       if (tab === 'trace' && inspectMode === 'read') {
         p.querySelector('h2').textContent = 'Inspector';
@@ -1227,7 +1312,7 @@ const DESK_JS = "(() => {\n" + CREATURES_JS + BUS_JS + INSPECTOR_JS + String.raw
       }
     } else {
       const a = S.agents.find((x) => x.name === selected.id);
-      if (!a) { selected = null; p.style.display = 'none'; return; }
+      if (!a) { selected = null; renderPanel(); return; }
       // What this one is doing, and where -- read off the same steps the
       // creatures are drawn from. Before this, clicking an agent told you what
       // it was *for*, which is the description somebody wrote, and said nothing
@@ -1862,6 +1947,30 @@ const DESK_JS = "(() => {\n" + CREATURES_JS + BUS_JS + INSPECTOR_JS + String.raw
 
   function closeNew() { newForm.style.display = 'none'; newTitle.value = ''; newGoal.value = ''; }
 
+  /**
+   * The one control that makes things.
+   *
+   * Five buttons at equal weight on the bar above the desk, none of which is
+   * what a visitor came to do. Behind a plus they are still one click away and
+   * they have stopped competing with the work. Closes on the next click
+   * anywhere, on Escape, and on choosing something -- a menu that stays open
+   * after you use it is a menu you have to dismiss.
+   */
+  (() => {
+    const open = document.getElementById('mkopen');
+    const menu = document.getElementById('makemenu');
+    if (!open || !menu) return;
+    const shut = () => { menu.hidden = true; open.setAttribute('aria-expanded', 'false'); };
+    open.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      menu.hidden = !menu.hidden;
+      open.setAttribute('aria-expanded', menu.hidden ? 'false' : 'true');
+    });
+    menu.addEventListener('click', () => setTimeout(shut, 0));
+    window.addEventListener('click', shut);
+    window.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') shut(); });
+  })();
+
   document.getElementById('newdoc').addEventListener('click', function () {
     var open = newForm.style.display !== 'none';
     if (open) { closeNew(); return; }
@@ -1988,10 +2097,30 @@ const DESK_JS = "(() => {\n" + CREATURES_JS + BUS_JS + INSPECTOR_JS + String.raw
 })();
 `;
 
+/**
+ * The vocabulary, in the panel that will answer with it.
+ *
+ * The five wire marks come first, and that ordering is the argument. What a box
+ * is coloured is ordinary; **what a line between two boxes means is the thing
+ * this surface exists to say**, and the distinction it most needs a reader to
+ * hold is that `unknown` and `open` are not weaker versions of a verdict. They
+ * are the refusal to give one, and they are marked so they cannot be mistaken
+ * for it at a glance, in a screenshot, or by somebody who does not see colour.
+ */
 function legend(): string {
   const sw = (color: string, label: string) =>
     `<li><span class="cube" style="--c:${color}"></span><span>${esc(label)}</span></li>`;
+  const wire = (cls: string, label: string, gloss: string) =>
+    `<li class="wk"><svg width="34" height="10" aria-hidden="true"><path class="w ${cls}" d="M1 5 H33"/></svg>` +
+    `<span><b>${esc(label)}</b> — ${esc(gloss)}</span></li>`;
   return `<div class="key">
+    <div class="wkey"><strong>Between two agents</strong><ul>
+      ${wire("carried", "carried", "something moved and the next step used it")}
+      ${wire("ignored", "carried nothing forward", "it arrived and nothing used it")}
+      ${wire("blocked", "did not pass", "it ran, measured, and came out against its threshold")}
+      ${wire("open", "no verdict yet", "it arrived and nothing has been decided")}
+      ${wire("unknown", "unrecorded", "nothing was recorded about this hop at all")}
+    </ul></div>
     <div><strong>Agents</strong><ul>${sw(AGENT_COLOR, "agent")}${sw(SUBAGENT_COLOR, "subagent")}${sw(MISSING_COLOR, "declared, no file")}${sw(PERSON_COLOR, "person")}</ul></div>
     <div><strong>Steps</strong><ul>${statesByColor()
       .map(([color, names]) => sw(color, names.join(" / ")))
@@ -2022,6 +2151,16 @@ export function renderDeskHtml(view: DeskView): string {
   ];
 
   const client = {
+    /**
+     * The vocabulary, carried in the state rather than as a second global.
+     *
+     * It could have been its own script tag, and that is how it was written
+     * first -- which broke three tests that parse the state tag by reading to
+     * the next closing tag, and would have broken a fourth that counts the tags.
+     * The page having exactly one place where its state lives is worth more than
+     * the tidiness of a separate constant.
+     */
+    key: legend(),
     scopeId: view.scopeId,
     channels,
     docs: view.docs,
@@ -2042,22 +2181,32 @@ export function renderDeskHtml(view: DeskView): string {
 <style>${CHROME_CSS}${CREATURE_CSS}${DESK_CSS}${NEWFORM_CSS}${view.simulate ? TOUR_CSS + MASCOT_CSS : ""}</style>
 <div class="menubar">
   <span class="apple">ai-os</span>
-  ${view.simulate ? `<span class="sim">Simulated — no core, no model, nothing stored</span><span class="dim">reloading starts over</span>` : ""}
-  <span class="sep">|</span>
+  ${view.simulate ? `<span class="sim">Simulated — no core, no model, nothing stored</span>` : ""}
   <label>Scope <select id="scope">${view.scopes
     .map(
       (s) =>
         `<option value="${esc(s.scopeId)}"${s.scopeId === view.scopeId ? " selected" : ""}>${esc(s.label)}</option>`,
     )
     .join("")}</select></label>
-  <span class="sep">|</span>
-  <span id="counts">${esc(view.docs.length)} document(s) · ${esc(view.agents.length)} agent(s) · ${esc(view.people.length)} person(s)</span>
-  <button id="newproj">New project</button>
-  <button id="newagent">New agent</button>
-  <button id="newfile">Add material</button>
-  <button id="newdoc">New document</button>
-  <button id="reload">Refresh</button>
-  <span class="right">harness ${esc(view.harness)} · <span id="stamp">${esc(new Date(view.at).toISOString())}</span></span>
+  <span id="counts">${esc(view.docs.length)} document(s) · ${esc(view.agents.length)} agent(s)</span>
+  <!--
+    Five buttons became one.
+
+    The bar carried New project, New agent, Add material, New document and
+    Refresh, all at equal weight, next to a scope selector and two badges — nine
+    controls on the line above the thing they act on, competing with it. None of
+    them is what a visitor came to do. Behind one `+` they are still one click
+    away and they have stopped shouting.
+  -->
+  <span class="make"><button id="mkopen" aria-haspopup="true" aria-expanded="false" title="Make something">+</button>
+    <span class="makemenu" id="makemenu" hidden>
+      <button id="newdoc">New document</button>
+      <button id="newagent">New agent</button>
+      <button id="newfile">Add material</button>
+      <button id="newproj">New project</button>
+    </span></span>
+  <button id="reload" class="quiet" title="Re-read the state">Refresh</button>
+  <span class="right" title="harness ${esc(view.harness)}"><span id="stamp">${esc(new Date(view.at).toISOString())}</span></span>
 </div>
 <div class="win newform" id="newagentform" style="display:none">
   <div class="bar"><span class="box"></span><h2>New agent</h2><span class="box zoom"></span></div>
@@ -2104,19 +2253,25 @@ export function renderDeskHtml(view: DeskView): string {
   <div class="drawer" id="drawer"></div>
 </div>
 <div class="rail">
-  <div class="win panel" id="panel" style="display:none">
-    <div class="bar"><span class="box"></span><h2>Selected</h2><span class="box zoom"></span></div>
-    <div class="win-body"></div>
+  <!--
+    One panel, always present.
+
+    There used to be two: a *Selected* panel that appeared when you clicked
+    something, and a permanent *Key* explaining what the marks meant. A legend is
+    a manual, and shipping a manual beside an interface is the interface saying
+    it did not manage to be legible. So the key became what this panel shows when
+    nothing is selected — you read it exactly once, in the place you are already
+    looking, and it is replaced by the thing itself the moment you click.
+  -->
+  <div class="win panel insp" id="panel">
+    <div class="bar"><span class="box"></span><h2>Inspector</h2><span class="box zoom"></span></div>
+    <div class="win-body">${legend()}</div>
   </div>
   <div class="win panel" id="live">
     <div class="bar"><span class="box"></span><h2>Documents</h2><span class="box zoom"></span></div>
     <div class="win-body"></div>
   </div>
   <div class="spacer"></div>
-  <div class="win panel" id="key">
-    <div class="bar"><span class="box"></span><h2>Key</h2><span class="box zoom"></span></div>
-    <div class="win-body">${legend()}</div>
-  </div>
 </div>
 <div class="toast" id="toast"></div>
 <script>window.__DESK__ = ${jsonForScript(client)};</script>
