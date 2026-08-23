@@ -57,7 +57,7 @@ no.
 
 <a href="https://evolvingagentslabs.github.io/demo/"><img src="doc/assets/manual/09-desk.jpg" alt="El escritorio: flows como documentos, agentes como cubitos apilados encima" width="100%"></a>
 
-<sub><b><a href="https://evolvingagentslabs.github.io/demo/">Probá el escritorio →</a></b> La interfaz real con un backend simulado. Sin instalar nada, sin gastar nada.</sub>
+<sub><b><a href="https://evolvingagentslabs.github.io/demo/">Probá el escritorio →</a></b> El demo: la interfaz real con un backend simulado, así no se instala ni se gasta nada. Como el backend es simulado, todos los números que muestra son inventados — y cuando quieras los de verdad, <b><a href="https://evolvingagentslabs.github.io/verify/">chequealos vos mismo</a></b>: artefactos reales, re-derivados en tu propio navegador, sin red y sin servidor. Esa página no es un demo y no pretende serlo.</sub>
 
 ## Correrlo
 

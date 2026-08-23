@@ -54,7 +54,7 @@ attached too — including the ones that came back saying it did not.
 
 <a href="https://evolvingagentslabs.github.io/demo/"><img src="doc/assets/manual/09-desk.jpg" alt="The desk: flows as documents, agents as cubes stacked on them" width="100%"></a>
 
-<sub><b><a href="https://evolvingagentslabs.github.io/demo/">Try the desk →</a></b> The real interface with a simulated backend. Nothing installed, nothing spent.</sub>
+<sub><b><a href="https://evolvingagentslabs.github.io/demo/">Try the desk →</a></b> The demo: the real interface with a simulated backend, so nothing is installed and nothing is spent. Because the backend is simulated, every number on it is invented — and when you want the real ones, <b><a href="https://evolvingagentslabs.github.io/verify/">check them yourself</a></b>: real artifacts, re-derived in your own browser, no network and no server. That page is not a demo and does not try to be.</sub>
 
 ## Run it
 
