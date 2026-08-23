@@ -201,7 +201,11 @@ const html = renderDeskHtml({
   scopeId: "group:web-project-demo",
   scopeLabel: "group:web-project-demo",
   harness: "simulated",
-  at: 0,
+  // DEMO_AT, not 0. The desk renders this as `new Date(at).toISOString()`, so a
+  // zero here published `1970-01-01T00:00:00.000Z` in the chrome while every
+  // flow beneath it correctly said "43 hours ago" -- a page that exists to show
+  // state, showing a state nobody could have been in.
+  at: DEMO_AT,
   docs,
   agents: world.agents as never,
   people: ["matias", "ada", "priya"],
