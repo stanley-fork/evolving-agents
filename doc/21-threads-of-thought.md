@@ -229,8 +229,28 @@ mark exists, tested, for the first time there is.
 
 ## 8. Status
 
-**It is the demo, as of 2026-08-23.** `/demo/` is the thread view; the desk is
-still built, still tested, still what `make up` serves, and no longer published.
+**The bundle is the demo, as of 2026-08-23.** `/demo/` is `build-helix.ts`: one
+axis that is time, every flow a strand wound around it, and depth standing for
+attention. The swimlane view in this document and the desk before it are both
+still built, still tested, and no longer published — the desk is what `make up`
+serves.
+
+The bundle is not a different idea from the swimlanes; it is the same data with
+the second dimension spent differently. Swimlanes spend Y on *which agent holds
+it*, which is legible and does not scale: eleven agents is eleven rows. The
+bundle spends Y and Z on *which strand*, and puts the agent on the strand as a
+body riding it — which is both the RNA-and-polymerase picture and the right way
+round, because an agent holds a task for a while and hands it on, and it is the
+task that persists.
+
+What the bundle can do that the swimlanes cannot: **turn**. Rotation is a way of
+paying attention — a strand comes forward without anything else moving out of the
+way — and because it is a claim about what deserves looking at, it carries the
+same address rule as every finding on the surface. `assertJustified` throws on a
+reason with no address.
+
+What it costs: strands at 2π/n are legible as a bundle up to maybe eight, and
+past that the same aggregation problem returns in a new shape.
 That was the author's call, made when the sketch was working and the desk was
 live beside it, and the reasoning is worth recording because it is not obvious:
 

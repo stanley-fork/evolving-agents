@@ -839,6 +839,135 @@ const JS = String.raw`
   draw();
   styleLive();
   animate();
+
+  /**
+   * Play — the bundle, driving itself.
+   *
+   * The rule every tour in this repository lives under: each beat operates the
+   * **real controls** — the real attention rows, the real zoom buttons, the real
+   * scene selector, the real attach button — and then lets the page react
+   * however it reacts. Nothing draws a frame or asserts an outcome, so if the
+   * surface breaks the tour breaks. Any real gesture stops it where it stands.
+   */
+  (() => {
+    const bar = document.createElement('div');
+    bar.className = 'tourbar';
+    bar.innerHTML = '<button id="tourgo">Play</button><span id="tourcap">' +
+      'Watch it use itself — every beat is a real control, not a recording.</span>';
+    document.body.appendChild(bar);
+
+    let running = false, stop = false;
+    const cap = (t) => { document.getElementById('tourcap').textContent = t; };
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const halt = () => { if (!running) return; stop = true;
+      cap('Stopped — it is yours. Drag to turn it, scroll to zoom, click anything.'); };
+    for (const ev of ['pointerdown', 'keydown', 'wheel'])
+      window.addEventListener(ev, (e) => { if (e.isTrusted) halt(); }, true);
+
+    const press = async (id, n) => {
+      for (let i = 0; i < (n || 1) && !stop; i += 1) {
+        const b = document.getElementById(id);
+        if (b) b.click();
+        await sleep(200);
+      }
+    };
+    /** Click a row in the attention list — the real one, by its flow id. */
+    const turnRow = async (i) => {
+      const rows = [...document.querySelectorAll('.att .row')];
+      if (rows[i]) rows[i].click();
+      await sleep(900);
+    };
+    const scene = async (id) => {
+      const s = document.getElementById('scene');
+      s.value = id;
+      s.dispatchEvent(new Event('change', { bubbles: true }));
+      await sleep(1200);
+    };
+
+    const beats = [
+      async () => {
+        cap('Every flow is a strand wound round one axis, and the axis is time. The right edge is now, and everything drifts left because the clock is running.');
+        await sleep(4000);
+      },
+      async () => {
+        cap('They separate in depth, not in height. What is bright and thick is at the front; what is faint is behind the bundle — still there, still clickable.');
+        await sleep(3800);
+      },
+      async () => {
+        cap('The bundle is already turned to the strand with a step open right now. Turning is a claim, so the panel says which strand, why, and where it read that.');
+        await sleep(4200);
+      },
+      async () => {
+        cap('The circles are the agents, riding the strand they are holding. Where a strand has a hollow mark instead, nobody is holding it — that is the thing in transit between two of them.');
+        await sleep(4200);
+      },
+      async () => {
+        cap('Turn it to something else. This one stops against a bar and never comes back: a gate declared before the run measured 2.592e-4 against a tolerance of 1.0e-4.');
+        await turnRow(1);
+        await sleep(4000);
+      },
+      async () => {
+        /**
+         * Zoom out until the coil actually stops, not a fixed number of presses.
+         *
+         * Four presses reached twenty-four hours, where a turn is still about
+         * seventy-five pixels — so the beat claimed the coil had stopped being
+         * drawn while the screen was still drawing it. The number of presses
+         * that crosses the threshold depends on the window width, which the tour
+         * cannot know. So it presses until the page says it is flat, and gives up
+         * rather than looping if it never does.
+         */
+        cap('Zoom out far enough and the coil stops being drawn — one turn would be narrower than the marks drawing it, so what you would see is the sampling and not the shape. It says so rather than drawing it.');
+        for (let i = 0; i < 9 && !stop; i += 1) {
+          if (/flat/.test(document.getElementById('lvl').textContent)) break;
+          await press('zout');
+        }
+        await sleep(4200);
+      },
+      async () => {
+        cap('Back in, and it winds again.');
+        await press('znow');
+        await sleep(2600);
+      },
+      async () => {
+        cap('Put the system agent on it. INSPECTOR is an agent like the others, with one tool: read. It attaches to the front strand and rides it.');
+        await press('watch');
+        await sleep(4200);
+      },
+      async () => {
+        cap('What it says carries the address it read — one click and you are looking at what it looked at. When it has nothing to read, it is required to say unknown.');
+        await sleep(4000);
+      },
+      async () => {
+        cap('The other project. No closed form exists there, so the judge itself goes on trial — and one strand frays and stops, because no verdict has been reached.');
+        await scene('hemo-verified');
+        await sleep(4400);
+      },
+      async () => {
+        cap('And here the bundle turns on its own, to a strand that is green all the way through and wrong: a step used nothing it was given. That is the finding this whole system exists to make visible.');
+        await scene('memory-lab');
+        await sleep(4800);
+      },
+      async () => {
+        cap('It is yours. Drag to turn it, scroll to zoom, click any strand or any row.');
+        await sleep(2200);
+      },
+    ];
+
+    const play = async () => {
+      if (running) { halt(); return; }
+      running = true; stop = false;
+      document.getElementById('tourgo').textContent = 'Stop';
+      for (const beat of beats) {
+        if (stop) break;
+        try { await beat(); }
+        catch (e) { cap('The tour hit something the page did not expect: ' + e.message); break; }
+      }
+      running = false; stop = false;
+      document.getElementById('tourgo').textContent = 'Play again';
+    };
+    document.getElementById('tourgo').onclick = play;
+  })();
 })();
 `;
 
