@@ -343,7 +343,25 @@ export function threadsOf(docs: ThreadDoc[], humanLabel = "you"): ThreadWorld {
       }
       const sp = stepSpan(s);
       const x0 = sp.start != null ? (sp.start - t0) / 60_000 : after + MIN_CROSS_MS / 60_000;
-      const x1 = sp.end != null ? (sp.end - t0) / 60_000 : x0 + MIN_REST;
+      /**
+       * A step that started and has not finished runs up to the present.
+       *
+       * It used to get a fixed minimum width, so the one open step in the demo
+       * was drawn as a stub that ended a minute after it began — a picture of
+       * work that stopped, of work that is still going. On a time axis an
+       * unclosed step reaches the latest moment anything was recorded, and a
+       * renderer that knows the real clock can carry it further.
+       *
+       * `sp.start != null && sp.end == null` is the test, not the step's state
+       * string: what makes a step open is an attempt with no finish, and that is
+       * a fact in the store rather than a label on top of it.
+       */
+      const stillOpen = sp.start != null && sp.end == null;
+      const x1 = sp.end != null
+        ? (sp.end - t0) / 60_000
+        : stillOpen
+          ? (t1 - t0) / 60_000
+          : x0 + MIN_REST;
       const out = { x0, x1: Math.max(x1, x0 + MIN_REST) };
       if (out.x1 > after) after = out.x1;
       return out;
