@@ -1,21 +1,40 @@
 # Next
 
-> **Snapshot, 2026-08-09.** A plan is the document most likely to rot, so this
-> one is short and dated. If it disagrees with `doc/`, `doc/` is right.
+> **Snapshot, 2026-08-23, after P0.** A plan is the document most likely to rot,
+> so this one is short and dated. The version before this one carried
+> `2026-08-09` and was nineteen merged pull requests behind by the time anybody
+> noticed — which is the finding that produced
+> [19](doc/19-what-would-make-this-matter.md).
+> If this disagrees with `doc/`, `doc/` is right.
 
 ## Where things stand
 
-`ai-base`, `ai-flows` and `ai-ui` run. `ai-storage` does not exist. 402 tests of
-our own; CI checks that number against the suites, so it cannot drift again.
+`ai-base`, `ai-flows` and `ai-ui` run — **626 tests of our own**, checked against
+the suites by CI so the number cannot drift again. `ai-memory` runs the six
+memory agents as a tree. **`ai-storage` still does not exist.**
 
-Everything is merged to `main` in both repositories, nothing is open, and
-[the site](https://evolvingagentslabs.github.io/) serves a
-[playable desk](https://evolvingagentslabs.github.io/demo/).
+Two projects run **on** the OS, and as of today both of them run **in CI**:
+
+- [`projects/coclea-sr/`](projects/coclea-sr/) — **28 gates / 135 checks, all
+  green**, now confirmed on CI in 23m27s as well as on the author's machine;
+  every §10 milestone closed, `make reproduce` REPRODUCED. The narrative
+  is [18](doc/18-from-a-hypothesis-to-a-therapeutic-surface.md); what to do next
+  on it is [doc/PLAN.md](doc/PLAN.md).
+- [`projects/hemo-verified/`](projects/hemo-verified/) — H0 survives at **AUC
+  0.906** against a kill threshold of 0.80, and its report reproduces **1207 of
+  1207 fields bit-identical** on a machine that has never seen it.
+
+[`projects.yml`](.github/workflows/projects.yml) runs both nightly, on demand,
+and on any PR touching `projects/`. Until 2026-08-23 there was no Python in CI at
+all, and [19 §7](doc/19-what-would-make-this-matter.md#7--what-running-p0-found-on-the-same-day)
+is what building it found — including an attested `h0.json` that could not have
+been produced by the code committed beside it.
 
 ## Getting the stack back up
 
 Postgres runs in Docker as `aios-pg` on **55432** (`aios/aios`). Two databases:
-`aiosui` for the live instance, `flowtest` for the test suite.
+`aiosui` for the live instance, `flowtest` for the test suite. `make up` does the
+whole sequence; the long form:
 
 ```bash
 export SP=/tmp/aios-data                       # anywhere; workspaces live here
@@ -39,81 +58,154 @@ anything that did not land.
 **The whole gate**, which is what CI runs — not a subset of it:
 
 ```bash
-cd ai-ui    && npm run typecheck && npm test
-cd ai-flows && npm run typecheck && npm run typecheck:scripts \
-            && DATABASE_URL="postgresql://aios:aios@localhost:55432/flowtest" npm test
-cd ai-base  && npm run format:check && npm run lint && npm run lint:knip
-cd ..       && DATABASE_URL="postgresql://aios:aios@localhost:55432/flowtest" \
-               ./scripts/check-test-count.sh
+make gate       # the TypeScript, plus every published-number check
+make projects   # the two projects' own evidence; minutes, not seconds
 ```
 
-Regenerate the site demo after any desk change:
-`cd ai-ui && node scripts/build-demo.ts --out ../../evolvingagentslabs.github.io/demo/index.html`
+**Before publishing the website**, which is a separate repository CI cannot see:
+
+```bash
+python3 scripts/check-gate-count.py    --also ../evolvingagentslabs.github.io
+python3 scripts/check-coclea-results.py --also ../evolvingagentslabs.github.io
+```
+
+Both scan `.html` as well as `.md`. The site carried <!-- gate-count: superseded -->
+*26 gates / 125 checks* on
+two pages after the repository had been corrected, which is the whole argument
+for the flag.
+
+Regenerate the two demos when what they show changes:
+
+```bash
+# the desk — the real client with a simulated backend
+cd ai-ui && node scripts/build-demo.ts --out ../../evolvingagentslabs.github.io/demo/index.html
+
+# /verify/ — real artifacts, checked in the reader's browser. Test first: the
+# page reimplements sha256 and Python's canonical form, and both are the kind of
+# thing that is nearly right for a long time.
+node scripts/verify-page/test.mjs
+python3 scripts/build-verify-page.py --out ../evolvingagentslabs.github.io/verify/index.html
+```
 
 ---
 
-## 1. Run M5's stopwatch — start here
+The order below continues [19 § The plan](doc/19-what-would-make-this-matter.md#6--the-plan)
+now that P0 is done. Each item says what finishing it means and what would say it
+was the wrong item to pick.
 
-**Why first.** It is the only debt the design set itself, it is cheap, and it is
-the one task that can save us from building on a false premise. Every other item
-below assumes the desk is worth having.
+## 1. Watch the checks, now that all five are in
 
-**The measurement**, unchanged from [04-ai-ui § How this gets falsified](doc/04-ai-ui.md):
-a person, and a flow **they did not run**, three days old. Time to answer *what
-is the state, what is blocked, what did it produce?* — desk against the `web-ui`
-transcript.
+[19 §8](doc/19-what-would-make-this-matter.md#8--every-published-number-and-what-checks-it)
+enumerates every number this repository publishes. **Five of nine are guarded**;
+the four that are not came from runs nobody kept, and no checker is possible for
+them.
 
-**The claim:** the desk is faster, and the gap widens with flow age.
+The two built last are:
+
+- **`scripts/check-coclea-results.py`** — 11.6%, 24 of 24, −1.22 dB with CI
+  [−1.58, −0.87], Q 2.2–2.7 and CF ≈ 1 kHz, read out of the run artifacts that
+  `ledger.jsonl` says are current. It derives which run counts from the ledger's
+  `superseded` entries rather than sorting directory names, and it passes
+  `parse_constant` a function that raises, because two of the twenty artifacts
+  are intact and not valid JSON (F8) and `json.load` accepts both.
+- **`scripts/check-upstream-test-count.sh`** — the number beside 626 on the front
+  page, which a weekly `git subtree pull` can change without anybody noticing. It
+  runs `ai-base`'s suite unsharded in the nightly rather than summing five matrix
+  shards through artifacts.
+
+**What is left is not construction.** The workflow has now run green end to end:
+**135 checks in 23 minutes 27 seconds on a GitHub runner**, the first execution
+of the whole suite anywhere but the author's machine, with the report hygiene,
+the ledger, the slack audit and the published count all green behind it. What
+remains is to watch the first few *scheduled* firings — the nightly trigger
+itself has not fired yet, and a schedule nobody has seen fire is a schedule.
+
+**Wrong item if:** the six-entry claim table in `check-coclea-results.py` starts
+needing edits for reasons other than somebody publishing a new claim. That is the
+line between the list of claims and a second thing to keep in sync, and it is
+worth re-reading the file's header before adding the seventh entry.
+
+## 2. Decide what A4's per-oracle AUC means
+
+Not a checker's decision, and it is now well characterised: `A4 alone` moves
+0.706 → 0.652 between numerical stacks because 66 of its 98 measurements are
+exactly `0.0` and one uncorrupted case crosses into that tie block. The same
+stack on a different machine is bit-identical, so this is a library-version
+fragility rather than noise — which means it will move silently at the next
+upgrade.
+
+Two defensible answers, and they belong to whoever owns the science: report A4
+without an AUC, since it is `HARD` and its own docstring says it has "no score to
+weigh"; or floor the measurement at the field's numerical precision so values
+indistinguishable from zero are zero. Do not pick by which number looks better.
+
+**Finished means:** the README's A4 row either stops carrying a rank statistic
+or carries one that survives a numpy upgrade.
+
+## 3. Seed the flow for M5's stopwatch, today
+
+**It has to be three days old**, so seeding it is what makes the measurement
+possible later in the week. Everything else on this page can wait; this cannot,
+because waiting is its input.
+
+The measurement, unchanged from
+[04-ai-ui § How this gets falsified](doc/04-ai-ui.md): a person, and a flow **they
+did not run**, three days old. Time to answer *what is the state, what is
+blocked, what did it produce?* — desk against the `web-ui` transcript.
 
 **Check the headroom before building anything for this.** If the flat explorer
-answers as fast as the desk, the canvas is decoration and M5 should be
-re-argued rather than polished. That is a real outcome and the document already
-says so.
+answers as fast as the desk, the canvas is decoration and M5 should be re-argued
+rather than polished. Two subjects is a signal about whether the instrument
+works, not evidence; say which.
 
-Practical notes: the flow has to be three days old, so **seed it now and run the
-comparison later in the week**. Two subjects is not evidence; it is a signal
-about whether the instrument works at all. Say which.
+## 4. coclea §7.5, route B — the precondition
 
----
+One run, and it is unchanged and not reordered: see [doc/PLAN.md](doc/PLAN.md).
+The feedback correction must stay small against `u` across the whole `mu` range;
+if it is not small at `mu_H = −0.02`, route B cannot reach criticality and route A
+is required. Knowing that costs one run rather than a milestone.
 
-## 2. `ai-storage`, for real
+## 5. hemo-verified H1
 
-The shape is already fixed by the sketch on the desk and by
-[05-ai-storage § The shape, drawn before it is built](doc/05-ai-storage.md):
-four levels, one rung per promotion, provenance required, consolidation keeps
-what carried forward.
+H0's own stated limit is that the corruptions and the oracles share an author. H1
+is whether the portfolio ranks the errors a trained surrogate actually makes.
+Decide **before** buying the training whether a published surrogate's errors will
+do — F5, applied before the work.
 
-**The open question is written down and is the whole difficulty:** when two
-notes say the same thing, which survives? Consolidation cannot be a loop over
-finished flows, and that is why.
+## 6. One user who is not the author
 
-The cheap first move is not a store. It is to answer that question on paper with
-two real flows from `aiosui`, and only then decide whether it needs
-`evolving-memory`'s connector or twenty lines.
+`make up` from a clean clone on a clean machine, timed, by somebody who has not
+seen this repository. Every failure becomes a FRICTION entry, fixed with the
+shortest hack that works. The output is a number: time to a first gated result.
 
-**Do not port `evolving-memory`.** The hard half — *which steps of a trace
-mattered* — is `contribution.ts`, which already runs on every flow.
+**Its first two lines have already been paid**, by accident: building P0 needed
+both projects standing up on a machine that was not the author's, and neither of
+them could be started from its own documentation — a committed `.venv` symlink to
+one laptop, and a project with no manifest at all (FRICTION F9). That is the
+cheapest possible evidence that this item is not a nicety, and it cost nothing
+because something else needed it first. **What is still unpaid is the OS itself:
+nobody has timed `make up`**, and the two projects are the easy half.
 
----
+## 7. `ai-storage`, against 3.0
 
-## 3. M4, scoped memory
-
-Its gate passed on 2026-08-06 (baseline 3.0 on a long-horizon fixture, so the
-axis has room) and nothing was built. It overlaps item 2 and should be decided
-together with it rather than scheduled separately.
-
----
+Unchanged and last. A second long-horizon fixture written to a different shape by
+a different hand, and the open question answered on paper against two real flows
+— *when two notes say the same thing, which survives?* — before any store is
+built.
 
 ## Smaller, if a session ends early
 
 - **The remaining flow shapes.** `Sequence`, `Loop`, `Fan-out`, `Deliberation`,
-  `Watch`, and merge. `Open` is the only one that runs.
+  `Watch`, and merge. `Open` and `Gated` are the ones that run.
 - **`?tab=` and `?select=` survive a reload on the demo but not its state** — the
   simulated world lives in the page. Fine, and the chrome says so; worth
   revisiting only if somebody asks.
 - **The three upstream asks** in [`doc/upstream/`](doc/upstream/), still unsent.
   Their `CONTRIBUTING.md` wants human-written informal text, so these need
   rewriting in a person's voice, never pasting.
+- **Regenerate `h0.json` on the machine whose numbers the write-up will quote**,
+  now that the artifact records its own environment. `make reproduce` then means
+  bit-identity rather than a classification.
 
 ## What not to do
 
@@ -123,4 +215,11 @@ together with it rather than scheduled separately.
   M5's control arm and it is evidence only while it stays inert. A test enforces
   this too.
 - **Do not publish a number that nothing checks.** That is how 315, 331 and 333
-  ended up being three different truths on the same day.
+  ended up being three different truths on the same day — and how
+  <!-- gate-count: superseded --> *26 gates / 125 checks* survived in thirteen places for six days after it stopped being true.
+- **Do not build a checker for a number whose producer was thrown away.** Four of
+  the nine in [19 §8](doc/19-what-would-make-this-matter.md#8--every-published-number-and-what-checks-it)
+  came from runs nobody kept. The move there is to re-run them into an artifact
+  or to stop quoting them in the present tense — not to invent a check.
+- **No more desk before the stopwatch**, and **no third project before a second
+  user.**

@@ -1,0 +1,209 @@
+# The evidence CI never ran.
+#
+# `ci.yml` guards the TypeScript: nine jobs over `ai-base`, `ai-flows` and
+# `ai-ui`. It contains no Python at all, so `projects/coclea-sr` — 28 gates, 135
+# checks, the thing every external claim in this repository rests on — and
+# `projects/hemo-verified` were guarded by somebody remembering to run them.
+#
+# Two things went through that hole before anybody built this file:
+#
+#   * the published gate count sat at 26/125 for six days after it became
+#     28/135, and
+#   * HEMO-VERIFIED's attested `h0.json` was produced by code that the commit
+#     fixing it then replaced, so the artifact in the repository could not have
+#     come from the code in the repository.
+#
+# Neither is exotic. Both are what happens when the only thing standing between
+# a green claim and a red suite is a habit.
+#
+# ## Why this is a separate workflow, and not per-PR
+#
+# `make gates` is nine minutes and needs numpy, scipy and sympy. Putting that on
+# every pull request would buy very little — `projects/` changes rarely — and
+# would cost every unrelated PR nine minutes. So it runs nightly, on demand, and
+# on any PR that actually touches `projects/`.
+#
+# ## Why it does not install with `uv`
+#
+# The runner's own `python3` is 3.12, which is what both manifests ask for, and
+# adding a third-party action means pinning another SHA. Fewer moving parts on a
+# job whose whole purpose is to be trustworthy when nobody is watching it.
+name: Projects
+
+on:
+  schedule:
+    # 04:00 UTC. Nightly, because the cost of finding a red gate a day late is
+    # small and the cost of finding it a month late is a document written from it.
+    - cron: "0 4 * * *"
+  pull_request:
+    paths:
+      - "projects/**"
+      - ".github/workflows/projects.yml"
+  workflow_dispatch:
+
+# `cancel-in-progress` is deliberately FALSE here, and `ci.yml` is right to set
+# it true. The difference is the runtime. `ci.yml` is two minutes: cancelling a
+# superseded run costs nothing and the answer arrives again immediately. This
+# workflow's gate job is 45 minutes, so on an active branch a doc-only push
+# supersedes it before it finishes and the evidence run simply never completes.
+#
+# That is not hypothetical. On 2026-08-23 this workflow's first run reached
+# 15 minutes into `make gates` and was cancelled by a push that touched three
+# markdown files. The `paths` filter below does not prevent it: on
+# `pull_request`, `paths` is evaluated against the pull request's whole diff, not
+# the push's, so a PR that touches `projects/` at all re-triggers this workflow
+# on every later commit. With `cancel-in-progress: false` a later run queues
+# behind the current one instead of killing it. A workflow whose whole purpose is
+# to produce evidence must not be interruptible by work that cannot change what
+# it measures.
+concurrency:
+  group: projects-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  coclea-sr:
+    name: coclea-sr — 28 gates
+    runs-on: ubuntu-latest
+    # Measured, not estimated: 23m27s for all 135 checks on a GitHub runner on
+    # 2026-08-23, against nine minutes on the author's machine. The timeout is a
+    # runaway guard with room for a slower runner and for the suite to grow; if
+    # it starts firing, that is the signal to split A13 and B02 into their own
+    # job, not to raise it again.
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: projects/coclea-sr
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - name: Build the environment from the manifest
+        run: |
+          python3 -m venv .venv
+          .venv/bin/python -m pip install --quiet --upgrade pip
+          .venv/bin/python -m pip install --quiet -e ".[dev]"
+      - name: The gates
+        run: make gates
+      - name: Every report has a test behind it
+        # FRICTION F3: `gates/reports/` is never cleaned, so a renamed or moved
+        # test leaves a red report behind forever, and `ai-flows/src/gates.ts`
+        # reads that directory to compute the freeze verdict. Runs on the venv
+        # python because it collects the suite; `python3` here has no pytest,
+        # which is how it was documented wrong for a week.
+        run: .venv/bin/python gates/check_reports.py
+      - name: The ledger verifies, and the slack is reported
+        run: |
+          python3 verify_ledger.py
+          python3 gates/check_slack.py
+      - name: The published count matches the reports that just ran
+        # Deliberately after `make gates` rather than in the job below: there the
+        # count is checked against the committed reports, here against reports
+        # produced seconds ago. The second is the one that cannot be stale.
+        working-directory: .
+        run: python3 scripts/check-gate-count.py
+
+  hemo-verified:
+    name: hemo-verified — H0
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: projects/hemo-verified
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - name: Build the environment from the manifest
+        # Flat layout, so `pyproject.toml` names its three importable packages
+        # explicitly; without that setuptools refuses and there is no manifest
+        # install at all, which is the state a clean clone found this project in.
+        run: |
+          python3 -m venv .venv
+          .venv/bin/python -m pip install --quiet --upgrade pip
+          .venv/bin/python -m pip install --quiet -e ".[dev]"
+      - name: The precondition
+        run: make test
+      - name: The kill gate, and the report reproduces
+        # `make h0` is deliberately NOT run here. It writes `gates/reports/h0.json`
+        # into the checkout, and `make reproduce` would then be comparing a fresh
+        # run against a fresh run and reporting REPRODUCED every time. Reproduce
+        # runs H0 itself, into a temporary directory, and inherits its non-zero
+        # exit when the composite AUC falls below the kill threshold — so this
+        # one step is both the gate and the reproduction.
+        run: make reproduce
+      - name: The slack audit
+        run: python3 gates/check_slack.py --dir gates/reports
+
+  published-numbers:
+    name: Published numbers match their artifacts
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - name: The gate count
+        run: python3 scripts/check-gate-count.py
+      - name: HEMO-VERIFIED's oracle table
+        run: python3 scripts/check-h0-table.py
+      - name: COCLEA-SR's headline results
+        # Reads the run artifacts the ledger says are current. It does not
+        # re-run the experiments -- `make reproduce` in the job above is what
+        # says the runs still hold, and this only says that what got published
+        # is what was produced.
+        run: python3 scripts/check-coclea-results.py
+
+  verify-page:
+    name: The verification page's logic
+    runs-on: ubuntu-latest
+    # The page at /verify/ reimplements sha256 and Python's canonical JSON form
+    # in the language a browser speaks. Both are the kind of thing that is nearly
+    # right for a long time, so this runs them against node's own crypto over
+    # every artifact and against the verdict `verify_ledger.py` gives for the
+    # same files. A second implementation that quietly stops agreeing is worse
+    # than no second implementation.
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version-file: ai-base/.node-version
+      - name: sha256, the canonical form, and the chain agree with Python
+        run: node scripts/verify-page/test.mjs
+
+  upstream-test-count:
+    name: The upstream test count
+    runs-on: ubuntu-latest
+    # `ai-base` is subtree-pulled weekly from a repository that moves daily, so
+    # this is the number here most certain to rot, and until 2026-08-23 nothing
+    # watched it. `ci.yml` runs these suites already but shards them five ways
+    # and each shard reports only its own total; summing across matrix jobs
+    # needs artifacts passed between them, which is more machinery than the
+    # number is worth. Unsharded, once, nightly is cheaper in every sense.
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version-file: ai-base/.node-version
+          cache: npm
+          cache-dependency-path: ai-base/package-lock.json
+      - name: Install
+        working-directory: ai-base
+        run: npm ci
+      - name: The published upstream count matches the suite
+        run: ./scripts/check-upstream-test-count.sh
+
+  projects:
+    name: Projects
+    runs-on: ubuntu-latest
+    needs:
+      - coclea-sr
+      - hemo-verified
+      - published-numbers
+      - upstream-test-count
+      - verify-page
+    steps:
+      - name: Checks passed
+        run: echo "coclea-sr's gates, hemo-verified's H0, and every published number passed."

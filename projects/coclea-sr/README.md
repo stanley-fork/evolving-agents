@@ -9,7 +9,7 @@ It is also the workload that gave `ai-flows` its first declared metric — see
 [`doc/16`](../../doc/16-a-workload-with-an-oracle.md) for what the OS learned
 from it, which is the other half of why the project is here.
 
-> **State, 2026-08-17. 26 gates / 125 checks, all green [ran].** The MVP is
+> **State, 2026-08-17. 28 gates / 135 checks, all green [ran].** The MVP is
 > complete, H3's debt is closed, and the project has reached the far end of its
 > own arc: **spec §13** turns the corrected model into gated, falsifiable
 > statements about ear disease and its treatment
@@ -249,7 +249,11 @@ answer that had already been measured.
 
 ```bash
 cd projects/coclea-sr
-python3.12 -m venv .venv && .venv/bin/pip install numpy scipy sympy mpmath pytest
+python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]"
+#            ^ from pyproject.toml, so the dependency list lives in one place.
+#              This line used to name the five packages again, and until
+#              2026-08-23 a dangling `.venv` symlink to one laptop was
+#              committed here, so on any other machine it refused first.
 
 .venv/bin/python -m pytest gates/ -q                            # every gate
 PYTHONPATH=src .venv/bin/python experiments/e2_tonotopy.py      # the place map, 3 arms
