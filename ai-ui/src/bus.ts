@@ -52,9 +52,29 @@ export type WireState =
   | "carried"
   /** Something moved and the receiving step used none of it (doc/13). */
   | "ignored"
-  /** The receiving step did not complete. Nothing has been claimed either way. */
+  /**
+   * Something moved, the receiving step ran, and it did not pass.
+   *
+   * A *result*, and a negative one: the step recorded an observation, so there
+   * is a number and a threshold somebody can go and look at.
+   */
   | "blocked"
-  /** No artifact was recorded for this hop. Not a pass. Not a failure. */
+  /**
+   * Something moved and the receiving step has not reached a verdict.
+   *
+   * Distinct from `blocked`, and the distinction is the point. A step that
+   * measured something and came out against its threshold produced a negative
+   * result. A step that is held with nothing recorded produced *no* result, and
+   * drawing the two the same way asserts an outcome nobody has.
+   */
+  | "open"
+  /**
+   * Nothing at all was recorded about this hop.
+   *
+   * Not a pass, not a failure, and not the same as `open` either: `open` means
+   * the packet is addressable and the verdict is pending, this means there is no
+   * packet to point at.
+   */
   | "unknown";
 
 /** What travelled, addressed so the desk can open it rather than describe it. */
@@ -180,9 +200,33 @@ function busOf(docs) {
             to.ignoredInput.inputTokens + ' it was given' +
             (to.ignoredInput.note ? ' (' + to.ignoredInput.note + ')' : '');
         } else if (to.state === 'blocked' || to.state === 'failed') {
-          state = 'blocked';
-          because = 'step ' + to.index + ' is ' + to.state +
-            ': the packet arrived, the work did not finish';
+          /**
+           * A step that did not finish, split by whether it reached a verdict.
+           *
+           * These were one state and that was wrong. A step that ran, measured
+           * something and came out against its threshold recorded an
+           * observation: it produced a real negative result, and 'blocked' is
+           * the right word. A step that is held with no observation at all
+           * produced nothing — it never got to a verdict, and calling that a
+           * problem asserts an outcome nobody has.
+           *
+           * The case that forced the distinction is hemo's A4 flow, whose entire
+           * argument is that two runs on different machines have not disagreed
+           * with each other — they have not been compared under conditions where
+           * disagreement is defined. The desk reported that as a problem, which
+           * is precisely the overclaim the flow exists to refuse.
+           */
+          const own = busObservation(to);
+          if (own.digest) {
+            state = 'blocked';
+            because = 'step ' + to.index + ' is ' + to.state +
+              ': it ran, recorded ' + own.digest + ' and did not pass';
+          } else {
+            state = 'open';
+            because = 'step ' + to.index + ' is ' + to.state +
+              ' and recorded nothing: it has not reached a verdict, which is not the ' +
+              'same as reaching a negative one';
+          }
         } else {
           state = 'carried';
           because = obs.source
@@ -224,7 +268,8 @@ function busSummary(g) {
   const parts = [g.nodes.length + ' agent(s)', g.wires.length + ' hop(s)'];
   if (n('carried')) parts.push(n('carried') + ' carried');
   if (n('ignored')) parts.push(n('ignored') + ' carried nothing forward');
-  if (n('blocked')) parts.push(n('blocked') + ' into a step that did not finish');
+  if (n('blocked')) parts.push(n('blocked') + ' into a step that ran and did not pass');
+  if (n('open')) parts.push(n('open') + ' into a step still open');
   if (n('unknown')) parts.push(n('unknown') + ' unrecorded');
   return parts.join(' · ');
 }

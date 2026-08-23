@@ -124,8 +124,33 @@ export const SIMULATION_JS = String.raw`
   // repeat is drift, otherwise progressing. Kept tiny on purpose -- the demo
   // must not become a second implementation of the measurement.
   const traceOf = (steps) => {
+    /**
+     * Flatten the observation onto the attempt, the way trace.ts does.
+     *
+     * The store records attempts[].observation = { digest, source }; the desk,
+     * the panel and bus.ts all read attempt.digest and
+     * attempt.source, because that is what the real traceOf produces. The
+     * shim used to pass its attempts through untouched, so **the first poll
+     * erased every observation in the demo** — the page the server rendered had
+     * them and five seconds later the same desk had none, every wire went grey
+     * and dashed, and the trace face announced "not enough to say" about flows
+     * that had recorded six.
+     *
+     * This is the FOURTH place in this repository where a flat digest and a
+     * nested observation were confused, and the second in this file: the
+     * comment below records the first, on contribution, found the same way and
+     * fixed without anyone checking whether its neighbour had the same problem.
+     * test/simulate.test.ts now holds this one.
+     */
+    const attemptsOf = (s) =>
+      (s.attempts || []).map((a) => ({
+        ...a,
+        digest: a.digest !== undefined ? a.digest : (a.observation ? a.observation.digest : null),
+        source: a.source !== undefined ? a.source : (a.observation ? a.observation.source : null),
+      }));
+
     const digests = [];
-    for (const s of steps) for (const a of (s.attempts || [])) if (a.digest) digests.push(a.digest);
+    for (const s of steps) for (const a of attemptsOf(s)) if (a.digest) digests.push(a.digest);
     let movement = 'not enough to say', tone = 'muted';
     let detail = digests.length + ' observation(s)';
     if (digests.length >= 2) {
@@ -144,7 +169,7 @@ export const SIMULATION_JS = String.raw`
     // unflagged five seconds later, which is exactly the drift this file exists
     // to make impossible. Found by reading the client's state, not the code.
     const words = (t) => new Set(String(t || '').toLowerCase().match(/[a-z]{4,}/g) || []);
-    const out = steps.map((s) => ({ ...s, agent: agentOf(s.intent), attempts: s.attempts || [] }));
+    const out = steps.map((s) => ({ ...s, agent: agentOf(s.intent), attempts: attemptsOf(s) }));
     let ignoredCount = 0;
     for (const s of out) {
       if (!s.contribution) continue;

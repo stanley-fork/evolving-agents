@@ -180,9 +180,27 @@ function inspectWireWithAgent(w) {
   if (w.state === 'blocked')
     return assertCited({
       verdict: 'problem',
-      says: 'The packet reached ' + w.to + ' and the step did not finish. ' + w.because + '.',
+      says: 'The packet reached ' + w.to + ', the step ran, and it did not pass. ' + w.because + '.',
       cites: stateCites,
       cost: 'one read of the recorded observation · no model call',
+    });
+  /**
+   * Held, not failed — and therefore unknown, not problem.
+   *
+   * This branch exists because the demo said the wrong thing out loud. hemo's A4
+   * flow is about two runs on different machines that have *not* disagreed —
+   * they were never compared under conditions where disagreement is defined —
+   * and the inspector called it a problem. That is exactly the overclaim the
+   * flow was written to refuse, produced by the tool built to prevent it.
+   */
+  if (w.state === 'open')
+    return assertCited({
+      verdict: 'unknown',
+      says:
+        'The packet reached ' + w.to + ' and it has not reached a verdict. ' + w.because +
+        '. There is no result here to agree or disagree with — only an open question.',
+      cites: stateCites,
+      cost: 'one read of the step record · no model call',
     });
   if (w.state === 'carried')
     return assertCited({
@@ -285,6 +303,12 @@ function inspectFlowWithAgent(flowId, title, wires) {
   const worst = mine.filter((w) => w.state === 'ignored')[0]
     || mine.filter((w) => w.state === 'blocked')[0];
   if (worst) return inspectWireWithAgent(worst);
+
+  // 'open' outranks 'unknown' in what it is worth saying, and neither is a
+  // problem. A flow with an open step has a specific pending question; a flow
+  // with unrecorded hops has a gap in its evidence. Reported separately.
+  const open = mine.filter((w) => w.state === 'open');
+  if (open.length) return inspectWireWithAgent(open[0]);
 
   const unknown = mine.filter((w) => w.state === 'unknown');
   const carried = mine.filter((w) => w.state === 'carried');

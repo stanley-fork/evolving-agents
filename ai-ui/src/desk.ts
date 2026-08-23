@@ -244,6 +244,10 @@ body{overflow:hidden}
 .wires path.w.carried{stroke:#2f6fb5;stroke-width:2}
 .wires path.w.ignored{stroke:#b5651d;stroke-width:2.5;stroke-dasharray:1 5}
 .wires path.w.blocked{stroke:#a52a2a;stroke-width:2.5}
+/* Held, not failed. Its own mark: the packet arrived and is addressable, and the
+   verdict is pending. Amber and dashed rather than red, because red is a result
+   and this is the absence of one. */
+.wires path.w.open{stroke:#c08a1e;stroke-width:2;stroke-dasharray:7 4}
 .wires path.w.unknown{stroke:#8d8d8d;stroke-width:1.25;stroke-dasharray:5 5}
 .wires g.sel path.w{stroke-width:4}
 .wires g.sel path.w.unknown{stroke-width:2.5}
@@ -252,6 +256,7 @@ body{overflow:hidden}
 .wires circle.pkt.carried{fill:#2f6fb5}
 .wires circle.pkt.ignored{fill:#b5651d}
 .wires circle.pkt.blocked{fill:#a52a2a}
+.wires circle.pkt.open{fill:#c08a1e}
 /* No packet is drawn on an unknown wire: there is nothing to draw. */
 .wirekey{font:10px var(--mono);fill:#3b3f44}
 
@@ -711,16 +716,38 @@ const DESK_JS = "(() => {\n" + CREATURES_JS + BUS_JS + INSPECTOR_JS + String.raw
       if (!a || !b) continue;
       const x1 = a.left + a.width / 2 - sr.left, y1 = a.top + a.height / 2 - sr.top;
       const x2 = b.left + b.width / 2 - sr.left, y2 = b.top + b.height / 2 - sr.top;
-      if (Math.abs(x1 - x2) < 1 && Math.abs(y1 - y2) < 1) continue;
-      // A shallow arc rather than a straight line: two wires between the same
-      // pair of columns overlap exactly when both are straight, and the second
-      // one then does not exist as far as a reader is concerned.
-      const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
-      const dx = x2 - x1, dy = y2 - y1;
-      const len = Math.max(1, Math.hypot(dx, dy));
-      const bow = Math.min(26, len * 0.22);
-      const cx = mx - (dy / len) * bow, cy = my + (dx / len) * bow;
-      const d = 'M' + x1 + ' ' + y1 + ' Q' + cx + ' ' + cy + ' ' + x2 + ' ' + y2;
+
+      let d;
+      if (Math.abs(x1 - x2) < 1 && Math.abs(y1 - y2) < 1) {
+        /**
+         * An agent handing to itself. Drawn as a loop, not skipped.
+         *
+         * The desk draws one cube per agent per flow, so consecutive steps by
+         * the same agent land on the same cube and the hop between them has zero
+         * length. Skipping those, which is what this did, made the memory lab's
+         * entire finding invisible: its flagged handoff is Indexer to Indexer,
+         * the one the website's own video is about, and there was no mark for it
+         * anywhere on the surface.
+         *
+         * A hop is a hop. The agent that carried nothing forward carried nothing
+         * forward whether or not the next step went to somebody else.
+         */
+        const r = a.height / 2 + 7;
+        const top = y1 - r;
+        d = 'M' + (x1 - 9) + ' ' + top +
+            ' C' + (x1 - 22) + ' ' + (top - 20) + ' ' + (x1 + 22) + ' ' + (top - 20) +
+            ' ' + (x1 + 9) + ' ' + top;
+      } else {
+        // A shallow arc rather than a straight line: two wires between the same
+        // pair of columns overlap exactly when both are straight, and the second
+        // one then does not exist as far as a reader is concerned.
+        const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+        const dx = x2 - x1, dy = y2 - y1;
+        const len = Math.max(1, Math.hypot(dx, dy));
+        const bow = Math.min(26, len * 0.22);
+        const cx = mx - (dy / len) * bow, cy = my + (dx / len) * bow;
+        d = 'M' + x1 + ' ' + y1 + ' Q' + cx + ' ' + cy + ' ' + x2 + ' ' + y2;
+      }
 
       const g = document.createElementNS(NS, 'g');
       if (selected && selected.kind === 'wire' && selected.id === w.id) g.setAttribute('class', 'sel');
@@ -747,12 +774,15 @@ const DESK_JS = "(() => {\n" + CREATURES_JS + BUS_JS + INSPECTOR_JS + String.raw
         const m = document.createElementNS(NS, 'animateMotion');
         m.setAttribute('dur', (2.4 + (w.fromIndex % 3) * 0.35) + 's');
         m.setAttribute('repeatCount', 'indefinite');
-        // An ignored hop's packet stops where it landed and stays there. It did
-        // arrive; nothing downstream used it. A dot that keeps sailing through
-        // would be drawing a delivery that did not happen.
-        if (w.state === 'ignored') m.setAttribute('keyPoints', '0;0.82;0.82');
-        if (w.state === 'ignored') m.setAttribute('keyTimes', '0;0.55;1');
-        if (w.state === 'ignored') m.setAttribute('calcMode', 'linear');
+        // An ignored hop's packet stops where it landed and stays there: it did
+        // arrive, and nothing downstream used it. An open one does the same --
+        // it arrived, and nothing has happened to it since. A dot that keeps
+        // sailing through either would be drawing a delivery that was not made.
+        if (w.state === 'ignored' || w.state === 'open') {
+          m.setAttribute('keyPoints', '0;0.82;0.82');
+          m.setAttribute('keyTimes', '0;0.55;1');
+          m.setAttribute('calcMode', 'linear');
+        }
         const mp = document.createElementNS(NS, 'mpath');
         mp.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '#' + pid);
         mp.setAttribute('href', '#' + pid);
@@ -1073,9 +1103,16 @@ const DESK_JS = "(() => {\n" + CREATURES_JS + BUS_JS + INSPECTOR_JS + String.raw
           ? i.fields.map(fieldHtml).join('')
           : findingHtml(inspectWireWithAgent(w))) +
         (w.state === 'unknown'
-          ? '<div class="note">Drawn thin, grey and dashed, and carrying no packet. That is not ' +
-            'the same picture as a hop that worked, and it must not be.</div>'
-          : '');
+          ? '<div class="note">Drawn thin, grey and dashed, and carrying no packet. Nothing was ' +
+            'recorded about this hop at all, which is not the same picture as a hop that worked.</div>'
+          : w.state === 'open'
+            // Two different absences, and the note has to say which one. It used
+            // to claim "carrying no packet" for both, which is false here: the
+            // packet arrived and can be opened. It is the verdict that is missing.
+            ? '<div class="note">The packet arrived and you can open it. What is missing is the ' +
+              'verdict — the step has not reached one, and that is not the same as reaching a ' +
+              'negative one.</div>'
+            : '');
       wireSwitch(p);
       return;
     }

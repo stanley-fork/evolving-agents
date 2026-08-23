@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { busOf, busSummary } from "../src/bus.ts";
+import { inspectWireWithAgent } from "../src/inspector.ts";
 import { traceOf } from "../src/trace.ts";
 import { hemoFlows } from "../src/hemo-demo.ts";
 import { cochleaFlows } from "../src/cochlea-demo.ts";
@@ -89,6 +90,55 @@ describe("busOf", () => {
     assert.equal(g.wires[0]?.state, "ignored");
     assert.ok(g.wires[0]?.packet, "the bytes did arrive; only the use of them is in question");
     assert.match(g.wires[0]!.because, /carried 0 of the 4000/);
+  });
+
+
+  /**
+   * The distinction that was wrong on the first pass, and said so out loud.
+   *
+   * A step that ran, measured something and came out against its threshold is a
+   * negative *result*. A step held with nothing recorded is the absence of one.
+   * The first version of `busOf` called both `blocked`, so the inspector told a
+   * visitor that hemo's A4 flow had a problem — a flow whose entire argument is
+   * that two runs on different machines have not disagreed, because they were
+   * never compared under conditions where disagreement is defined. The tool
+   * built to prevent overclaiming produced the overclaim.
+   */
+  it("separates a step that ran and failed from one that never reached a verdict", () => {
+    const obs = (d: string) => [
+      { n: 1, state: "failed", runId: "r", error: "gate red", observation: { digest: d, source: "gate.report" } },
+    ];
+    const producer = {
+      index: 0, state: "done", intent: "a", result: "produced",
+      attempts: [{ n: 1, state: "done", runId: "r0", error: null, observation: { digest: "d0", source: "gate.report" } }],
+    };
+
+    const ran = busOf([
+      { id: "f", title: "f", trace: traceOf([producer, { index: 1, state: "failed", intent: "b", result: "measured and failed", attempts: obs("d1") }] as never, () => "A") },
+    ]);
+    assert.equal(ran.wires[0]?.state, "blocked", "it ran, recorded a number and did not pass");
+    assert.match(ran.wires[0]!.because, /ran, recorded d1 and did not pass/);
+
+    const held = busOf([
+      { id: "g", title: "g", trace: traceOf([producer, { index: 1, state: "blocked", intent: "b", result: "held", attempts: [{ n: 1, state: "blocked", runId: "r1", error: "held", observation: null }] }] as never, () => "A") },
+    ]);
+    assert.equal(held.wires[0]?.state, "open", "held with nothing recorded is not a negative result");
+    assert.ok(held.wires[0]?.packet, "the packet still arrived and is still openable");
+    assert.match(held.wires[0]!.because, /has not reached a verdict/);
+  });
+
+  it("an open hop is inspected as unknown, never as a problem", () => {
+    const producer = {
+      index: 0, state: "done", intent: "a", result: "produced",
+      attempts: [{ n: 1, state: "done", runId: "r0", error: null, observation: { digest: "d0", source: "gate.report" } }],
+    };
+    const g = busOf([
+      { id: "g", title: "g", trace: traceOf([producer, { index: 1, state: "blocked", intent: "b", result: "held", attempts: [{ n: 1, state: "blocked", runId: "r1", error: "held", observation: null }] }] as never, () => "A") },
+    ]);
+    const f = inspectWireWithAgent(g.wires[0]!);
+    assert.equal(f.verdict, "unknown");
+    assert.match(f.says, /no result here to agree or disagree with/);
+    assert.ok(f.cites.length > 0, "it read the step record, so it cites the step record");
   });
 
   it("counts traffic per agent", () => {
