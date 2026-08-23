@@ -184,6 +184,10 @@ interface DspStep {
  * number and picture below is produced by the same code from that one parameter
  * — the broken flow is not written to look broken, it is run broken.
  */
+/** One slot per stage, and what a stage occupies inside it. */
+const DSP_SLOT_MS = 6 * 60_000;
+const DSP_TAKES = [2 * 60_000, 4 * 60_000, 1 * 60_000, 3 * 60_000, 5 * 60_000, 2 * 60_000];
+
 function chain(
   id: string,
   title: string,
@@ -273,6 +277,18 @@ function chain(
                 digest: `s${Math.abs(Math.round(energy(st.series) * 1000)) % 100000}`,
                 source: "run.reply",
               },
+              /**
+               * When this step opened and closed.
+               *
+               * Supplied so this scope can be drawn on a clock alongside the
+               * others. `threads.ts` refuses to mix a clock-drawn thread with a
+               * sequence-drawn one on one axis, so a single scope without
+               * timestamps forces the whole surface onto sequence — where every
+               * step is the same width and no width is a duration.
+               */
+              startedAt: updatedAt - (stages.length - index) * DSP_SLOT_MS,
+              finishedAt:
+                updatedAt - (stages.length - index) * DSP_SLOT_MS + DSP_TAKES[index % DSP_TAKES.length]!,
             },
           ],
       series: pending ? undefined : round3(st.series),

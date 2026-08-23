@@ -53,6 +53,8 @@ import { DEMO_AT } from "../src/simulate.ts";
 import { cochleaFlows } from "../src/cochlea-demo.ts";
 import { cochleaProjectFlows } from "../src/cochlea-project.ts";
 import { hemoFlows } from "../src/hemo-demo.ts";
+import { memoryFlows } from "../src/memory-demo.ts";
+import { dspFlows } from "../src/dsp-demo.ts";
 
 const outIdx = process.argv.indexOf("--out");
 const out = outIdx >= 0 ? process.argv[outIdx + 1]! : "threads.html";
@@ -86,6 +88,32 @@ const SCENES = [
       "kill threshold written down first. The frayed rope is A4 — read on two machines, never " +
       "compared under conditions where disagreeing is defined.",
     world: threadsOf(docsOf(hemoFlows(DEMO_AT) as never)),
+  },
+  /**
+   * The two scopes that carry a falsification the projects do not.
+   *
+   * Both are about a flow that reports cleanly and is wrong, which is the thing
+   * this system exists to make visible — and each shows it as a *texture* the
+   * thread view already has, where the desk needed a paragraph.
+   */
+  {
+    id: "memory-lab",
+    label: "memory lab — green and wrong",
+    note:
+      "Two threads index the same notes with the same agents, and both are green. One is wrong: " +
+      "a step used nothing it was given, because its note claims 663 characters of a passage that " +
+      "is 1,105 — so following its range lands on different words. The rope goes dark from where " +
+      "that landed.",
+    world: threadsOf(docsOf(memoryFlows(DEMO_AT) as never)),
+  },
+  {
+    id: "signal-lab",
+    label: "signal lab — ran and carried nothing",
+    note:
+      "The same claim one level down, about a step rather than a result: a stage ran, settled, " +
+      "reported, and carried nothing forward. Its output is a flatline, and the prose about it " +
+      "reads exactly like the prose about a clean band.",
+    world: threadsOf(docsOf(dspFlows(DEMO_AT) as never)),
   },
 ];
 
@@ -122,6 +150,10 @@ header b{font-weight:600;letter-spacing:-.01em}
 header .sk{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
   color:var(--orange);background:rgba(255,159,10,.12);border:1px solid rgba(255,159,10,.28);
   border-radius:999px;padding:3px 10px}
+/* When this file was generated. The one mark that answers "am I looking at a
+   cached copy", which is otherwise a network-tab question. */
+header .build{font:10px var(--mono);color:var(--faint);background:var(--bg-2);
+  border:1px solid var(--sep);border-radius:999px;padding:3px 9px;cursor:help}
 header select{font:inherit;font-size:12px;background:var(--bg-2);color:var(--ink);
   border:1px solid var(--sep);border-radius:8px;padding:6px 10px}
 header .zoom{margin-left:auto;display:flex;gap:6px;align-items:center}
@@ -207,6 +239,15 @@ aside .note{margin-top:14px;font-size:11.5px;line-height:1.55;color:var(--dim)}
 aside .warn{margin-top:12px;font-size:11px;line-height:1.5;color:var(--orange);
   background:rgba(255,159,10,.08);border:1px solid rgba(255,159,10,.22);border-radius:8px;
   padding:9px 11px}
+.tourbar{position:fixed;left:20px;bottom:20px;z-index:400;display:flex;align-items:center;gap:12px;
+  background:var(--bg-2);border:1px solid var(--sep);border-radius:999px;
+  box-shadow:0 8px 28px rgba(0,0,0,.6);padding:8px 16px 8px 8px;
+  max-width:min(760px,calc(100vw - 400px))}
+.tourbar button{border-radius:999px;background:var(--ink);color:#000;border-color:var(--ink);
+  font-weight:650;padding:6px 16px}
+.tourbar button:hover{background:#fff;border-color:#fff}
+.tourbar span{font-size:12px;line-height:1.45;color:var(--dim)}
+
 aside .bytes{font-family:var(--mono);font-size:10.5px;line-height:1.6;background:#000;
   border:1px solid var(--sep);border-radius:8px;padding:10px 11px;margin-top:9px;
   max-height:220px;overflow:auto;white-space:pre-wrap;word-break:break-word;color:#C7C7CC}
@@ -668,6 +709,138 @@ const JS = String.raw`
   resetView();
   draw();
   animate();
+
+  /**
+   * Play — the demo, driving itself.
+   *
+   * Same rule the desk's tour lives under, and it is the only thing that makes a
+   * tour honest: every beat below **operates the real controls** — the real zoom
+   * buttons, the real scene selector, the real segments — and then lets the page
+   * react however it reacts. Nothing here draws a frame, animates a fake, or
+   * asserts an outcome.
+   *
+   * The property that buys: **if the surface breaks, the tour breaks.** A
+   * scripted animation of a product is a second implementation of it, and it
+   * goes on looking correct for as long as nobody checks. This cannot.
+   *
+   * And it never fights the person watching: any real pointer or key event stops
+   * it where it is and leaves the view exactly as the tour left it.
+   */
+  (() => {
+    const bar = document.createElement('div');
+    bar.className = 'tourbar';
+    bar.innerHTML = '<button id="tourgo">Play</button><span id="tourcap">' +
+      'Watch it use itself — every beat is a real control, not a recording.</span>';
+    document.body.appendChild(bar);
+
+    let running = false, stop = false;
+    const cap = (t) => { document.getElementById('tourcap').textContent = t; };
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const halt = () => {
+      if (!running) return;
+      stop = true;
+      cap('Stopped — it is yours. Drag, zoom, click anything.');
+    };
+    for (const ev of ['pointerdown', 'keydown', 'wheel'])
+      window.addEventListener(ev, (e) => { if (e.isTrusted) halt(); }, true);
+
+    const press = async (id, n) => {
+      for (let i = 0; i < (n || 1) && !stop; i += 1) {
+        document.getElementById(id).click();
+        await sleep(190);
+      }
+    };
+    /** Select a real segment by clicking the hit path the renderer drew. */
+    const clickSeg = async (pred) => {
+      const paths = [...document.querySelectorAll('#stage .beadhit')];
+      const hit = paths.find(pred) || paths[0];
+      if (!hit) return;
+      hit.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1 }));
+      await sleep(240);
+    };
+
+    const beats = [
+      async () => {
+        cap('Horizontal is time. The right edge is now, and every thread starts with a person asking for it.');
+        await press('znow');
+        await sleep(3200);
+      },
+      async () => {
+        cap('Three days wide, no thread is drawn step by step — there would be nothing to see. Each collapses to a band that says what it stands for.');
+        await sleep(3600);
+      },
+      async () => {
+        cap('Two of those bands are the same six agents doing the same six steps. Thirty hours apart. Nothing before this could have told you that.');
+        await sleep(3800);
+      },
+      async () => {
+        cap('Zoom in and a band resolves into its steps. A step is as wide as it took; the space between two is time nobody was working.');
+        await press('zin', 4);
+        await sleep(3200);
+      },
+      async () => {
+        cap('One rope stops against a bar and never returns. A gate declared before the run measured 2.592e-4 against a tolerance of 1.0e-4, so it cannot freeze.');
+        await sleep(3600);
+      },
+      async () => {
+        cap('Closer still: one step is open right now, and it is the only thing here that moves. And where nothing was recorded at all, no rope is drawn — you see the dark through it, because did not run is not passed.');
+        await press('zin', 2);
+        await sleep(4600);
+      },
+      async () => {
+        cap('Click any segment and the panel is about it. Ask an agent instead of reading it yourself — and every sentence it gives back carries the address it read.');
+        await clickSeg((p) => true);
+        await sleep(900);
+        const a = document.getElementById('m-agent');
+        if (a) a.click();
+        await sleep(4000);
+      },
+      async () => {
+        cap('The other project. No closed form exists there, so the judge itself goes on trial — and one rope frays instead of stopping, because no verdict has been reached.');
+        const sel = document.getElementById('scene');
+        sel.value = 'hemo-verified';
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+        await sleep(1400);
+        await press('zin', 3);
+        await sleep(4200);
+      },
+      async () => {
+        cap('0.9056 against a kill threshold written down first. Alone, six of its seven oracles are near a coin flip — A5 is 0.5209. That is the number nobody publishes.');
+        await sleep(4200);
+      },
+      async () => {
+        cap('One more. Two threads index the same notes with the same agents, and both are green all the way through.');
+        const sel = document.getElementById('scene');
+        sel.value = 'memory-lab';
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+        await sleep(1200);
+        await press('zin', 3);
+        await sleep(4200);
+      },
+      async () => {
+        cap('Two threads, the same agents, both green — and one used nothing it was given. The rope goes dark from where that landed. That is the finding this whole system exists to make visible.');
+        await sleep(4600);
+      },
+      async () => {
+        cap('It is yours. Drag left to go back, scroll to zoom, click any rope or bead.');
+        await sleep(2000);
+      },
+    ];
+
+    const play = async () => {
+      if (running) { halt(); return; }
+      running = true; stop = false;
+      document.getElementById('tourgo').textContent = 'Stop';
+      for (const beat of beats) {
+        if (stop) break;
+        try { await beat(); }
+        catch (e) { cap('The tour hit something the page did not expect: ' + e.message); break; }
+      }
+      running = false; stop = false;
+      document.getElementById('tourgo').textContent = 'Play again';
+    };
+    document.getElementById('tourgo').onclick = play;
+  })();
 })();
 `;
 
@@ -679,7 +852,11 @@ const html = `<!doctype html><html lang="en"><meta charset="utf-8">
   <div class="stage">
     <header>
       <b>ai-os</b>
-      <span class="sk">Sketch — not the product, not measured</span>
+      <span class="sk">Simulated — no core, no model, nothing stored</span>
+      <span class="build" title="When this file was generated. If this has not changed, you are looking at a cached copy.">build ${new Date()
+        .toISOString()
+        .slice(5, 16)
+        .replace("T", " ")}</span>
       <select id="scene">${payload
         .map((s) => `<option value="${s.id}">${s.label}</option>`)
         .join("")}</select>

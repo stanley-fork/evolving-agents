@@ -152,6 +152,10 @@ const SOURCE_CHARS = UNITS.reduce((n, u) => n + u.chars, 0);
  * is a note whose evidence is unreachable, and that is exactly a step that
  * carried nothing forward.
  */
+/** One slot per note, and what indexing one occupies inside it. */
+const MEM_SLOT_MS = 5 * 60_000;
+const MEM_TAKES = [3 * 60_000, 1 * 60_000, 4 * 60_000, 2 * 60_000, 2 * 60_000];
+
 function flow(
   id: string,
   title: string,
@@ -184,6 +188,11 @@ function flow(
               runId: `run-${id}-${index}`,
               error: null,
               observation: { digest: note.hash.slice(0, 10), source: "run.reply" },
+              // A clock, so this scope can be drawn beside the others rather
+              // than forcing the whole surface onto step order.
+              startedAt: updatedAt - (notes.length - index) * MEM_SLOT_MS,
+              finishedAt:
+                updatedAt - (notes.length - index) * MEM_SLOT_MS + MEM_TAKES[index % MEM_TAKES.length]!,
             },
           ],
       // The index card is the numbers this step produced, drawn as a shape: how

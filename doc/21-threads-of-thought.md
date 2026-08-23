@@ -229,12 +229,29 @@ mark exists, tested, for the first time there is.
 
 ## 8. Status
 
-**A sketch.** It does not replace the desk, it is not linked from the website,
-and it has not been measured against anything. `ai-ui/src/threads.ts` is the
+**It is the demo, as of 2026-08-23.** `/demo/` is the thread view; the desk is
+still built, still tested, still what `make up` serves, and no longer published.
+That was the author's call, made when the sketch was working and the desk was
+live beside it, and the reasoning is worth recording because it is not obvious:
+
+The two surfaces answer different questions. The desk answers *what is the state
+and what can I do* — it has drag, drop, advance, the gesture that puts an agent
+on a flow. The thread view answers *what happened, when, and what is happening
+now*. For a visitor who has thirty seconds and no account, the second question is
+the one worth answering, and the first screen is the only screen most people see.
+
+What is lost by not publishing the desk is real and should be said: the phase-5
+gesture — dragging `INSPECTOR` onto a flow — has no equivalent here yet. Selecting
+a segment and pressing *Ask an agent* gives the same finding with the same
+citation rule, but it is a click on a panel rather than a thing you do with your
+hands, and that difference is the whole of `doc/15`.
+
+**It still has not been measured against anything.** `ai-ui/src/threads.ts` is the
 layout, with fourteen tests asserting the properties above;
 `ai-ui/scripts/build-threads.ts` renders it to one self-contained file over the
 two real projects.
 
-The next move is not more sketch. It is `doc/04`'s stopwatch, run on both
-surfaces with the same person and the same flow — which is the thing
-[NEXT.md](../NEXT.md) has been asking for since before either of them existed.
+The next move is not more surface. It is `doc/04`'s stopwatch, run on both with
+the same person and the same flow — which is the thing [NEXT.md](../NEXT.md) has
+been asking for since before either of them existed, and which now has two
+candidates to compare instead of one to defend.

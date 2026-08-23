@@ -161,15 +161,21 @@ jobs:
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
         with:
           node-version-file: ai-base/.node-version
-      - name: The demo's numbers, and the addresses its inspector cites
-        # The demo now lands on two real projects and its inspector cites the
-        # artifacts it read. Both are worth exactly as much as the citations are
+      - name: The demo's numbers, and the addresses it cites
+        # The published demo is the thread view; the desk is still built and
+        # checked because it is what `make up` serves and it is generated from
+        # the same modules. Both are worth exactly as much as their citations are
         # true, and a citation is only true until somebody regenerates an
-        # artifact. Built here rather than read from the website repository so
-        # this checks what the current source produces.
+        # artifact. Built here rather than read from the website repository, so
+        # this checks what the current source produces rather than what was last
+        # published.
         run: |
-          cd ai-ui && node scripts/build-demo.ts --out /tmp/demo.html
-          cd .. && python3 scripts/check-demo-provenance.py --demo /tmp/demo.html
+          cd ai-ui
+          node scripts/build-threads.ts --out /tmp/demo.html
+          node scripts/build-demo.ts --out /tmp/desk.html
+          cd ..
+          python3 scripts/check-demo-provenance.py --demo /tmp/demo.html
+          python3 scripts/check-demo-provenance.py --demo /tmp/desk.html
 
   verify-page:
     name: The verification page's logic
