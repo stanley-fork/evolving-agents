@@ -138,14 +138,14 @@ function stepRow(step: Step, isCurrent: boolean, now: number): string {
         ? `<code>${esc(a.observation.digest)}</code> <span class="dim">${esc(a.observation.source)}</span>`
         : `<span class="dim">no observation</span>`;
       const run = a.runId ? `<code class="dim">${esc(a.runId.slice(0, 8))}</code>` : `<span class="dim">no run</span>`;
-      return `<li>${cube(STATE_COLORS[a.state] ?? "#b9b4a8", a.state, "sm")} <span class="dim">attempt ${a.n}</span> · ${run} · ${obs}${
+      return `<li>${cube(STATE_COLORS[a.state] ?? "#C9C7C1", a.state, "sm")} <span class="dim">attempt ${a.n}</span> · ${run} · ${obs}${
         a.error ? ` · <span class="err">${esc(a.error.slice(0, 200))}</span>` : ""
       }</li>`;
     })
     .join("");
   return `<div class="step${isCurrent ? " current" : ""}">
     <div class="step-head">
-      ${cube(STATE_COLORS[step.state] ?? "#b9b4a8", `step ${step.index}: ${step.state}`)}
+      ${cube(STATE_COLORS[step.state] ?? "#C9C7C1", `step ${step.index}: ${step.state}`)}
       <span class="idx">${step.index}</span>
       <span class="intent">${esc(step.intent)}</span>
       <span class="state-word ${esc(step.state)}">${esc(step.state)}</span>
@@ -165,7 +165,7 @@ function stepRow(step: Step, isCurrent: boolean, now: number): string {
  */
 function stepStrip(flow: FlowWithSteps): string {
   return `<span class="strip">${flow.steps
-    .map((s) => cube(STATE_COLORS[s.state] ?? "#b9b4a8", `step ${s.index}: ${s.state}`))
+    .map((s) => cube(STATE_COLORS[s.state] ?? "#C9C7C1", `step ${s.index}: ${s.state}`))
     .join("")}</span>`;
 }
 
@@ -188,7 +188,7 @@ function flowCard(flow: FlowWithSteps, now: number): string {
     <header>
       <span class="doc-icon" aria-hidden="true"></span>
       <h2>${esc(flow.title)}</h2>
-      ${cube(STATE_COLORS[flow.state] ?? "#b9b4a8", `flow: ${flow.state}`)}
+      ${cube(STATE_COLORS[flow.state] ?? "#C9C7C1", `flow: ${flow.state}`)}
       <span class="state-word ${esc(flow.state)}">${esc(flow.state)}</span>
       <span class="dim">${esc(flow.scopeId)} · ${esc(flow.shape)} · updated ${esc(ago(flow.updatedAt, now))}</span>
     </header>
@@ -335,12 +335,12 @@ const PAGE_CSS = `
 /* ---- scopes ---- */
 .level{margin:0 0 20px}
 .level-h{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);font-weight:700;
-  margin:0 0 8px;display:block;border-bottom:1px solid #c6c1b7;padding-bottom:4px}
+  margin:0 0 8px;display:block;border-bottom:1px solid var(--line);padding-bottom:5px}
 .level-h .dim{text-transform:none;letter-spacing:0;font-weight:400;font-size:12px;margin-left:8px}
-.scope-card{background:var(--paper);border:1px solid #000;margin:0 0 12px;padding:0 0 12px;
-  box-shadow:2px 2px 0 rgba(0,0,0,.18)}
+.scope-card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);
+  margin:0 0 12px;padding:0 0 12px;box-shadow:var(--sh-1)}
 .scope-card header{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 12px;
-  border-bottom:1px solid #ded9d0;
+  border-bottom:1px solid var(--line);
   /* The scope's own colour, as a band, so the card is identifiable before reading. */
   border-left:6px solid var(--role)}
 .scope-card>*:not(header){margin-left:12px;margin-right:12px}
@@ -361,7 +361,7 @@ const PAGE_CSS = `
 .tools{margin:0 6px;font-size:11px}
 
 /* ---- flows as documents on the desk ---- */
-.doc{background:var(--paper);border:1px solid #000;box-shadow:2px 2px 0 rgba(0,0,0,.22);
+.doc{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh-1);
   padding:12px 14px 14px;margin:0 0 12px}
 .doc header{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .doc h2{font-size:15px;margin:0;font-weight:700}
@@ -371,16 +371,18 @@ const PAGE_CSS = `
 .state-word.failed,.state-word.blocked{color:#94271b}
 .goal{margin:8px 0;color:#3b3f44}
 .meta{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;align-items:center;margin-bottom:8px}
-.note{margin:8px 0;padding:7px 10px;font-size:13px;border:1px solid #c6c1b7;background:#f0ece4}
-.note.next{border-left:5px solid #e0a020}
-.note.alert{border-left:5px solid #b03a2e;background:#f7ebe8;color:#7d2419}
-.step{border-top:1px solid #e4dfd6;padding:9px 0}
+.note{margin:9px 0;padding:9px 12px;font-size:13px;border:1px solid var(--line);
+  border-radius:var(--r-sm);background:#FAFAF8}
+.note.next{border-left:3px solid #D4900F;background:#FDF8EF}
+.note.alert{border-left:3px solid #B23A2E;background:#FCF3F1;color:#7D2419}
+.step{border-top:1px solid var(--line);padding:10px 0}
 .step.current{background:#f4efe3;margin:0 -8px;padding:9px 8px}
 .step-head{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
 .idx{color:var(--dim);font-size:12px;font-family:var(--mono)}
 .intent{flex:1;min-width:200px}
 .when{font-size:12px}
-.result{margin:6px 0 0 21px;padding:6px 9px;background:#f0ece4;border:1px solid #ded9d0;
+.result{margin:7px 0 0 21px;padding:8px 11px;background:#FAFAF8;border:1px solid var(--line);
+  border-radius:var(--r-sm);
   white-space:pre-wrap;color:#3b3f44}
 .attempts{margin:6px 0 0 21px;padding:0;list-style:none;font-size:12px}
 .attempts li{padding:2px 0}

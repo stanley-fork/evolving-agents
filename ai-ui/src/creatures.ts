@@ -45,9 +45,13 @@ export const CREATURE_CSS = `
    width -- which collapsed it to a bar with legs. */
 .crt{position:relative;display:block;flex:0 0 auto;
   width:calc(16px * var(--u,1));height:calc(16px * var(--u,1));
-  background:var(--c,#e0a020);border:1px solid rgba(0,0,0,.6);
-  box-shadow:inset calc(2px * var(--u,1)) calc(2px * var(--u,1)) 0 rgba(255,255,255,.45),
-             inset calc(-2px * var(--u,1)) calc(-2px * var(--u,1)) 0 rgba(0,0,0,.28)}
+  background:var(--c,#C8B79A);border:1px solid rgba(0,0,0,.14);border-radius:calc(2px * var(--u,1));
+  /* One highlight, no shadow.
+     The inset pair used to eat 4 of the 16 grid units from each side, so at
+     --u:1 a third of the body was bevel and the fill it left read several shades
+     darker than the colour it was given. The creature looked like a dark blob at
+     the size it is drawn most. */
+  box-shadow:inset 0 calc(1px * var(--u,1)) 0 rgba(255,255,255,.5)}
 .crt .eye{position:absolute;top:calc(5px * var(--u,1));
   width:calc(2px * var(--u,1));height:calc(4px * var(--u,1));background:#16181a;
   transform:translate(var(--ex,0px),var(--ey,0px));
@@ -56,7 +60,7 @@ export const CREATURE_CSS = `
 .crt .eye.r{right:calc(4px * var(--u,1))}
 .crt .leg{position:absolute;top:calc(16px * var(--u,1));
   width:calc(2px * var(--u,1));height:calc(3px * var(--u,1));
-  background:var(--c,#e0a020);border:1px solid rgba(0,0,0,.6);border-top:0}
+  background:var(--c,#C8B79A);border:1px solid rgba(0,0,0,.14);border-top:0}
 .crt .leg:nth-of-type(1){left:calc(1px * var(--u,1))}
 .crt .leg:nth-of-type(2){left:calc(5px * var(--u,1))}
 .crt .leg:nth-of-type(3){left:calc(9px * var(--u,1))}
@@ -87,10 +91,10 @@ export const CREATURE_CSS = `
 /* The result travelling from one step to the next: the packet the whole trace
    face argues about, drawn. When it arrives, the next agent caught something.
    When it falls, it did not. */
-.pkt{position:fixed;z-index:395;width:5px;height:5px;background:#3f8f3f;
+.pkt{position:fixed;z-index:395;width:5px;height:5px;background:#2E7D4F;
   border:1px solid rgba(0,0,0,.6);pointer-events:none;
   transition:transform .62s steps(16),opacity .2s}
-.pkt.dropped{background:#b03a2e;transition:transform .5s cubic-bezier(.4,0,1,1),opacity .5s}
+.pkt.dropped{background:#B23A2E;transition:transform .5s cubic-bezier(.4,0,1,1),opacity .5s}
 @media (prefers-reduced-motion: reduce){
   .crt .eye,.crt.walking .leg,.crt.busy .eye,.crt .zzz,.crt.landed{animation:none}
   .pkt{transition:none}

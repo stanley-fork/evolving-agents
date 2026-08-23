@@ -9,6 +9,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { type DeskDoc, type DeskView, renderDeskHtml } from "../src/desk.ts";
+import { AGENT_COLOR, STATE_COLORS } from "../../ai-flows/src/vocabulary.ts";
 import { propose } from "../src/layout.ts";
 import { digestOf } from "../src/zoom.ts";
 import { actionsFor } from "../src/actions.ts";
@@ -209,8 +210,26 @@ describe("what the desk shows before anything is read", () => {
     const state = JSON.parse(
       html.match(/window\.__DESK__ = (.*?);<\/script>/s)![1]!,
     );
-    assert.equal(state.stateColors.done, "#3f8f3f");
-    assert.equal(state.stateColors.running, "#e0a020");
+    // From the shared table, not pinned by hand. A literal here is a second copy
+    // of STATE_COLORS that has to be edited whenever the palette moves on
+    // purpose — and a test you edit to make it pass has stopped checking.
+    assert.equal(state.stateColors.done, STATE_COLORS["done"]);
+    assert.equal(state.stateColors.running, STATE_COLORS["running"]);
+    assert.equal(state.agentColor, AGENT_COLOR);
+    /**
+     * The collision this file used to encode.
+     *
+     * `AGENT_COLOR` and `STATE_COLORS.running` were both `#e0a020`, and the two
+     * assertions above pinned them independently — so the page could go on
+     * saying "agent" and "in flight" in one colour and both lines passed. The
+     * invariant is that kind and state are distinguishable, and nothing else
+     * here was checking it.
+     */
+    assert.notEqual(
+      AGENT_COLOR,
+      STATE_COLORS["running"],
+      "an idle agent must not be drawn in the colour of work happening",
+    );
     assert.ok(
       html.includes("declared, no file"),
       "the legend must explain the struck-through cube",
@@ -527,9 +546,13 @@ describe("the mascot", () => {
     const html = renderDeskHtml({ ...view(), simulate: true });
     assert.match(html, /wrap\.className = 'cubi'/);
     assert.match(html, /\.cubisay\{/);
-    // It is the agent cube, not a character: same amber the shelf draws agents
-    // in, so the mascot reads as a member of the notation rather than a guest.
-    assert.match(html, /--cubi,#e0a020/);
+    // It is the agent cube, not a character: the same colour the shelf draws
+    // agents in, so the mascot reads as a member of the notation rather than a
+    // guest. Read from the table for the same reason as above.
+    assert.ok(
+      html.includes(`--cubi,${AGENT_COLOR}`),
+      "the mascot must be drawn in AGENT_COLOR, whatever that is",
+    );
   });
 
   it("reaches the network only behind a press", () => {
@@ -650,7 +673,10 @@ describe("a step's numbers", () => {
     // one, so it is words rather than pixels.
     const html = renderDeskHtml(withSeries([0, 0, 0]));
     assert.match(html, /nothing here/);
-    assert.match(html, /\.spark\.dead i\{background:#b03a2e\}/);
+    assert.ok(
+      html.includes(`.spark.dead i{background:${STATE_COLORS["failed"]}}`),
+      "a dead signal is drawn in the failure colour, from the table",
+    );
   });
 
   it("lets the handoff flag name the instrument that judged it", () => {

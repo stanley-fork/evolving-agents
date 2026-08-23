@@ -149,33 +149,40 @@ const NEWFORM_CSS = `
 const DESK_CSS = `
 body{overflow:hidden}
 .desk{position:relative;width:100vw;height:calc(100vh - 30px);overflow:auto}
-.desk.hasdrawer .surface{padding-bottom:160px}
+.desk.hasdrawer .surface{padding-bottom:136px}
 .surface{position:relative;width:2400px;height:1600px}
 
-/* A document on the desk. Same folded-corner idea as the explorer, at object size. */
-.docnode{position:absolute;width:284px;background:var(--paper);border:1px solid #000;
-  box-shadow:3px 3px 0 rgba(0,0,0,.35);user-select:none;touch-action:none}
-.docnode.dragging{box-shadow:6px 6px 0 rgba(0,0,0,.35);z-index:50}
-.docnode.over{outline:2px dashed #2f6fb5;outline-offset:2px}
-.docnode .dbar{display:flex;align-items:center;gap:6px;padding:3px 6px;border-bottom:1px solid #000;
-  background:var(--face);cursor:grab;
-  background-image:repeating-linear-gradient(180deg,rgba(0,0,0,.42) 0 1px,transparent 1px 3px)}
-.docnode .dbar .t{font-size:12px;font-weight:700;background:var(--face);padding:1px 8px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}
-.docnode .body{padding:8px 9px 10px}
-.docnode .goal{font-size:12px;color:#3b3f44;margin:0 0 6px;
+/* A flow on the desk.
+   One card, one hairline, one resting shadow. It used to be a black-bordered box
+   with a striped title bar and a hard offset shadow, containing a second box
+   with a dashed border, containing the agents: three nested rectangles for one
+   flow, two of which were drawing nothing.
+   The title is the largest text on the surface, because on a desk full of cards
+   the question a reader asks first is *which flow is this*. */
+.docnode{position:absolute;width:288px;background:var(--paper);border:1px solid var(--line);
+  border-radius:var(--r);box-shadow:var(--sh-1);user-select:none;touch-action:none}
+.docnode.dragging{box-shadow:var(--sh-2);z-index:50}
+.docnode.over{box-shadow:0 0 0 2px var(--accent),var(--sh-2)}
+.docnode .dbar{display:flex;align-items:center;gap:7px;padding:11px 14px 0;cursor:grab;background:none}
+.docnode .dbar .t{font-size:14px;font-weight:600;letter-spacing:-.01em;line-height:1.3;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:246px}
+.docnode .body{padding:5px 14px 13px}
+.docnode .goal{font-size:12.5px;line-height:1.45;color:var(--dim);margin:0 0 9px;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.docnode .meta{font-size:11px;color:var(--dim);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+/* State reads as one word and a row of marks, at the size of a caption. It was
+   competing with the title at the same weight. */
+.docnode .meta{font-size:11px;color:var(--dim);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.docnode .meta .st{font-weight:600;color:var(--ink)}
 
 /* A step's numbers, as a shape.
    Bars in whole pixels on the same grid as everything else, and never without
    the caption underneath: a chart with no scale invites the reader to see a
    trend in noise, which is the failure doc/04 spends a section on. The caption
    carries the peak, so a flatline cannot be mistaken for a small signal. */
-.spark{display:flex;align-items:flex-end;gap:1px;background:#fff;border:1px solid #cfcbc2;
-  padding:2px;overflow:hidden}
-.spark i{display:block;background:#3f6f8f;flex:0 0 auto;min-height:1px}
-.spark.dead i{background:#b03a2e}
+.spark{display:flex;align-items:flex-end;gap:1.5px;background:#FAFAF8;border:1px solid var(--line);
+  border-radius:var(--r-sm);padding:3px;overflow:hidden}
+.spark i{display:block;background:#5B87A8;flex:0 0 auto;min-height:1px;border-radius:1px}
+.spark.dead i{background:#B23A2E}
 .sparkcap{font:10px/1.3 var(--mono);color:var(--dim);margin-top:2px}
 .sparkcap b{color:#7d2419;font-weight:700}
 
@@ -187,17 +194,22 @@ body{overflow:hidden}
    Zigzag rather than a straight column so every hop has horizontal travel as
    well as vertical: a wire between two cubes stacked exactly above each other is
    a vertical line a few pixels long, which is a wire nobody can see or click. */
-.stack{min-height:26px;margin-top:8px;padding:5px 4px;border:1px dashed #c6c1b7;
-  display:flex;flex-direction:column;gap:9px}
+.stack{min-height:24px;margin-top:11px;padding:2px 0;display:flex;flex-direction:column;gap:11px}
 .stack .acube.instack:nth-child(odd){align-self:flex-start}
 .stack .acube.instack:nth-child(even){align-self:flex-end}
-.stack.empty::before{content:"drop an agent here";font-size:10px;color:#a9a49a}
+/* The dashed box around the agents is gone. It framed a region that the wires
+   and the cubes already describe, and a dashed rectangle inside a solid one
+   inside the ground reads as three containers where there is one flow. Empty is
+   still said out loud, because an empty region with no border needs words. */
+.stack.empty{border:1px dashed var(--line-2);border-radius:var(--r-sm);padding:9px;min-height:38px}
+.stack.empty::before{content:"drop an agent here";font-size:11px;color:var(--faint)}
 
 /* An agent cube, at object size: big enough to grab, still a cube. */
-.acube{position:absolute;display:flex;align-items:center;gap:5px;padding:3px 7px 3px 4px;
-  background:var(--face);border:1px solid #000;box-shadow:2px 2px 0 rgba(0,0,0,.3);
-  font-size:11px;cursor:grab;user-select:none;touch-action:none;white-space:nowrap;z-index:20}
-.acube.dragging{box-shadow:5px 5px 0 rgba(0,0,0,.3);z-index:60;cursor:grabbing}
+.acube{position:absolute;display:flex;align-items:center;gap:6px;padding:4px 10px 4px 5px;
+  background:var(--face);border:1px solid var(--line-2);border-radius:999px;
+  box-shadow:var(--sh-1);font-size:11.5px;font-weight:500;letter-spacing:.01em;
+  cursor:grab;user-select:none;touch-action:none;white-space:nowrap;z-index:20}
+.acube.dragging{box-shadow:var(--sh-2);z-index:60;cursor:grabbing}
 .acube.instack{position:static;box-shadow:1px 1px 0 rgba(0,0,0,.3);padding:2px 6px 2px 3px}
 /* The body is CREATURE_CSS, shared with every other creature on this desk --
    there is exactly one sprite now, at one size or twice it. What is left here is
@@ -279,7 +291,12 @@ body{overflow:hidden}
    only colour. The unknown state is dashed *and* thin *and* grey, because the one thing
    this picture must never do is let "nobody recorded this" read as "this went
    fine" -- to a colourblind reader, at a glance, or in a screenshot. */
-.wires{position:absolute;inset:0;pointer-events:none;z-index:30;overflow:visible}
+/* Below the chips, not above them.
+   The wires used to paint at z-index 30 and the agent chips at 20, so every line
+   crossed the names it connects — a circuit drawn on top of its own labels. A
+   wire passing behind a chip is how every diagram since Interface Builder has
+   done it, and it is the difference between a graph and a scribble. */
+.wires{position:absolute;inset:0;pointer-events:none;z-index:10;overflow:visible}
 .wires path.w{fill:none;stroke-linecap:round}
 .wires path.hit{fill:none;stroke:transparent;stroke-width:12;pointer-events:stroke;cursor:pointer}
 .wires path.w.carried{stroke:#2f6fb5;stroke-width:2}
@@ -307,10 +324,10 @@ body{overflow:hidden}
 
 /* ---- the inspector -------------------------------------------------------
    One panel, bound to the selection, with two positions. */
-.insp .sw{display:flex;gap:0;margin:2px 0 8px}
+.insp .sw{display:flex;gap:5px;margin:6px 0 10px}
 .insp .sw button{flex:1 1 0;font-size:10px;letter-spacing:.04em}
-.insp .sw button[aria-selected="true"]{box-shadow:inset -1px -1px 0 var(--lite),inset 1px 1px 0 var(--dark);
-  background:#dcd8cc;font-weight:700}
+.insp .sw button[aria-selected="true"]{background:var(--accent-soft);border-color:#B9D2EC;
+  color:#1B4F86;font-weight:650}
 .insp .fld{display:grid;grid-template-columns:96px 1fr;gap:3px 8px;font-size:11px;margin:0 0 2px;
   align-items:start}
 .insp .fld .k{color:var(--dim);text-transform:lowercase}
@@ -319,23 +336,31 @@ body{overflow:hidden}
 /* An address, not a label. It is a link because you are meant to open it. */
 .insp .at{display:block;font-family:var(--mono);font-size:10px;color:#2f6fb5;text-decoration:underline;
   margin-top:1px;cursor:pointer;background:none;border:0;box-shadow:none;padding:0;text-align:left}
-.insp .fnd{border:1px solid #000;padding:7px 9px;margin-top:8px;background:var(--paper)}
+.insp .fnd{border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px;margin-top:10px;
+  background:#FAFAF8}
 .insp .fnd .vd{font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
 .insp .fnd.ok .vd{color:#2c6e2f}
 .insp .fnd.problem .vd{color:#a52a2a}
 /* Unknown is drawn as its own thing rather than as a pale version of one of the
    others, because it is not a weaker verdict -- it is the refusal to give one. */
-.insp .fnd.unknown{background:repeating-linear-gradient(45deg,#f2f0ea,#f2f0ea 6px,#e8e5dd 6px,#e8e5dd 12px)}
+.insp .fnd.ok{background:#F4F9F5;border-color:#D6E7DA}
+.insp .fnd.problem{background:#FCF3F1;border-color:#EFD8D3}
+/* Unknown keeps its hatch. It is drawn as its own thing rather than as a pale
+   version of a verdict, because it is not a weaker verdict — it is the refusal
+   to give one, and a reader must not be able to mistake the two at a glance. */
+.insp .fnd.unknown{background:repeating-linear-gradient(45deg,#F4F3F0,#F4F3F0 6px,#EAE8E3 6px,#EAE8E3 12px);
+  border-color:var(--line-2)}
 .insp .fnd.unknown .vd{color:#6b6b6b}
 .insp .fnd .sy{margin:4px 0 0;font-size:12px;line-height:1.45}
 .insp .fnd .ct{margin-top:6px;font-size:10px;color:var(--dim)}
-.insp .bytes{font-family:var(--mono);font-size:10px;line-height:1.5;background:#16181a;color:#d7dde3;
-  padding:7px 8px;margin-top:6px;max-height:230px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.insp .bytes{font-family:var(--mono);font-size:10.5px;line-height:1.6;background:#14171A;color:#D7DDE3;
+  border-radius:var(--r-sm);padding:10px 11px;margin-top:8px;max-height:230px;overflow:auto;
+  white-space:pre-wrap;word-break:break-word}
 
-.shelf{position:absolute;left:0;top:0;bottom:0;width:150px;padding:26px 8px 8px;
-  background:rgba(0,0,0,.06);border-right:1px solid rgba(0,0,0,.25)}
-.shelf h3{position:absolute;top:6px;left:8px;margin:0;font-size:10px;letter-spacing:.1em;
-  text-transform:uppercase;color:#3b3f44}
+.shelf{position:absolute;left:0;top:0;bottom:0;width:158px;padding:30px 10px 10px;
+  background:rgba(255,255,255,.5);border-right:1px solid var(--line)}
+.shelf h3{position:absolute;top:11px;left:12px;margin:0;font-size:10px;letter-spacing:.08em;
+  font-weight:650;text-transform:uppercase;color:var(--faint)}
 
 /* One column on the right, so the panel and the key stack instead of landing on
    top of each other. They were separately fixed -- panel to the top, key to the
@@ -348,63 +373,89 @@ body{overflow:hidden}
 .panel .win-body{padding:10px 12px;font-size:12px}
 .panel h4{margin:0 0 4px;font-size:12px}
 .panel .act{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
-button{font:inherit;font-size:11px;padding:2px 9px;background:var(--face);border:1px solid #000;
-  box-shadow:inset 1px 1px 0 var(--lite),inset -1px -1px 0 var(--dark);cursor:pointer}
-button:active{box-shadow:inset -1px -1px 0 var(--lite),inset 1px 1px 0 var(--dark)}
-button[disabled]{opacity:.5;cursor:default}
+/* A control, not a 1991 bevel. The inset highlight-and-shadow pair was drawing
+   a plastic button at 11px, where the two bevels together ate most of the label's
+   breathing room and nothing about it said "press me" that the shape did not. */
+button{font:inherit;font-size:11.5px;font-weight:500;padding:4px 11px;color:var(--ink);
+  background:var(--face);border:1px solid var(--line-2);border-radius:var(--r-sm);
+  box-shadow:0 1px 1px rgba(16,24,40,.04);cursor:pointer;
+  transition:background .12s linear,border-color .12s linear}
+button:hover{background:#F7F7F5;border-color:#BFBEB9}
+button:active{background:#EFEEEB;box-shadow:inset 0 1px 2px rgba(16,24,40,.08)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button[disabled]{opacity:.45;cursor:default}
 .steps{list-style:none;margin:6px 0 0;padding:0}
 .steps li{display:flex;gap:5px;align-items:baseline;padding:1px 0;font-size:11px}
-.note{margin-top:8px;padding:6px 8px;border:1px solid #c6c1b7;background:#f0ece4;font-size:11px}
-.note.warn{border-left:4px solid #e0a020}
-.note.alert{border-left:4px solid #b03a2e;background:#f7ebe8;color:#7d2419}
+.note{margin-top:9px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r-sm);
+  background:#FAFAF8;font-size:11.5px;line-height:1.5}
+.note.warn{border-left:3px solid #D4900F;background:#FDF8EF}
+.note.alert{border-left:3px solid #B23A2E;background:#FCF3F1;color:#7D2419}
 
 /* Tabs: state and trace answer different questions about the same document. */
-.tabs{display:flex;gap:4px;margin:8px 0 0}
-.tabs button{font-size:10px;padding:1px 8px}
-.tabs button[aria-selected="true"]{box-shadow:inset -1px -1px 0 var(--lite),inset 1px 1px 0 var(--dark);font-weight:700}
+.tabs{display:flex;gap:5px;margin:9px 0 0}
+.tabs button{font-size:11px;padding:3px 10px}
+.tabs button[aria-selected="true"]{background:var(--accent-soft);border-color:#B9D2EC;
+  color:#1B4F86;font-weight:600}
 .tr{margin-top:8px}
-.tr .st{border-top:1px solid #e4dfd6;padding:5px 0}
+.tr .st{border-top:1px solid var(--line);padding:7px 0}
 .tr .hd{display:flex;gap:5px;align-items:baseline}
-.tr .res{margin:4px 0 0 16px;padding:4px 6px;background:#f0ece4;border:1px solid #ded9d0;
-  white-space:pre-wrap;font-size:10px;max-height:96px;overflow:auto}
+.tr .res{margin:5px 0 0 16px;padding:6px 8px;background:#FAFAF8;border:1px solid var(--line);
+  border-radius:var(--r-sm);white-space:pre-wrap;font-size:11px;line-height:1.5;
+  max-height:104px;overflow:auto}
 .tr .att{margin:3px 0 0 16px;font-size:10px;color:var(--dim);font-family:var(--mono)}
 .tr .flag{margin:4px 0 0 16px;font-size:10px;color:#7d2419}
 
 /* The living documents. The dot is the whole point of the panel: something is
    writing to this one right now and nobody asked it to. */
 .docs{list-style:none;margin:0;padding:0;font-size:11px}
-.docs li{display:flex;align-items:center;gap:6px;padding:2px 0;border-top:1px solid #e4dfd6}
+.docs li{display:flex;align-items:center;gap:7px;padding:4px 0;border-top:1px solid var(--line)}
 .docs li:first-child{border-top:0}
 .docs .k{font-family:var(--mono);font-size:9px;color:var(--dim);flex:0 0 76px}
 .docs .t{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.docs .dot{width:7px;height:7px;flex:0 0 7px;border:1px solid rgba(0,0,0,.5);background:#cfcbc2}
-.docs li.live .dot{background:#e0a020;animation:pulse 1.1s ease-in-out infinite}
+.docs .dot{width:6px;height:6px;flex:0 0 6px;border-radius:50%;background:var(--line-2)}
+.docs li.live .dot{background:#D4900F;animation:pulse 1.1s ease-in-out infinite}
 .docs .rw{font-family:var(--mono);font-size:9px;color:var(--dim);flex:0 0 auto}
 
-/* The memory drawer. Hatched, because none of it is built. */
-.drawer{position:fixed;left:0;bottom:0;right:318px;height:150px;
-  border-top:2px solid #000;background:#cfcbc2;
-  background-image:repeating-linear-gradient(45deg,rgba(0,0,0,.05) 0 6px,transparent 6px 12px);
-  padding:22px 12px 12px;overflow-x:auto;display:flex;gap:10px;align-items:flex-start}
-.drawer h3{position:absolute;top:4px;left:12px;margin:0;font-size:10px;letter-spacing:.1em;
-  text-transform:uppercase;color:#3b3f44}
+/* The memory drawer.
+   It used to be 150px of hatched basement across the whole width, carrying a red
+   NOT BUILT badge — the loudest region on the screen, for the one pillar that
+   does not exist yet. Honest, and the wrong amount of room: a thing that has not
+   been built should not out-shout the things that have.
+   Now a strip. The hatch stays, at a fraction of its old contrast, because the
+   *reason* it was hatched is still true. */
+.drawer{position:fixed;left:0;bottom:0;right:318px;height:124px;
+  border-top:1px solid var(--line-2);background:#EFEEEA;
+  background-image:repeating-linear-gradient(45deg,rgba(0,0,0,.022) 0 6px,transparent 6px 12px);
+  padding:26px 14px 12px;overflow-x:auto;display:flex;gap:10px;align-items:flex-start}
+.drawer h3{position:absolute;top:8px;left:14px;margin:0;font-size:10px;letter-spacing:.08em;
+  font-weight:650;text-transform:uppercase;color:var(--faint)}
 /* Beside the title, not opposite it: the right edge is where the fixed rail
    lands, and the one marking that must never be hidden was hidden there. */
-.drawer .stamp{position:absolute;top:4px;left:74px;font-size:10px;color:#7d2419;font-weight:700;
-  letter-spacing:.06em;text-transform:uppercase;border:1px solid #7d2419;padding:0 5px}
-.card{flex:0 0 210px;background:var(--paper);border:1px dashed #7d2419;padding:6px 8px;font-size:10px;
-  box-shadow:2px 2px 0 rgba(0,0,0,.15)}
-.card .lv{display:flex;align-items:center;gap:5px;font-weight:700;margin-bottom:3px}
-.card .bd{white-space:pre-wrap;max-height:64px;overflow:hidden;color:#3b3f44}
+/* Still says it, and no longer shouts it. The claim is unchanged — nothing here
+   is built — but a red box in the loudest weight on the page was giving the one
+   unbuilt pillar more presence than the four built ones. */
+.drawer .stamp{position:absolute;top:8px;left:78px;font-size:10px;color:#8A5A0A;font-weight:600;
+  letter-spacing:.04em;text-transform:uppercase;background:#FDF4E6;border:1px solid #EBD9B8;
+  border-radius:999px;padding:1px 8px}
+.card{flex:0 0 214px;background:var(--paper);border:1px dashed #D8C6A4;border-radius:var(--r-sm);
+  padding:8px 10px;font-size:10.5px;line-height:1.45;box-shadow:var(--sh-1)}
+.card .lv{display:flex;align-items:center;gap:5px;font-weight:600;margin-bottom:4px}
+.card .bd{white-space:pre-wrap;max-height:56px;overflow:hidden;color:var(--dim)}
 .card .from{margin-top:4px;color:var(--dim);font-family:var(--mono);font-size:9px}
 .levels{display:flex;gap:10px;font-size:10px;margin-left:auto;align-items:flex-start;flex:0 0 auto}
 .levels div{display:flex;align-items:center;gap:4px}
-select{font:inherit;font-size:11px}
-.sim{background:#7d2419;color:#fbfaf7;padding:1px 8px;font-size:10px;font-weight:700;
-  letter-spacing:.06em;text-transform:uppercase}
+select{font:inherit;font-size:11.5px;padding:3px 6px;background:var(--face);
+  border:1px solid var(--line-2);border-radius:var(--r-sm);color:var(--ink)}
+select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+/* The page must say it is not the product, and it must not be the loudest thing
+   on the page. A filled dark-red block in the top-left corner was drawing more
+   attention than any evidence on the desk; a pill in the same family says the
+   same sentence without winning. */
+.sim{background:#FCF3F1;color:#8E332A;border:1px solid #EFD8D3;border-radius:999px;
+  padding:2px 10px;font-size:10px;font-weight:600;letter-spacing:.03em;text-transform:uppercase}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:300;
-  background:var(--paper);border:1px solid #000;box-shadow:3px 3px 0 rgba(0,0,0,.4);
-  padding:7px 14px;font-size:12px;display:none}
+  background:var(--ink);color:#F5F5F3;border:1px solid var(--ink);border-radius:999px;
+  box-shadow:var(--sh-2);padding:9px 17px;font-size:12px;display:none;max-width:min(620px,90vw)}
 
 /* The digest: what this flow is, from across the room. Recessed, because it is
    a container for the whole rather than one more thing on the list. */
@@ -421,7 +472,7 @@ select{font:inherit;font-size:11px}
 .menu .mi{margin-bottom:7px}
 .menu .ml{font-size:11px;padding:2px 8px;max-width:100%;text-align:left;white-space:normal}
 .menu .mc{font-size:9px;margin-left:6px;padding:1px 5px;letter-spacing:.04em;text-transform:uppercase}
-.menu .mc.spends{background:#f6e6c8;color:#7a4a00;border:1px solid #e0a020}
+.menu .mc.spends{background:#f6e6c8;color:#7a4a00;border:1px solid #D4900F}
 .menu .mc.free{background:#e6efe6;color:#2c6b2c;border:1px solid #9cc09c}
 .menu .mw{font-size:10px;color:var(--dim);margin-top:3px;line-height:1.4}
 /* A model's suggestion is marked as one. It sits beside proposals that are not. */
@@ -905,7 +956,7 @@ const DESK_JS = "(() => {\n" + CREATURES_JS + BUS_JS + INSPECTOR_JS + String.raw
         : '') +
       '<div class="tr">' + t.steps.map((s) =>
         '<div class="st"><div class="hd">' +
-        '<span class="cube sm" style="--c:' + (S.stateColors[s.state] || '#b9b4a8') + '"></span>' +
+        '<span class="cube sm" style="--c:' + (S.stateColors[s.state] || '#C9C7C1') + '"></span>' +
         '<span class="dim">' + s.index + '</span><strong>' + escape_(s.agent || 'step') + '</strong>' +
         '</div>' +
         (s.result ? '<div class="res">' + escape_(s.result) + '</div>' : '') +
@@ -1259,7 +1310,7 @@ const DESK_JS = "(() => {\n" + CREATURES_JS + BUS_JS + INSPECTOR_JS + String.raw
         (lastSeries(doc) ? '<div style="margin-top:8px">' +
           spark(lastSeries(doc).series, 250, 30) + '</div>' : '') +
         '<ul class="steps">' + doc.steps.map((s) =>
-          '<li><span class="cube sm" style="--c:' + (S.stateColors[s.state] || '#b9b4a8') + '"></span>' +
+          '<li><span class="cube sm" style="--c:' + (S.stateColors[s.state] || '#C9C7C1') + '"></span>' +
           '<span class="dim">' + s.index + '</span> ' + escape_(s.agent || s.intent.slice(0, 60)) + '</li>').join('') +
         '</ul>' +
         (next
@@ -1352,7 +1403,7 @@ const DESK_JS = "(() => {\n" + CREATURES_JS + BUS_JS + INSPECTOR_JS + String.raw
             (mine.length === 1 ? 'One document' : mine.length + ' documents') + ' · ' +
             (ran ? ran + ' attempt(s) recorded' : 'never attempted') + '</div>' +
             '<ul class="steps">' + mine.map((m) => m.steps.map((s) =>
-              '<li><span class="cube sm" style="--c:' + (S.stateColors[s.state] || '#b9b4a8') + '"></span>' +
+              '<li><span class="cube sm" style="--c:' + (S.stateColors[s.state] || '#C9C7C1') + '"></span>' +
               '<span class="dim">' + s.index + '</span> ' + escape_(m.doc.title) +
               (s.result ? '' : ' <span class="dim">— nothing recorded</span>') + '</li>').join('')).join('') +
             '</ul>'
@@ -1696,8 +1747,8 @@ const DESK_JS = "(() => {\n" + CREATURES_JS + BUS_JS + INSPECTOR_JS + String.raw
       // the old version threw them away sixty times a minute.
       el.querySelector('.meta').innerHTML =
         '<span class="strip">' + doc.steps.map((s) =>
-          '<span class="cube" style="--c:' + (S.stateColors[s.state] || '#b9b4a8') + '"></span>').join('') +
-        '</span><span>' + doc.done + '/' + doc.total + '</span><span>' + escape_(doc.state) + '</span>';
+          '<span class="cube" style="--c:' + (S.stateColors[s.state] || '#C9C7C1') + '"></span>').join('') +
+        '</span><span class="st">' + escape_(doc.state) + '</span><span>' + doc.done + '/' + doc.total + '</span>';
       // What this flow is carrying right now, on the document itself. Two flows
       // whose strips are both green and whose shapes are a waveform and a
       // flatline are two different outcomes, and the desk should not need to be
@@ -1865,7 +1916,7 @@ const DESK_JS = "(() => {\n" + CREATURES_JS + BUS_JS + INSPECTOR_JS + String.raw
       '<h3>Memory</h3><span class="stamp">Not built — this is the spec</span>' +
       (notes.length
         ? notes.map((n) => {
-            const lv = (S.memoryLevels || []).find((x) => x.level === n.level) || { color: '#b9b4a8' };
+            const lv = (S.memoryLevels || []).find((x) => x.level === n.level) || { color: '#C9C7C1' };
             return '<div class="card"><div class="lv"><span class="cube sm" style="--c:' + lv.color + '"></span>' +
               escape_(n.level) + '</div><div class="bd"><strong>' + escape_(n.title) + '</strong>\n' +
               escape_(n.body) + '</div><div class="from">from ' +

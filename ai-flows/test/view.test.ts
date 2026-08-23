@@ -10,6 +10,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { renderViewHtml } from "../src/view.ts";
+import { STATE_COLORS } from "../src/vocabulary.ts";
 import type { Conformation } from "../src/conformation.ts";
 import type { Attempt, FlowWithSteps, Step, StepState } from "../src/types.ts";
 
@@ -158,10 +159,20 @@ describe("the progress strip", () => {
     assert.equal((strip.match(/class="cube"/g) ?? []).length, 4);
   });
 
-  it("colours a failed step differently from a done one", () => {
+  /**
+   * The invariant, not the hex.
+   *
+   * This used to assert `#3f8f3f` and `#b03a2e` literally, which made it a
+   * second copy of `STATE_COLORS` that had to be edited by hand every time the
+   * palette moved deliberately — and a test you edit to make it pass is a test
+   * that has stopped checking anything. What matters is that the page draws the
+   * two states from the table, and draws them differently.
+   */
+  it("colours a failed step differently from a done one, from the shared table", () => {
     const html = renderViewHtml({ flows: [flow({ steps: [step(0, "done"), step(1, "failed")] })], at: T });
-    assert.ok(html.includes("--c:#3f8f3f"), "done should be green");
-    assert.ok(html.includes("--c:#b03a2e"), "failed should be red");
+    assert.notEqual(STATE_COLORS["done"], STATE_COLORS["failed"], "the table itself must distinguish them");
+    assert.ok(html.includes(`--c:${STATE_COLORS["done"]}`), "done is not drawn from STATE_COLORS");
+    assert.ok(html.includes(`--c:${STATE_COLORS["failed"]}`), "failed is not drawn from STATE_COLORS");
   });
 });
 

@@ -472,39 +472,42 @@ export const MASCOT_CSS = `
    of them speaks for the system. */
 .cubi{position:fixed;z-index:390;pointer-events:auto;cursor:pointer;
   transition:left .55s steps(14),top .55s steps(14)}
-.cubi .crt{--u:2;outline:1px solid #000;outline-offset:2px}
+.cubi .crt{--u:2;outline:1px solid rgba(0,0,0,.18);outline-offset:3px;border-radius:2px}
 .cubi.sitting .crt .leg{display:none}
 /* Alert: the outline goes to the colour a missing agent is drawn in, so the
    warning is in the palette the reader already learned. */
 .cubi.alert .crt{animation:cubialert .28s steps(1,end) 6}
-@keyframes cubialert{from{box-shadow:0 0 0 2px #b03a2e}to{box-shadow:none}}
+@keyframes cubialert{from{box-shadow:0 0 0 2px #B23A2E}to{box-shadow:none}}
 
-/* The balloon. A window, because on this desk every bounded thing is one. */
-.cubisay{position:fixed;z-index:391;width:288px;max-width:calc(100vw - 28px);
-  background:var(--paper);border:1px solid #000;box-shadow:3px 3px 0 rgba(0,0,0,.4);
-  padding:8px 10px 9px;display:none;font-size:12px;line-height:1.45}
+/* The balloon.
+   Narrower than it was and it opens only when asked. It used to be 288px wide,
+   open on arrival, sitting in the middle of the desk explaining the desk — a
+   second panel answering the same question as the Inspector, in a bigger voice,
+   before anybody had asked anything. */
+.cubisay{position:fixed;z-index:391;width:262px;max-width:calc(100vw - 28px);
+  background:var(--paper);border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:var(--sh-2);padding:11px 13px 12px;display:none;font-size:12px;line-height:1.5}
 .cubisay.on{display:block}
-.cubisay .hd{display:flex;align-items:center;gap:6px;margin:-8px -10px 6px;padding:3px 7px;
-  border-bottom:1px solid #000;
-  background-image:repeating-linear-gradient(180deg,rgba(0,0,0,.42) 0 1px,transparent 1px 3px)}
-.cubisay .hd b{font-size:11px;background:var(--face);padding:1px 8px}
+.cubisay .hd{display:flex;align-items:center;gap:6px;margin:-11px -13px 8px;padding:8px 12px;
+  border-bottom:1px solid var(--line)}
+.cubisay .hd b{font-size:11px;font-weight:650}
 .cubisay .hd .sp{margin-left:auto}
-.cubisay .hd button{font:inherit;font-size:10px;padding:0 5px;line-height:15px}
+.cubisay .hd button{font:inherit;font-size:10px;padding:1px 7px;line-height:16px}
 .cubisay .say{margin:0}
 /* The evidence line, styled like the menu's: dim, under a rule, no label. It
    carried the word "from" until the greeting read "from Every line I say…" —
    a prefix that only fits noun phrases fits none of them. */
-.cubisay .why{margin:5px 0 0;font-size:11px;color:var(--dim);border-top:1px dotted #b9b4a8;padding-top:4px}
+.cubisay .why{margin:7px 0 0;font-size:11px;color:var(--dim);border-top:1px solid var(--line);padding-top:6px}
 .cubisay.alert .say{color:#7d2419}
 /* The tail, in two triangles: black edge, then face one pixel inside it. It
    tracks the sprite through --tail rather than sitting at a fixed offset,
    because the balloon moves to wherever it covers least and the sprite does
    not move with it. */
 .cubisay::after,.cubisay::before{content:"";position:absolute;bottom:-9px;
-  left:var(--tail,22px);border:9px solid transparent;border-top-color:#000;border-bottom:0}
+  left:var(--tail,22px);border:9px solid transparent;border-top-color:var(--line);border-bottom:0}
 .cubisay::after{bottom:-8px;border-top-color:var(--paper)}
 .cubisay.under::after,.cubisay.under::before{bottom:auto;top:-9px;
-  border:9px solid transparent;border-bottom-color:#000;border-top:0}
+  border:9px solid transparent;border-bottom-color:var(--line);border-top:0}
 .cubisay.under::after{top:-8px;border-bottom-color:var(--paper)}
 /* Beside the sprite there is no honest tail to draw. */
 .cubisay.notail::after,.cubisay.notail::before{display:none}
@@ -519,11 +522,11 @@ export const MASCOT_CSS = `
 .crtsay .who{font:700 10px/1 var(--mono);letter-spacing:.04em;color:#3b3f44;
   margin:0 0 4px;text-transform:uppercase}
 .crtsay .said{margin:0}
-.crtsay .why{margin:5px 0 0;font-size:10px;color:var(--dim);border-top:1px dotted #b9b4a8;padding-top:4px}
-.crtsay.alert{border-left:4px solid #b03a2e}
+.crtsay .why{margin:5px 0 0;font-size:10px;color:var(--dim);border-top:1px dotted #C9C7C1;padding-top:4px}
+.crtsay.alert{border-left:4px solid #B23A2E}
 .crtsay.alert .said{color:#7d2419}
 .crtsay .ans{margin-top:6px;font-size:11px;white-space:pre-wrap;border-top:1px solid #cfcbc2;padding-top:5px}
-.crtsay .ung{margin-top:5px;font-size:10px;color:#7d2419;border:1px solid #b03a2e;padding:3px 5px}
+.crtsay .ung{margin-top:5px;font-size:10px;color:#7d2419;border:1px solid #B23A2E;padding:3px 5px}
 .crtsay .src{margin-top:5px;font-size:10px;color:var(--dim)}
 .crtsay details pre{margin:4px 0 0;font-family:var(--mono);font-size:10px;white-space:pre-wrap;
   max-height:110px;overflow:auto;background:#fff;border:1px solid #cfcbc2;padding:4px}
@@ -537,10 +540,10 @@ export const MASCOT_CSS = `
 .cubisay .brain input{flex:1 1 auto;min-width:0;font:inherit;font-size:11px;padding:2px 5px;
   border:1px solid #000;background:#fff}
 .cubisay .brain .bar{height:9px;border:1px solid #000;background:#fff;margin-top:5px}
-.cubisay .brain .bar i{display:block;height:100%;background:var(--cubi,#e0a020);
+.cubisay .brain .bar i{display:block;height:100%;background:var(--cubi,#C8B79A);
   background-image:repeating-linear-gradient(90deg,rgba(0,0,0,.18) 0 2px,transparent 2px 4px)}
 .cubisay .brain .ans{margin-top:6px;font-size:11px;white-space:pre-wrap}
-.cubisay .brain .ung{margin-top:5px;font-size:10px;color:#7d2419;border:1px solid #b03a2e;padding:3px 5px}
+.cubisay .brain .ung{margin-top:5px;font-size:10px;color:#7d2419;border:1px solid #B23A2E;padding:3px 5px}
 .cubisay .brain .src{margin-top:5px;font-size:10px;color:var(--dim)}
 .cubisay .brain details pre{margin:4px 0 0;font-family:var(--mono);font-size:10px;
   white-space:pre-wrap;max-height:120px;overflow:auto;background:#fff;border:1px solid #cfcbc2;padding:4px}
@@ -599,7 +602,7 @@ ${BRAIN_JS}
   wrap.className = 'cubi';
   wrap.setAttribute('role', 'img');
   wrap.setAttribute('aria-label', "Cubi, the desk's agent cube");
-  wrap.innerHTML = '<span class="crt" style="--c:#e0a020">' + (window.__CRT__ || '') + '</span>';
+  wrap.innerHTML = '<span class="crt" style="--c:#C8B79A">' + (window.__CRT__ || '') + '</span>';
   document.body.appendChild(wrap);
 
   const bubble = document.createElement('div');
@@ -1053,8 +1056,20 @@ ${BRAIN_JS}
     if (d.kind === 'doc') {
       talkingTo = null;
       theirs.classList.remove('on');
+      /**
+       * It walks over. It does not start talking.
+       *
+       * Clicking a flow used to open Cubi's balloon *and* fill the Inspector —
+       * two panels answering the same question about the same thing, at the same
+       * moment, in different words. Whichever one a reader looked at, the other
+       * was noise, and the loud one was the balloon.
+       *
+       * So the reaction is the walk: it goes and stands on the flow you picked,
+       * which is the part nothing else does. Click it and it speaks. It still
+       * interrupts on its own for the one case worth interrupting for — see the
+       * alert path below, which is unchanged.
+       */
       sitOn(d.id);
-      setTimeout(() => react('select-doc', { docId: d.id }), 420);
     }
   });
 
@@ -1092,6 +1107,18 @@ ${BRAIN_JS}
   const f = fence();
   place(f.x1 - 40, f.y1 - 40);
   armIdle();
-  setTimeout(() => react('greet'), 1400);
+  /**
+   * It arrives, and it does not start talking.
+   *
+   * This used to open a 288px balloon 1.4 seconds after load, in the middle of
+   * the desk, explaining the desk — a second panel answering the same question
+   * as the Inspector, in a bigger voice, before anybody had asked anything. Two
+   * voices narrating one surface is worse than either alone.
+   *
+   * So the greeting is on the creature now: click it and it speaks. It still
+   * reacts to what you do — the whole point of it is that it watches the trace
+   * and says what it sees — and it no longer opens the conversation.
+   */
+  wrap.setAttribute('title', 'Cubi — click to ask what you are looking at');
 })();
 `;

@@ -48,7 +48,7 @@ export const MEMORY_LEVELS: ReadonlyArray<{
   },
   {
     level: "user",
-    color: "#3f8f3f",
+    color: "#2E7D4F",
     note: "one person's, across every project they are in",
   },
   {

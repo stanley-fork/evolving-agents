@@ -101,7 +101,38 @@ the connection became real, in the file. Nobody typed it. Here the objects are
 agents and the wires are handoffs — with the thing that moved travelling along
 one, openable.
 
-The System 7 chrome stays. What it is a metaphor *for* changed.
+### And then the chrome went too — 2026-08-23
+
+The paragraph above said "the System 7 chrome stays". It did not stay, and the
+reason is the same argument one turn later.
+
+**The costume carried no information.** Striped title bars, two fake window
+squares on every panel that close and zoom nothing, a 50% dither on the ground, a
+3px hard drop shadow on everything at the same depth. None of it tells a reader
+anything about the system. It is period reference, and period reference is
+decoration however carefully it is drawn — which is precisely what this document
+spends a section warning the canvas against becoming.
+
+**And one collision was load-bearing.** `AGENT_COLOR` and `STATE_COLORS.running`
+were the same amber. An agent at rest and a step in flight were the same colour,
+on the same surface, at the same time. That is not a style problem; it is the
+vocabulary claiming a distinction it cannot draw.
+
+So the rule the palette now follows, and the only rule it follows:
+
+> **Colour is state and evidence. Nothing else on the surface is coloured.**
+
+Agents are a warm stone; subagents a shade of it; a person a cool grey. Kind is
+form and weight. Everything saturated on the desk is either a step's state or a
+wire's — which means a reader who learns five marks can read the whole surface,
+and a screenshot of it carries the same information as the page.
+
+What is kept from the old look, because it was never costume: the pixel grid, the
+density, monospace for anything with an address, and the rule that every colour
+drawn appears in a legend generated from the tables rather than a hand-kept list.
+
+What replaces it: the platform's own type, one shadow scale that means elevation,
+hairlines instead of 1px black, and a ground that recedes.
 
 ## The metaphor: a desk, not a dashboard — decided 2026-08-09
 

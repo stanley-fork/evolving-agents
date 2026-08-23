@@ -339,13 +339,18 @@ export const TOUR_JS = String.raw`
  * product's stylesheet has to know a tour exists.
  */
 export const TOUR_CSS = `
-/* Above the memory drawer, which is 150px tall: a control that covers the
-   thing it is describing is not a control. */
-.tourbar{position:fixed;left:14px;bottom:174px;z-index:400;display:flex;align-items:center;gap:10px;
-  background:var(--face);border:1px solid #000;box-shadow:3px 3px 0 rgba(0,0,0,.4);padding:6px 10px;
-  max-width:min(760px,calc(100vw - 40px))}
-.tourbar button{font:inherit;font-size:11px;font-weight:700;padding:3px 12px;white-space:nowrap}
-.tourbar span{font-size:11px;line-height:1.4;color:#26292d}
+/* Above the memory drawer, which is 112px tall: a control that covers the thing
+   it is describing is not a control. */
+.tourbar{position:fixed;left:16px;bottom:130px;z-index:400;display:flex;align-items:center;gap:11px;
+  background:var(--face);border:1px solid var(--line);border-radius:999px;box-shadow:var(--sh-2);
+  padding:7px 8px 7px 8px;max-width:min(720px,calc(100vw - 44px))}
+/* The one control on it is the one thing to do with it. Filled, because a
+   primary action that looks like every other button is not a primary action. */
+.tourbar button{font:inherit;font-size:11.5px;font-weight:600;padding:5px 15px;white-space:nowrap;
+  border-radius:999px;background:var(--ink);color:#fff;border-color:var(--ink)}
+.tourbar button:hover{background:#2A2F35;border-color:#2A2F35}
+.tourbar button:active{background:#000}
+.tourbar span{font-size:11.5px;line-height:1.45;color:var(--dim);padding-right:8px}
 /* The hand. A pointer you can follow, because a drag is unreadable without one. */
 .tourhand{position:fixed;width:16px;height:16px;z-index:401;opacity:0;pointer-events:none;
   transition:opacity .25s;transform:translate(-2px,-2px);
