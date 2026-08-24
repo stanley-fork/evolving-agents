@@ -162,21 +162,23 @@ jobs:
         with:
           node-version-file: ai-base/.node-version
       - name: The demo's numbers, and the addresses it cites
-        # The published demo is the bundle. The swimlane view and the desk are
-        # still built and checked: the desk is what `make up` serves, and all
-        # three are generated from the same modules, so a change that breaks a
-        # citation in one usually breaks it in all of them. Both are worth exactly as much as their citations are
-        # true, and a citation is only true until somebody regenerates an
-        # artifact. Built here rather than read from the website repository, so
-        # this checks what the current source produces rather than what was last
-        # published.
+        # The published demo is the activity canvas. The bundle, the swimlane
+        # view and the desk are still built and checked: the desk is what
+        # `make up` serves, and all four are generated from the same modules, so
+        # a change that breaks a citation in one usually breaks it in all of
+        # them. Each is worth exactly as much as its citations are true, and a
+        # citation is only true until somebody regenerates an artifact. Built
+        # here rather than read from the website repository, so this checks what
+        # the current source produces rather than what was last published.
         run: |
           cd ai-ui
-          node scripts/build-helix.ts --out /tmp/demo.html
+          node scripts/build-grid.ts --out /tmp/demo.html
+          node scripts/build-helix.ts --out /tmp/helix.html
           node scripts/build-threads.ts --out /tmp/threads.html
           node scripts/build-demo.ts --out /tmp/desk.html
           cd ..
           python3 scripts/check-demo-provenance.py --demo /tmp/demo.html
+          python3 scripts/check-demo-provenance.py --demo /tmp/helix.html
           python3 scripts/check-demo-provenance.py --demo /tmp/threads.html
           python3 scripts/check-demo-provenance.py --demo /tmp/desk.html
 

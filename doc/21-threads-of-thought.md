@@ -331,3 +331,86 @@ was: a tick against the time line, dropped from the moment it marks.
 
 Everything above changed geometry or removed a channel. Not one of it added a
 mark that is not a measurement.
+
+## 10. The grid, and the thing the bundle was bad at
+
+> I think the UI is GitHub's contribution grid, with colours, where each little
+> square is an agent, a human or a task, and the traces or flows are horizontal
+> lanes — and it is easier to manipulate, and ends up being genuinely a canvas
+> of activity.
+
+The bundle was the best-looking thing in this repository and the worst to use,
+and the property that made it so is worth stating exactly, because it is not
+about taste.
+
+**On the bundle, nothing had an address.** A step was a stretch of curve whose
+position on screen was a function of the rotation, the zoom, the phase of its
+own flow and the phases of four others. To read one you first had to *aim* — turn
+the object until the step came forward, then catch a curve two pixels wide. That
+is a surface you steer. On the grid a step is at a row and a column: a flow and a
+moment, both of which a person already has in their head before they look. Hit
+areas are rectangles. Pointing is free.
+
+The bundle was better at one thing and the grid gives it up: it showed the
+*braid* — flows as one object moving together. The grid says that as a column,
+two filled squares at the same x being two flows held at the same moment. Less
+beautiful, much easier to check, and checkable is what this project is for.
+
+### What a square had to earn
+
+A square is one flow, in one bucket of time, held by somebody. Colour is **who
+held it** — hue is identity here as everywhere else on these surfaces, so a
+failure and a success by the same agent are the same colour and read differently.
+Texture is **what happened**: solid carried, faint carried nothing forward,
+hollow held with no verdict, dashed not begun, barred ran and did not pass. The
+bar is a subtraction rather than a second hue, because red would mean *bad* on a
+surface where colour already means *who*.
+
+### The one place a contribution grid cannot be copied
+
+GitHub paints its palest green for a day with no commits. It is allowed to: a
+repository knows what it does not contain, so zero is a measurement. Here
+'nothing was written down in this bucket' and 'nothing happened in this bucket'
+are different claims and only the first is ours to make. So an empty bucket
+draws **no square** — `cellsOf` never emits one, and there is a test that says
+so. What it does draw is an empty *slot*, an outline, which says only that this
+is a bucket of time you can point at. Without the slots the empties are
+invisible and the canvas is a scatter of dots; with them it is a lattice you can
+count along, and the holes become the finding they should be.
+
+A row whose recorded work continues past the edge of the window gets a chevron on
+that side, because a row with no squares in view otherwise looks exactly like a
+flow nothing was ever recorded for, and those are different facts — one of them
+is *you are looking in the wrong place*.
+
+### What building it found
+
+**One word meant two opposite things, and the surface nearly published the
+wrong one.** In the flow vocabulary a *step* whose state is `blocked` is work
+that has been stated and cannot proceed — hemo's A4 carries the note *"stated as
+open work, because a scope with nothing red in it reads as a finished one"* and
+its observation is `null`. Nothing ran; nothing said no. A *handoff* whose state
+is `blocked` is the other thing entirely: it arrived, the receiving step ran, and
+it did not pass. The first draft mapped both to the same square, which drew
+thirty-eight of hemo's forty-two squares as failures. That is this project's own
+headline error committed by its own surface: reporting the absence of a result as
+a negative one. A step the flow calls blocked is `open` here, and a test now
+pins it.
+
+**The frame was wrong before the marks were.** The first version opened on the
+whole history, and at that width the bucket has to widen until a column is wide
+enough to point at — at which point a flow that ran for an hour is one square.
+One square is exactly what the desk drew. So it opens on the most recent cluster
+of work, where the handoffs are separate squares, and `All` is one button away
+and says how much a square covers once you press it.
+
+**A grid of squares means the rows are as far apart as the columns are wide.**
+Stretching the rows to fill the height gave five sparse lines sixty pixels apart:
+a scatter plot, not a canvas. Uniform pitch in both directions is what makes a
+contribution grid countable.
+
+**Status: the grid is the demo, as of 2026-08-24.** The bundle, the swimlane view
+and the desk are all still built, still tested, and no longer published — the
+desk is what `make up` serves. And `doc/04`'s stopwatch still has not been run on
+any of the four, which is the only thing that decides whether any of them is
+worth having.
