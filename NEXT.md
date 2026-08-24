@@ -9,7 +9,7 @@
 
 ## Where things stand
 
-`ai-base`, `ai-flows` and `ai-ui` run — **626 tests of our own**, checked against
+`ai-base`, `ai-flows` and `ai-ui` run — **828 tests of our own**, checked against
 the suites by CI so the number cannot drift again. `ai-memory` runs the six
 memory agents as a tree. **`ai-storage` still does not exist.**
 

@@ -45,9 +45,14 @@ total_of() {
   ( cd "$1" && npm test 2>&1 | grep -oE '(^|[^a-z])tests [0-9]+$' | grep -oE '[0-9]+' )
 }
 
+# `ai-storage` was added on 2026-08-24 and is not optional here: its tests are
+# ours in exactly the sense the published sentence means, and a suite left out
+# of this sum makes the front page understate itself while the check reports
+# green. Every package of ours that has a suite is counted.
 flows=$(total_of ai-flows)
 ui=$(total_of ai-ui)
-actual=$((flows + ui))
+storage=$(total_of ai-storage)
+actual=$((flows + ui + storage))
 
 # ## It scans every document, not the two READMEs
 #
@@ -73,7 +78,7 @@ while IFS= read -r f; do
   found=$((found + 1))
   for c in $claimed; do
     if [ "$c" != "$actual" ]; then
-      echo "FAIL  $f says $c; the suites report $actual (ai-flows $flows + ai-ui $ui)"
+      echo "FAIL  $f says $c; the suites report $actual (ai-flows $flows + ai-ui $ui + ai-storage $storage)"
       fail=1
     else
       echo "ok    $f — $actual"
