@@ -160,6 +160,11 @@ export interface Attention {
  * with in words. `ignored` outranks `blocked` for the reason `inspector.ts`
  * gives: a step that failed is visible in the strip, and a step that succeeded
  * while carrying nothing is not.
+ *
+ * Each kind is looked for in *handoffs* first and then in *steps*, because for
+ * a long time it was only looked for in handoffs — and a handoff exists between
+ * two steps, so a one-step flow had nothing that could carry the news. See the
+ * two rest passes below.
  */
 export const HELIX_JS = String.raw`
 var HELIX_TWIST = (Math.PI * 2) / 90;
@@ -303,6 +308,24 @@ function helixRank(th) {
         reason: 'step ' + bl.toIndex + ' ran and did not pass',
         at: bl.source || step(bl.toIndex), rank: HELIX_RANK.blocked });
     }
+  /**
+   * A step that ran and did not pass, when no handoff carries the news.
+   *
+   * The passes above read *handoffs*, and a handoff only exists between two
+   * steps. A flow whose last step failed, or a flow of one step, has nothing
+   * downstream to carry that fact — so it fell through to 'settled' and the
+   * panel said nothing was wrong. Split by observation, exactly as bus.ts does:
+   * a step that recorded something and came out against its threshold produced
+   * a real negative result.
+   */
+  for (i = 0; i < th.rests.length; i += 1) {
+    var rb = th.rests[i];
+    if ((rb.state === 'blocked' || rb.state === 'failed') && rb.digest) {
+      return Object.assign({}, base, { kind: 'blocked',
+        reason: 'step ' + rb.index + ' ran and did not pass',
+        at: rb.source || step(rb.index), rank: HELIX_RANK.blocked });
+    }
+  }
   for (i = 0; i < th.crosses.length; i += 1)
     if (th.crosses[i].state === 'open') {
       var op = th.crosses[i];
@@ -312,6 +335,29 @@ function helixRank(th) {
         // it open rather than failed.
         at: null, rank: HELIX_RANK.open });
     }
+  /**
+   * Work that was stated and cannot proceed, which is the case this missed.
+   *
+   * In the flow vocabulary a *step* whose state is 'blocked' is not a step that
+   * failed: hemo's H1 is one step, state blocked, observation null, carrying the
+   * note 'stated as open work, because a scope with nothing red in it reads as a
+   * finished one'. Nothing ran. Nothing said no. With no second step there is no
+   * handoff to notice it, so every pass above missed it and the panel reported
+   * *stopped, and nothing is open* — which is precisely the sentence the author
+   * of that step wrote it to prevent.
+   *
+   * Unlike an open handoff this one has an address: the step exists in the store
+   * and says so. What it does not have is an observation, and that is what keeps
+   * it open rather than failed.
+   */
+  for (i = 0; i < th.rests.length; i += 1) {
+    var ro = th.rests[i];
+    if (ro.state === 'blocked' || ro.state === 'failed') {
+      return Object.assign({}, base, { kind: 'open',
+        reason: 'step ' + ro.index + ' is stated as open work and has reached no verdict',
+        at: step(ro.index), rank: HELIX_RANK.open });
+    }
+  }
   return Object.assign({}, base, { kind: 'settled',
     reason: th.delivered ? 'finished and came back' : 'stopped, and nothing is open',
     at: null, rank: HELIX_RANK.settled });

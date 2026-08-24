@@ -201,3 +201,57 @@ describe("attention", () => {
     }
   });
 });
+
+describe("a claim nothing downstream can carry", () => {
+  const hemo = threadsOf(docsOf(hemoFlows(AT) as never));
+
+  it("does not call a flow settled when its only step is stated as open work", () => {
+    // hemo's H1 is one step, state 'blocked', observation null, carrying the note
+    // "stated as open work, because a scope with nothing red in it reads as a
+    // finished one". Every pass in helixRank read *handoffs*, and a handoff
+    // exists between two steps — so a one-step flow had nothing to carry the
+    // news, and the panel said "stopped, and nothing is open": the exact
+    // sentence that step was written to prevent.
+    const h1 = hemo.threads.find((t) => t.title.startsWith("H1"))!;
+    assert.ok(h1, "the hemo scope must contain H1");
+    assert.equal(
+      h1.crosses.filter((c) => c.state === "open").length, 0,
+      "no handoff on H1 is open — the claim has to come from the step itself",
+    );
+    assert.equal(h1.rests.filter((r) => r.state === "blocked").length, 1);
+
+    const a = attentionOf(hemo).find((x) => x.flowId === h1.flowId)!;
+    assert.equal(a.kind, "open");
+    assert.match(a.reason, /open work/);
+    // Unlike an open handoff this one has an address: the step is in the store
+    // and says so. What it lacks is an observation, and that is what keeps it
+    // open rather than failed.
+    assert.equal(a.at, "flow:" + h1.flowId + "#step-0");
+    assertJustified(a);
+  });
+
+  it("reports a step that ran and did not pass even as the last step", () => {
+    // The other half of the same hole: 'blocked' or 'failed' *with* an
+    // observation is a real negative result, and if it is the last step there
+    // is no handoff downstream to notice it.
+    for (const th of coc.threads) {
+      const bad = th.rests.find(
+        (r) => (r.state === "failed" || r.state === "blocked") && r.digest,
+      );
+      if (!bad) continue;
+      const a = attentionOf(coc).find((x) => x.flowId === th.flowId)!;
+      assert.notEqual(
+        a.kind, "settled",
+        th.title + " has a step that ran and did not pass, so it is not settled",
+      );
+    }
+  });
+
+  it("still calls a flow settled when nothing on it is open or flagged", () => {
+    const h0 = hemo.threads.find((t) => t.title.startsWith("H0"))!;
+    assert.ok(h0);
+    const a = attentionOf(hemo).find((x) => x.flowId === h0.flowId)!;
+    assert.equal(a.kind, "settled");
+    assert.equal(a.at, null);
+  });
+});

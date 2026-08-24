@@ -454,7 +454,12 @@ const JS = String.raw`
         const b = el('circle', {
           class: 'bead' + (isPending(r) ? ' pendingbead' : ''),
           cx: cx, cy: yOf(r.lane, t), r: 4.5,
-          fill: isPending(r) ? 'none' : (r.state === 'failed' || r.state === 'blocked') ? '#FF453A' : hue,
+          // Red is a negative *result*, so it needs an observation behind it. A
+          // step the flow calls blocked with nothing recorded is work that was
+          // stated and cannot proceed — no verdict was reached, and painting it
+          // as a failure asserts an outcome nobody has. See helix.ts.
+          fill: isPending(r) ? 'none'
+            : ((r.state === 'failed' || r.state === 'blocked') && r.digest) ? '#FF453A' : hue,
           stroke: isPending(r) ? hue : '#000' });
         g.appendChild(b);
       }
