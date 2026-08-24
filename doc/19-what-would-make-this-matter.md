@@ -71,8 +71,11 @@ Two of the three are closed in this change: `scripts/check-gate-count.py` reads
 the reports, scans every markdown file for a published count in either language,
 and fails on a mismatch, on a claim in a file nobody listed, and on a listed file
 that has stopped stating one **[ran]** — plus a CI job so it runs on every PR.
-`NEXT.md` is rewritten. The 605/626 case is *not* closed: `check-test-count.sh`
-still looks at the two READMEs only, and extending it is [P0](#p0) below.
+`NEXT.md` is rewritten. The 605/626 case was *not* closed when this paragraph
+was written — `check-test-count.sh` looked at the two READMEs only. It is closed
+now: the script discovers every document that states a count, and since
+2026-08-24 it checks the three package READMEs against their own suites as well,
+which is where it had been walking past **267** and **114**.
 
 ### The asymmetry that matters most
 
@@ -525,7 +528,7 @@ this repository publish, and which of them does anything verify?**
 
 | number | published in | producer | checked by |
 |---|---|---|---|
-| 828 tests of our own | 5 files | the suites | `check-test-count.sh` |
+| 828 tests of our own, and 409 / 300 / 119 per package | 5 files, plus 3 package READMEs | the suites | `check-test-count.sh` |
 | 28 gates / 135 checks | 13 sites, 7 files | `gates/reports/*.json` | `check-gate-count.py` |
 | H0: composite, table, decisions, false-accept | `hemo-verified/README.md` | `gates/reports/h0.json` | `check-h0-table.py` |
 | coclea's headline results — 11.6%, 24 of 24, −1.22 dB CI [−1.58, −0.87], Q 2.2–2.7, CF ≈ 1 kHz | doc 16, doc 18, PLAN, `coclea-sr/README.md`, both mirrors, NEXT | `runs/<id>-<hash>/result.json`, hash-chained | `check-coclea-results.py` |
@@ -615,6 +618,17 @@ section counts so the next divergence fails a build instead of sitting there.
 Its limit is the sharper one on this page: **nothing in this repository reads
 Spanish.** A matching count says the mirror did not miss a section. It says
 nothing about whether the two documents agree, and no mechanical check ever will.
+
+**And then the same sweep caught this table's own first row lying by omission.**
+The aggregate — 828 — was green, and `ai-flows/README.md` said **267 tests** while
+`ai-ui/README.md` said **114**. The suites report 409 and 300. `check-test-count.sh`
+walked past both, because its pattern requires the words *of our own* and a
+package README has no reason to say them. The check written to stop precisely
+this had a blind spot the width of a whole class of claims, one directory down
+from where it was looking. The phrasing is now fixed and mechanical — a package
+that publishes a count writes *N tests in this package*, every occurrence is
+compared, and a package with a suite that publishes none fails — and the two
+things it still does not check are named in the script rather than implied away.
 
 ## What this document changed
 

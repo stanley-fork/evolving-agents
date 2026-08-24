@@ -73,8 +73,11 @@ los reportes, escanea todo archivo markdown buscando un conteo publicado en
 cualquiera de los dos idiomas, y falla ante una discrepancia, ante una afirmación
 en un archivo que nadie listó, y ante un archivo listado que dejó de declararlo
 **[ran]** — más un job de CI para que corra en cada PR. `NEXT.md` está reescrito.
-El caso 605/626 *no* está cerrado: `check-test-count.sh` sigue mirando solo los
-dos READMEs, y extenderlo es [P0](#p0) abajo.
+El caso 605/626 *no* estaba cerrado cuando se escribió este párrafo —
+`check-test-count.sh` miraba solo los dos READMEs. Ahora sí lo está: el script
+descubre todo documento que declare un conteo, y desde el 2026-08-24 chequea
+además los tres READMEs de paquete contra sus propios suites, que es por donde
+venía pasando de largo ante **267** y **114**.
 
 ### La asimetría que más importa
 
@@ -540,7 +543,7 @@ números publica este repositorio, y cuáles verifica algo?**
 
 | número | publicado en | productor | chequeado por |
 |---|---|---|---|
-| 828 tests propios | 5 archivos | los suites | `check-test-count.sh` |
+| 828 tests propios, y 409 / 300 / 119 por paquete | 5 archivos, más 3 READMEs de paquete | los suites | `check-test-count.sh` |
 | 28 gates / 135 chequeos | 13 lugares, 7 archivos | `gates/reports/*.json` | `check-gate-count.py` |
 | H0: compuesto, tabla, decisiones, falso-aceptado | `hemo-verified/README.md` | `gates/reports/h0.json` | `check-h0-table.py` |
 | los resultados de titular de coclea — 11.6%, 24 de 24, −1.22 dB CI [−1.58, −0.87], Q 2.2–2.7, CF ≈ 1 kHz | doc 16, doc 18, PLAN, `coclea-sr/README.md`, los dos espejos, NEXT | `runs/<id>-<hash>/result.json`, encadenado por hash | `check-coclea-results.py` |
@@ -635,6 +638,18 @@ ahí. Su límite es el más filoso de esta página: **nada en este repositorio l
 español.** Un conteo que coincide dice que al espejo no le faltó una sección. No
 dice nada sobre si los dos documentos coinciden, y ningún chequeo mecánico lo va
 a decir.
+
+**Y después el mismo barrido atrapó a la primera fila de esta misma tabla
+mintiendo por omisión.** El agregado —828— estaba en verde, y
+`ai-flows/README.md` decía **267 tests** mientras `ai-ui/README.md` decía **114**.
+Los suites reportan 409 y 300. `check-test-count.sh` pasó de largo por los dos,
+porque su patrón exige las palabras *of our own* y un README de paquete no tiene
+razón para decirlas. El check escrito para frenar exactamente esto tenía un punto
+ciego del ancho de toda una clase de afirmaciones, un directorio más abajo de
+donde estaba mirando. La redacción ahora es fija y mecánica —un paquete que
+publica un conteo escribe *N tests in this package*, se compara cada aparición, y
+un paquete con suite que no publica ninguno falla— y las dos cosas que sigue sin
+chequear están nombradas en el script en vez de barridas debajo de la alfombra.
 
 ## Qué cambió este documento
 
