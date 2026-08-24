@@ -143,7 +143,10 @@ Términos completos: [licencias](doc/es/06-licensing.md).
 ## Idiomas
 
 El inglés es canónico. Cada documento tiene su espejo en español en
-[`doc/es/`](doc/es/); cuando difieren, el correcto es el inglés.
+[`doc/es/`](doc/es/); cuando difieren, el correcto es el inglés. Esa oración fue
+falsa para dos documentos hasta el 2026-08-24, así que ahora
+[`check-doc-mirrors.py`](scripts/check-doc-mirrors.py) la chequea, y un documento
+deliberadamente sólo en inglés tiene que decir por qué.
 
 ---
 

@@ -139,7 +139,10 @@ it. Full terms: [licensing](doc/06-licensing.md).
 ## Languages
 
 English is canonical. Every document has a Spanish mirror in
-[`doc/es/`](doc/es/); when they disagree, the English one is right.
+[`doc/es/`](doc/es/); when they disagree, the English one is right. That sentence
+was false for two documents until 2026-08-24, so
+[`check-doc-mirrors.py`](scripts/check-doc-mirrors.py) now checks it, and a
+document that is deliberately English-only has to say why.
 
 ---
 

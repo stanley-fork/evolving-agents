@@ -183,7 +183,7 @@ jobs:
           python3 scripts/check-demo-provenance.py --demo /tmp/desk.html
 
   documents:
-    name: The documents' internal links
+    name: The documents — links, and both languages
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
@@ -194,6 +194,11 @@ jobs:
         # A link is a claim about where something is; this is the same rule the
         # gates apply to numbers, applied to the prose that cites them.
         run: python3 scripts/check-doc-links.py
+      - name: Every document has a Spanish mirror, or is named as not having one
+        # `README.md` ends by claiming it. Docs 21 and 22 had none the day this
+        # was added, and the Spanish index linked back to the English files —
+        # two honest halves adding up to a false sentence on the front page.
+        run: python3 scripts/check-doc-mirrors.py
 
   ai-storage:
     name: ai-storage — the local model's memory
