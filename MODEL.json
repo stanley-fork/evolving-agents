@@ -1,0 +1,104 @@
+{
+  "$comment": [
+    "The platform's default model, in one place, so that no component decides it",
+    "on its own. Every package that needs a model reads this file; nothing",
+    "hardcodes a model id, a quantization or a size.",
+    "",
+    "Every field below is a CLAIM, and this repository's rule is that a claim",
+    "carries the address it was read from. `citedAs` is that address. `verified`",
+    "says whether anything has actually checked the claim against the thing it",
+    "describes — and it is false for everything here, because the machine this",
+    "was written on cannot reach huggingface.co (the egress proxy answers 403 to",
+    "CONNECT) and no local server has been run against it.",
+    "",
+    "`scripts/verify-model.ts` turns the false into a true by asking a running",
+    "server what it is serving and comparing. Until it has been run, treat every",
+    "size and every capability here as transcribed, not measured."
+  ],
+
+  "default": {
+    "id": "qwen3.8-27b",
+    "family": "Qwen3.8",
+    "parameters": "27B",
+    "architecture": "dense",
+    "license": "Apache-2.0",
+    "licenseAppliesTo": "the GGUF distribution",
+    "citedAs": "doc/22-ai-storage-qwen.md#2",
+    "verified": false
+  },
+
+  "capabilities": {
+    "toolCalling": { "value": true, "citedAs": "doc/22-ai-storage-qwen.md#2", "verified": false },
+    "structuredOutput": { "value": true, "citedAs": "doc/22-ai-storage-qwen.md#13", "verified": false },
+    "thinking": { "value": true, "citedAs": "doc/22-ai-storage-qwen.md#22", "verified": false },
+    "nativeContextMax": { "value": 1000000, "citedAs": "doc/22-ai-storage-qwen.md#2", "verified": false }
+  },
+
+  "$effectiveContextComment": [
+    "The number that matters, and the reason it is small on purpose.",
+    "",
+    "A model that physically supports a million tokens still runs here at 8192,",
+    "because ai-storage exists to solve context scarcity rather than to hide it.",
+    "If the benchmark were run at the native maximum it would measure the model's",
+    "context window and nothing about the storage layer."
+  ],
+  "effectiveContext": 8192,
+
+  "engines": {
+    "reference": "llama.cpp",
+    "compatible": ["ollama"],
+    "$comment": "ai-storage depends on neither. See ai-storage/src/model/local-model.ts."
+  },
+
+  "profiles": {
+    "constrained": {
+      "purpose": "testing on a 16 GB machine; explicitly not the quality reference",
+      "quantization": "IQ2_M",
+      "approxBytes": 10870000000,
+      "approxSizeLabel": "10.87 GB",
+      "physicalContext": 8192,
+      "effectiveContext": 8192,
+      "targetHardware": "MacBook Air M4, 16 GB unified memory",
+      "citedAs": "doc/22-ai-storage-qwen.md#3",
+      "verified": false
+    },
+    "reference": {
+      "purpose": "the canonical ai-storage environment; benchmark results without a profile mean this one",
+      "quantization": "Q4_K_M",
+      "approxBytes": 19000000000,
+      "approxSizeLabel": "19 GB",
+      "physicalContext": 32768,
+      "effectiveContext": 8192,
+      "targetHardware": "Apple Silicon >= 32 GB, or NVIDIA GPU >= 24 GB VRAM",
+      "citedAs": "doc/22-ai-storage-qwen.md#4",
+      "verified": false
+    },
+    "quality": {
+      "purpose": "measure quantization damage — is a failure the storage layer's or the compression's?",
+      "quantization": "Q8",
+      "approxBytes": null,
+      "approxSizeLabel": null,
+      "physicalContext": 32768,
+      "effectiveContext": 8192,
+      "targetHardware": "48-64 GB unified memory, or 48 GB+ VRAM",
+      "citedAs": "doc/22-ai-storage-qwen.md#5",
+      "verified": false
+    }
+  },
+
+  "weights": {
+    "repository": "ggml-org/Qwen3.8-27B-GGUF",
+    "host": "huggingface.co",
+    "citedAs": "doc/22-ai-storage-qwen.md#2",
+    "verified": false,
+    "$comment": "Not resolved from this machine — see the note at the top of this file."
+  },
+
+  "$localOnlyComment": [
+    "When AI_STORAGE_LOCAL_ONLY is true, a base URL that is not a loopback",
+    "address is refused at startup rather than at request time, because a",
+    "privacy guarantee that fails on the first request is not a guarantee.",
+    "See ai-storage/src/model/local-model.ts."
+  ],
+  "localOnlyByDefault": true
+}

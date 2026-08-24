@@ -3,6 +3,11 @@ node_modules/
 *.log
 .env
 ai-flows/*.html
+# Built surfaces. CI builds them to /tmp and checks those; the published copy
+# lives in the website repository. A tracked copy means every rebuild is a diff
+# of a hundred kilobytes of generated markup that nobody reviews.
+ai-ui/*.html
+/*.html
 ai-base/data-*/
 .run/
 
