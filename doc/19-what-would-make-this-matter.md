@@ -601,6 +601,21 @@ does not exist, or a section that does not. It has one honest limit worth
 stating: it checks internal links only. An `https://` link to a page that has
 been rewritten is exactly the same failure and nothing here sees it.
 
+**The same sweep found a worse one, in the half of the documentation nobody
+reads.** `README.md` ends by claiming every document has a Spanish mirror. Two had
+none. Five more had a mirror that was *behind* — `doc/es/05` was missing all three
+experiments, fourteen sections including two **[ran]** results and a falsified
+claim, and `doc/es/01` still told Spanish readers that `ai-flows` requires cutting
+into core, which the English document retracted on 2026-08-02 with an ADR beside
+it. A stale mirror is worse than an absent one: an absent mirror sends you to the
+English, a stale one answers confidently and wrongly.
+
+All seven are written or brought level, and `check-doc-mirrors.py` compares
+section counts so the next divergence fails a build instead of sitting there.
+Its limit is the sharper one on this page: **nothing in this repository reads
+Spanish.** A matching count says the mirror did not miss a section. It says
+nothing about whether the two documents agree, and no mechanical check ever will.
+
 ## What this document changed
 
 - `scripts/check-gate-count.py`, and a CI job that runs it. **[ran]** — it

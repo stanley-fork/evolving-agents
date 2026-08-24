@@ -194,10 +194,11 @@ jobs:
         # A link is a claim about where something is; this is the same rule the
         # gates apply to numbers, applied to the prose that cites them.
         run: python3 scripts/check-doc-links.py
-      - name: Every document has a Spanish mirror, or is named as not having one
-        # `README.md` ends by claiming it. Docs 21 and 22 had none the day this
-        # was added, and the Spanish index linked back to the English files —
-        # two honest halves adding up to a false sentence on the front page.
+      - name: Every document has a Spanish mirror, and the mirror is not behind
+        # `README.md` ends by claiming it. Two documents had no mirror at all and
+        # five had one that was behind — `doc/es/05` was missing three whole
+        # experiments. A stale mirror is worse than an absent one: the absent one
+        # sends you to the English, the stale one answers confidently and wrongly.
         run: python3 scripts/check-doc-mirrors.py
 
   ai-storage:

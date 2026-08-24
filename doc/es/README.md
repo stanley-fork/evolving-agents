@@ -28,7 +28,8 @@ documento que cambia de clase se reescribe el cartel el mismo día.
 | [01 · Arquitectura](01-architecture.md) | Los cuatro pilares, cómo encajan y dónde se engancha cada uno a la base |
 | [02 · ai-base](02-ai-base.md) | Qué da QM realmente — verificado contra el código, no contra su README — y los seams sobre los que se construye |
 | [03 · ai-flows](03-ai-flows.md) | El modelo de flow: objetivo, pasos, intentos, observaciones. `Open` y `Gated` corren; las otras cuatro formas son especificación |
-| [04 · ai-ui](04-ai-ui.md) | El escritorio: documentos, cubitos de agentes, la cara de traza. Construido; su propia falsificación no se corrió |
+| [04 · ai-ui](04-ai-ui.md) | El escritorio: documentos, cubitos de agentes, la cara de traza. Construido y todavía servido por `make up`; la superficie **publicada** es ahora el canvas de actividad (21 §10). Su propia falsificación — el cronómetro de §Cómo se falsifica — sigue sin correrse |
+| [05 · ai-storage](05-ai-storage.md) | Memoria en cuatro niveles — sistema, usuario, proyecto, flow — con promoción explícita y reversible. **Dibujada en el escritorio antes de construirla**, y el dibujo es parte de la spec. **Construida al 2026-08-24**, alrededor de un modelo local — el 22 es la especificación con la que se construyó y el resultado que salió en contra |
 | [15 · Interacción generada](15-generated-interaction.md) | Zoom semántico, el menú que se auto-revela, deixis y fork — lo que un modelo puede hacer y una GUI no podía. Fases 1–4 construidas, fase 5 especificada |
 | [09 · Escalas](09-scales.md) | Individual, colectiva, proyecto, sistema — un solo eje para flows y memoria, y es `scopeId` |
 | [10 · Observabilidad](10-observability.md) | Si el progreso de un flow se puede leer siquiera. Deriva contra ilegible, y el piso de ruido medido entre las dos |
@@ -41,8 +42,10 @@ documento que cambia de clase se reescribe el cartel el mismo día.
 
 | | |
 |---|---|
-| [05 · ai-storage](05-ai-storage.md) | Memoria en cuatro niveles — sistema, usuario, proyecto, flow — con promoción explícita y reversible. **Dibujada en el escritorio antes de construirla**, y el dibujo es parte de la spec |
 | [03 § Formas de flow](03-ai-flows.md#formas-de-flow) | `Sequence`, `Loop`, `Fan-out`, `Deliberation`, `Watch`, y el merge |
+
+El 05 salió de esta sección el 2026-08-24. Es el último documento en hacerlo, y
+la sección tiene ahora una sola fila.
 
 ## Hallazgos — qué dijeron las mediciones
 

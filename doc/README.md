@@ -26,6 +26,7 @@ changes kind gets its banner rewritten the same day.
 | [02 · ai-base](02-ai-base.md) | What QM actually provides — verified against the source, not its README — and the seams built on |
 | [03 · ai-flows](03-ai-flows.md) | The flow model: goal, steps, attempts, observations. `Open` and `Gated` run; the other four shapes are specification |
 | [04 · ai-ui](04-ai-ui.md) | The desk: documents, agent cubes, the trace face. Built and still served by `make up`; the **published** surface is now the activity canvas (21 §10). Its own falsification — the stopwatch in §Falsification — has still not been run |
+| [05 · ai-storage](05-ai-storage.md) | Memory at four levels — system, user, project, flow — with explicit, reversible promotion. **Drawn on the desk before being built**, and the drawing is part of the spec. **Built as of 2026-08-24**, around a local model — 22 is the specification it was built to and the result that went against it |
 | [15 · Generated interaction](15-generated-interaction.md) | Semantic zoom, the self-revealing menu, deixis and fork — what a model can do that a GUI could not. Phases 1–4 built, phase 5 specified |
 | [09 · Scales](09-scales.md) | Individual, collective, project, system — one axis for flows and memory, and it is `scopeId` |
 | [10 · Observability](10-observability.md) | Whether a flow's progress can be read at all. Drift versus unreadable, and the measured noise floor between them |
@@ -38,8 +39,10 @@ changes kind gets its banner rewritten the same day.
 
 | | |
 |---|---|
-| [05 · ai-storage](05-ai-storage.md) | Memory at four levels — system, user, project, flow — with explicit, reversible promotion. **Drawn on the desk before being built**, and the drawing is part of the spec. Now built around a local model — see 22, including the benchmark result that went against it |
 | [03 § Flow shapes](03-ai-flows.md#flow-shapes) | `Sequence`, `Loop`, `Fan-out`, `Deliberation`, `Watch`, and merge |
+
+05 moved out of this section on 2026-08-24. It is the last document to have done
+so, and the section is now one row long.
 
 ## Findings — what the measurements said
 

@@ -347,7 +347,45 @@ después de los arreglos obvios. Entonces esto es un instrumento de investigaci�
 privado que publica sus hallazgos, que es una cosa legítima y mucho más chica de
 ser — y los READMEs deberían decir eso en vez de decir "sistema operativo".
 
-### P5 · Decirlo una vez, angosto
+### P5 · Decirlo una vez, angosto — **la mitad está construida, y no es la escritura**
+
+El artefacto que pedía este ítem era un texto. Lo que se construyó en cambio es
+[`/verify/`](https://evolvingagentslabs.github.io/verify/): artefactos reales
+sacados de `projects/`, embebidos en una página, chequeados en el navegador del
+propio lector sin red y sin servidor. La cadena de hashes re-derivada entrada por
+entrada; directorios de corrida mostrados como los primeros doce dígitos del hash
+de su propio contenido; seis oraciones publicadas resueltas contra las corridas
+que las produjeron; y el estadístico que se movía entre versiones de librería
+sentado en rojo entre siete que no. Editá una entrada del ledger desde la página
+y se rompe exactamente un eslabón; re-encadená la cola y la rotura desaparece
+mientras la cabeza se mueve.
+
+**Por qué eso en vez del ensayo.** La §4 de este documento dice que la afirmación
+que vale la pena hacer es que *un juez no te entrega ni ledger, ni congelado, ni
+comando de reproducción*. Un ensayo que afirma eso es un ensayo. Una página donde
+un desconocido aprieta un botón y mira verificarse el ledger es la afirmación en
+la única forma con la que no se puede discutir — y llevó la misma tarde.
+
+Es también la respuesta a una pregunta justa sobre la demo del escritorio. Esa
+demo es el cliente real con un backend simulado, generada desde el código para
+que no pueda derivar, y vale la pena conservarla. Pero muestra el pilar cuya
+falsificación nunca se corrió, y **todos sus números son inventados**. En una
+portada que dice que cada número está atado al artefacto que lo produjo, una
+simulación es un primer apretón de manos raro. Las dos demos existen ahora y el
+sitio dice cuál es cuál.
+
+La lógica de la página es una segunda implementación, en un segundo lenguaje, de
+`verify_ledger.py`, y `scripts/verify-page/test.mjs` la corre contra el crypto
+propio de node y contra el veredicto del verificador de Python **[ran]** — doce
+aserciones, incluida la de que editar una entrada rompe un eslabón sin mover la
+cabeza, y la de que re-encadenar esconde toda rotura y la mueve.
+
+**Lo que sigue sin hacerse:** la escritura. Las afirmaciones angostas de la §4
+están ahora en la portada del sitio, pero no se mandó nada a ningún lado, y la
+advertencia original de P5 sigue en pie — no debería atraer atención antes de que
+se corra P1.
+
+### P5 · Decirlo una vez, angosto — el ítem original
 
 Un solo artefacto apuntado a la audiencia (b)+(c) de §2: la regla de que `truth/`
 no puede importar `src/`, la costura JSON de gates, la cadena de atestación, y — de
@@ -580,6 +618,23 @@ moverse; el checker corre en `projects.yml` e informa cuál de las dos fallas
 encontró — una ruta que no existe, o una sección que no existe. Tiene un límite
 honesto que conviene decir: chequea solo links internos. Un link `https://` a una
 página reescrita es exactamente la misma falla y acá no la ve nadie.
+
+**El mismo barrido encontró una peor, en la mitad de la documentación que nadie
+lee.** El `README.md` cierra afirmando que cada documento tiene su espejo en
+español. Dos no tenían ninguno. Otros cinco tenían un espejo *atrasado* — a
+`doc/es/05` le faltaban los tres experimentos, catorce secciones incluidos dos
+resultados **[ran]** y una afirmación falsificada, y `doc/es/01` todavía le decía
+al lector en español que `ai-flows` exige cortar dentro del core, cosa que el
+documento en inglés retractó el 2026-08-02 con un ADR al lado. Un espejo atrasado
+es peor que uno ausente: el ausente te manda al inglés, el atrasado contesta con
+confianza y mal.
+
+Los siete están escritos o emparejados, y `check-doc-mirrors.py` compara conteos
+de secciones para que la próxima divergencia rompa un build en vez de quedarse
+ahí. Su límite es el más filoso de esta página: **nada en este repositorio lee
+español.** Un conteo que coincide dice que al espejo no le faltó una sección. No
+dice nada sobre si los dos documentos coinciden, y ningún chequeo mecánico lo va
+a decir.
 
 ## Qué cambió este documento
 

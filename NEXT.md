@@ -1,6 +1,6 @@
 # Next
 
-> **Snapshot, 2026-08-23, after P0.** A plan is the document most likely to rot,
+> **Snapshot, 2026-08-24, after P0 and ai-storage.** A plan is the document most likely to rot,
 > so this one is short and dated. The version before this one carried
 > `2026-08-09` and was nineteen merged pull requests behind by the time anybody
 > noticed — which is the finding that produced
@@ -9,9 +9,11 @@
 
 ## Where things stand
 
-`ai-base`, `ai-flows` and `ai-ui` run — **828 tests of our own**, checked against
-the suites by CI so the number cannot drift again. `ai-memory` runs the six
-memory agents as a tree. **`ai-storage` still does not exist.**
+All four pillars run — **828 tests of our own**, checked against the suites by CI
+so the number cannot drift again. `ai-memory` runs the six memory agents as a
+tree. **`ai-storage` exists as of 2026-08-24**, built around a local model held
+to 8,192 tokens on purpose — and its first benchmark went against the design, so
+the head of §7 is the thing to read before building more of it, not this line.
 
 Two projects run **on** the OS, and as of today both of them run **in CI**:
 

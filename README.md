@@ -130,7 +130,7 @@ every screenshot is from a live instance.
 | [`ai-memory/`](ai-memory/) | The memory agents, as a tree that runs as a tree | Apache 2.0 |
 | [`ai-ui/`](ai-ui/) | The desk | Apache 2.0 |
 | [`projects/`](projects/) | Work running **on** the OS. Two: [`coclea-sr/`](projects/coclea-sr/), Python, **28 gates / 135 checks**, and [`hemo-verified/`](projects/hemo-verified/), whose kill gate survived at AUC 0.906 | Apache 2.0 |
-| `ai-storage/` | Not built | — |
+| [`ai-storage/`](ai-storage/) | The local model's memory: notes with verified provenance, a token-bounded index, five specialists, and the benchmark whose first result went **against** the design | Apache 2.0 |
 
 `ai-base/` stays byte-identical to upstream. Anything we change there needs a
 line in [`ai-base/AI-OS-PATCHES.md`](ai-base/AI-OS-PATCHES.md), and CI enforces

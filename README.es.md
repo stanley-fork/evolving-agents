@@ -134,7 +134,7 @@ captura es de una instancia viva.
 | [`ai-memory/`](ai-memory/) | Los agentes de memoria, como un árbol que corre como árbol | Apache 2.0 |
 | [`ai-ui/`](ai-ui/) | El escritorio | Apache 2.0 |
 | [`projects/`](projects/) | Trabajo corriendo **sobre** el sistema. Dos: [`coclea-sr/`](projects/coclea-sr/), Python, **28 gates / 135 chequeos**, y [`hemo-verified/`](projects/hemo-verified/), cuyo gate de muerte sobrevivió con AUC 0.906 | Apache 2.0 |
-| `ai-storage/` | No construido | — |
+| [`ai-storage/`](ai-storage/) | La memoria del modelo local: notas con procedencia verificada, un índice acotado en tokens, cinco especialistas, y el benchmark cuyo primer resultado salió **en contra** del diseño | Apache 2.0 |
 
 `ai-base/` queda byte a byte igual a upstream. Cualquier cambio ahí necesita una
 línea en [`ai-base/AI-OS-PATCHES.md`](ai-base/AI-OS-PATCHES.md), y CI lo exige.

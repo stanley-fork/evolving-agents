@@ -179,7 +179,7 @@ el sistema nunca re-acomoda lo que una persona tocó — y hoy esa garantía es
 que la destruyen. Un nodo fijado que no puede animarse es cómo la página lo dice
 sin leyenda. `prefers-reduced-motion` desactiva los tres.
 
-## Fase 5 · El gesto que edita el sistema — **especificación, no construido**
+## Fase 5 · El gesto que declara una relación — **construido a medias, 2026-08-23**
 
 Arrastrás el cubo `ReviewAgent` sobre el cubo `MigrationAgent`. Eso *es*
 declararlo subagente. El modelo escribe el diff a `MigrationAgent.md`, lo muestra,
@@ -190,10 +190,29 @@ Esto es la propiedad (4), y es lo más profundo de esta página: un gesto que ed
 lado, porque en ai-os los agentes son archivos markdown. El escritorio deja de ser
 un visor de ai-os y pasa a ser un editor de ai-os.
 
-**No construido, deliberadamente.** Escribe en el workspace de un scope por un
-camino que el escritorio hoy no tiene, y es el único ítem de esta lista donde
-equivocarse edita el sistema en vez de un registro del sistema. Tiene que ir
-después del cronómetro, no antes.
+### Qué se construyó, y qué deliberadamente no
+
+El rediseño de [doc 20](20-everything-is-an-agent.md) construyó el **gesto** y dejó
+la **escritura** en paz, que es una división real y no un compromiso.
+
+**Construido:** arrastrar `INSPECTOR` sobre un flow declara una relación —*este
+agente está leyendo este flow*— y el escritorio actúa sobre la declaración en vez
+de agregar un paso. El soltar es la instrucción entera; no se tipea nada. Ésa es la
+forma del gesto, funcionando, sobre un agente de sistema cuya única herramienta es
+`read`.
+
+**No construido:** la escritura a `MigrationAgent.md`. Es el único ítem de esta
+lista donde equivocarse edita el sistema en vez de un registro del sistema,
+necesita un camino al workspace de un scope que el escritorio no tiene, y debería
+ir después del cronómetro y no antes. Nada cambió sobre ese argumento.
+
+**Por qué `INSPECTOR` era el seguro para empezar.** Una relación que sólo *lee*
+nunca puede corromper aquello sobre lo que se declara. Si el gesto resulta estar
+equivocado —ambiguo, demasiado fácil de disparar sin querer, ilegible para alguien
+a quien no se lo contaron— el costo de averiguarlo es un panel mostrando el
+hallazgo equivocado, no un archivo de agente modificado. Construir primero la
+versión peligrosa habría hecho que el gesto y la escritura fallaran juntos, sin
+forma de saber cuál de los dos era el error.
 
 ## Lo que encontró correrlo — 2026-08-11 [ran]
 

@@ -38,14 +38,50 @@ cuán caro es construir y mantener cada uno contra un upstream en movimiento.
 |---|---|---|
 | `ai-storage` | Implementa el `MemoryService` existente de QM, registrado en `src/wiring.ts` | **Bajo** — interfaz estable y angosta |
 | `ai-ui` | Plugin HTTP sobre la API del core, usando el contrato del chassis | **Bajo** — los plugins nunca importan el core (impuesto por upstream) |
-| `ai-flows` | Servicio nuevo dentro del core + store nuevo + rutas nuevas | **Alto** — este es el que genuinamente diverge |
+| `ai-flows` | **Paquete propio sobre la API HTTP firmada** + store `flow_` propio. Era "servicio nuevo dentro del core", con costo **Alto**, hasta que se leyó el seam — [ADR-0006](adr/0006-ai-flows-lives-outside-core.md) | **Bajo** — no importa nada de `ai-base` |
 | `ai-base` | Es el upstream | n/a |
 
-Esa tabla es la decisión de arquitectura real. Dos de los tres pilares se pueden
-construir casi por completo *sin* forkear nada, porque los seams de extensión de
-QM son reales y fueron diseñados para esto. Sólo `ai-flows` exige cortar dentro
-del core — por eso existe el fork ([ADR-0001](adr/0001-fork-vs-dependency.md)) y
-por eso `ai-flows` carga la deuda de mantenimiento de todo el proyecto.
+### A qué se enganchó realmente `ai-storage`, que no es esta fila — 2026-08-24
+
+La fila de arriba dice **implementa el `MemoryService` de QM, Postgres, deriva
+baja**. Lo que se construyó es un **store de filesystem alrededor de un modelo
+local**: `FileStore` con escritura atómica y un journal, notas como JSON en
+disco, un índice que se parte cuando supera un presupuesto de tokens, y cinco
+especialistas. No implementa ninguna interfaz de upstream, no toca ninguna tabla
+de Postgres, y no está registrado en ningún archivo de wiring.
+
+Eso es una divergencia respecto del plan, y queda registrada en vez de editada
+porque la razón vale la pena conservarla. `MemoryService` está indexado por scope
+y devuelve documentos enteros; la [22 §17](22-ai-storage-qwen.md#17) está
+construida sobre una garantía que esa interfaz no puede expresar — **una lectura
+que no entra se rechaza, nunca se trunca** — y el rechazo tiene que llegarle al
+llamador como un evento. Un `get(scope)` que devuelve un string no tiene dónde
+poner `MEMORY_CONTEXT_LIMIT`.
+
+Así que la fila todavía no está equivocada sobre el *enganche*; es un plan que no
+se ejecutó. Vivir detrás de `MemoryService` sigue siendo el estado final
+correcto, y lo que tiene que pasar primero es un adaptador capaz de expresar un
+rechazo. Hasta que exista, `ai-storage` es un paquete que el resto del sistema no
+importa — que es el costo honesto de la divergencia y la razón por la que se
+escribe acá.
+
+Esa tabla es la decisión de arquitectura real, y una de sus filas cambió el
+2026-08-02. Antes decía que `ai-flows` exige cortar dentro del core — la razón
+declarada de que exista el fork ([ADR-0001](adr/0001-fork-vs-dependency.md)) y la
+razón por la que se decía que `ai-flows` cargaba la deuda de mantenimiento de
+todo el proyecto. Leer la tabla de rutas en vez de la arquitectura mostró que la
+API pública ya expone crear, avanzar, inspeccionar, dirigir y abortar
+(`src/api/routes/turns.ts:154-161`), que es todo M2, así que **los tres pilares
+se construyen ahora sin forkear nada**
+([ADR-0006](adr/0006-ai-flows-lives-outside-core.md)).
+
+Eso no retira el fork. `ai-base` sigue cargando dos parches registrados, el
+ensanchamiento del tipo de scope de [ADR-0003](adr/0003-storage-scope-axis.md)
+sigue planeado, y hitos posteriores pueden necesitar una ruta que todavía no
+existe. Sí quiere decir que la carga es bastante menor de lo que afirmaba este
+documento, y que la re-evaluación programada de
+[ADR-0001](adr/0001-fork-vs-dependency.md) debería hacerse con esa corrección en
+la mano.
 
 **Regla de diseño que sale de esto:** todo lo que *pueda* construirse contra un
 seam público se construye contra un seam público, incluso cuando editar el core
