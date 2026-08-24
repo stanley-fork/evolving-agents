@@ -1,5 +1,10 @@
 # 22 · ai-storage on a local model — the specification, and what is built
 
+<img src="assets/22-ai-storage-qwen.jpg" alt="" width="100%">
+
+<sub>A corpus, a window, and the shorter route. Teal narrows through three enclosures, each holding fewer marks than the last; amber leaves from the same point, enters none of them, and arrives at the same window. That is what the first benchmark measured, not what the component was designed to do.</sub>
+
+
 > **Status, 2026-08-24.** Phases 1–8 are built and tested — 119 tests. The model
 > boundary, the local-only guarantee, the context invariant, the note schema,
 > the provenance pipeline, derived progress, the token-bounded index, the store

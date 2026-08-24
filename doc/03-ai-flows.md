@@ -100,7 +100,7 @@ past cannot be diffed, rolled back, or explained.
 **Different work has different shapes, and the system should know which one it is
 in.** A shape is a real object, not a label: it determines how the next step is
 chosen, what "done" means, what the canvas renders, and — the part that matters
-for [the multiplayer problem](../README.md#the-problem-ai-is-still-single-player)
+for [the multiplayer problem](../README.md)
 — *what a second person can do to the flow without breaking it*.
 
 Six shapes. Each is defined below on the same seven fields, because a shape whose

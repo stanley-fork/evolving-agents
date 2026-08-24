@@ -95,13 +95,26 @@ cd ai-ui    && node scripts/serve.ts                         # escritorio  :8098
 
 ## Estado
 
-`ai-base`, `ai-flows` y `ai-ui` corren — **828 tests propios**, arriba de los
-3.768 que `ai-base` trae de upstream. `ai-storage` está especificado y no
-construido, aunque la primera pieza de su argumento ya corre dentro de
-`ai-flows`: una base de conocimiento de proyecto que una ventana de ocho mil
-tokens puede navegar — un archivo plano del mismo material deja de entrar a las
-16 unidades; el índice sigue en 4.523 de 8.000 tokens con 2.000
-([05](doc/es/05-ai-storage.md)).
+Los cuatro pilares ya corren — **828 tests propios**, arriba de los 3.768 que
+`ai-base` trae de upstream. `ai-storage` está construido alrededor de un modelo
+**local** limitado a 8.192 tokens a propósito: notas con procedencia verificada,
+un índice navegable que se niega a renderizar un nodo por encima de su
+presupuesto, cinco especialistas, scopes, promoción e historial
+([22](doc/22-ai-storage-qwen.md)).
+
+**Su primer benchmark salió en contra del diseño, y se publica porque ésa era la
+regla.** En el techo — un navegador perfecto, sin pesos — un archivo de memoria
+plano no entra a ningún tamaño (doscientas notas ya son 12.566 tokens contra un
+carril de 2.300), y **la búsqueda léxica exacta le gana a la jerarquía para la
+que se construyó el componente**: 3/3 contra 1–2/3, leyendo menos para hacerlo.
+`doc/05` decía que la carga de la prueba estaba sobre el eje; éste es el segundo
+resultado plano en esa dirección. Los confundidos están en
+[22 §59](doc/22-ai-storage-qwen.md#59), escritos en vez de ajustados.
+
+El modelo alrededor del cual está construido **no fue verificado como existente**
+desde la máquina que escribió esto: cada campo de [`MODEL.json`](MODEL.json) dice
+`verified: false`, un test afirma que siguen diciéndolo, y
+`ai-storage/scripts/verify-model.ts` es lo único que puede decir otra cosa.
 
 La evidencia de los dos proyectos ahora corre **nightly** en
 [`projects.yml`](.github/workflows/projects.yml) — los gates, el ledger, la

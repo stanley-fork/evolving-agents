@@ -93,12 +93,25 @@ Español: [Correr ai-os](doc/es/manual.md).
 
 ## State
 
-`ai-base`, `ai-flows` and `ai-ui` run — **828 tests of our own**, on top of the
-3,768 `ai-base` carries from upstream. `ai-storage` is specified and not built,
-though the first piece of its argument now runs inside `ai-flows`: a project
-knowledge base an eight-thousand-token window can navigate — a flat file of the
-same material stops fitting at 16 units, the index is still at 4,523 of 8,000
-tokens at 2,000 ([05](doc/05-ai-storage.md)).
+All four pillars now run — **828 tests of our own**, on top of the 3,768
+`ai-base` carries from upstream. `ai-storage` is built around a **local** model
+held to 8,192 tokens on purpose: notes with verified provenance, a navigable
+index that refuses to render a node over budget, five specialists, scopes,
+promotion and history ([22](doc/22-ai-storage-qwen.md)).
+
+**Its first benchmark came back against the design, and it is published because
+that was the rule.** At the ceiling — a perfect navigator, no weights — a flat
+memory file does not fit at any size (two hundred notes is already 12,566 tokens
+against a lane of 2,300), and **exact lexical search beats the hierarchy the
+component was built for**: 3/3 against 1–2/3, reading less to do it. `doc/05`
+said the burden of proof was on the axis; this is the second flat result in that
+direction. See [22 §59](doc/22-ai-storage-qwen.md#59) for the confounds, stated
+rather than tuned away.
+
+The model it is built around has **not been verified to exist** from the machine
+that wrote this: every field in [`MODEL.json`](MODEL.json) says
+`verified: false`, a test asserts they still do, and
+`ai-storage/scripts/verify-model.ts` is the only thing that may say otherwise.
 
 Both projects' evidence now runs **nightly** in
 [`projects.yml`](.github/workflows/projects.yml) — the gates, the ledger, the

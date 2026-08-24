@@ -9,7 +9,7 @@
 > **En parte referencia, en parte especificación, y cada sección dice cuál.**
 > Las fases 1–4 están construidas y testeadas (`ai-ui`, `ai-flows`). La fase 5
 > está especificada y no construida. La falsificación de todo esto es
-> [el cronómetro de 04](04-ai-ui.md#cómo-se-falsea-esto), **que todavía no
+> [el cronómetro de 04](04-ai-ui.md#falsification), **que todavía no
 > corrió** — así que nada de acá se afirma que ayude, solo que funciona.
 
 ## Qué hizo disruptiva a la GUI, y qué no

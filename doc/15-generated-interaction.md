@@ -8,7 +8,7 @@
 > Phases 1–4 are built and tested (`ai-ui`, `ai-flows`). Phase 5's **gesture** is
 > built as of 2026-08-23 and its **write** is not — see the section below for why
 > that split is deliberate. The falsification for all of it is
-> [04's stopwatch](04-ai-ui.md#how-this-gets-falsified), **which has still not
+> [04's stopwatch](04-ai-ui.md#falsification), **which has still not
 > run** — so nothing here is claimed to help, only to work.
 
 ## What made the GUI disruptive, and what did not

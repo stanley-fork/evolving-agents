@@ -25,7 +25,7 @@ changes kind gets its banner rewritten the same day.
 | [01 · Architecture](01-architecture.md) | The four pillars, how they fit, and where each attaches to the base |
 | [02 · ai-base](02-ai-base.md) | What QM actually provides — verified against the source, not its README — and the seams built on |
 | [03 · ai-flows](03-ai-flows.md) | The flow model: goal, steps, attempts, observations. `Open` and `Gated` run; the other four shapes are specification |
-| [04 · ai-ui](04-ai-ui.md) | The desk: documents, agent cubes, the trace face. Built; its own falsification has not been run |
+| [04 · ai-ui](04-ai-ui.md) | The desk: documents, agent cubes, the trace face. Built and still served by `make up`; the **published** surface is now the activity canvas (21 §10). Its own falsification — the stopwatch in §Falsification — has still not been run |
 | [15 · Generated interaction](15-generated-interaction.md) | Semantic zoom, the self-revealing menu, deixis and fork — what a model can do that a GUI could not. Phases 1–4 built, phase 5 specified |
 | [09 · Scales](09-scales.md) | Individual, collective, project, system — one axis for flows and memory, and it is `scopeId` |
 | [10 · Observability](10-observability.md) | Whether a flow's progress can be read at all. Drift versus unreadable, and the measured noise floor between them |
@@ -38,7 +38,7 @@ changes kind gets its banner rewritten the same day.
 
 | | |
 |---|---|
-| [05 · ai-storage](05-ai-storage.md) | Memory at four levels — system, user, project, flow — with explicit, reversible promotion. **Drawn on the desk before being built**, and the drawing is part of the spec |
+| [05 · ai-storage](05-ai-storage.md) | Memory at four levels — system, user, project, flow — with explicit, reversible promotion. **Drawn on the desk before being built**, and the drawing is part of the spec. Now built around a local model — see 22, including the benchmark result that went against it |
 | [03 § Flow shapes](03-ai-flows.md#flow-shapes) | `Sequence`, `Loop`, `Fan-out`, `Deliberation`, `Watch`, and merge |
 
 ## Findings — what the measurements said
@@ -83,9 +83,12 @@ Documents about the work rather than the system.
 | [08 · Roadmap](08-roadmap.md) | Milestones in dependency order, with the honest blockers |
 | [19 · What would make this matter](19-what-would-make-this-matter.md) | The whole repository read from outside: what runs, who it is for, what is genuinely different, and a plan ordered by the fact that there is one author and no user. **Includes the drift it found and the check that now stops it** |
 | [20 · Everything is an agent](20-everything-is-an-agent.md) | The redesign of the desk, the demo and the tour: agents as the objects, handoffs as wires you can open, one Inspector with a second position that hands the object to an agent — and the rule that every finding cites the artifact it read. **Includes the three defects drawing the flows found** |
-| [21 · Threads of thought](21-threads-of-thought.md) | A sketch of the surface as horizontal ropes between the agents and you, where X is time and Y is who is holding the thought. What it shows that a wire cannot, why the palette can be loud on a dark ground, and why the engine is the right *second* move |
+| [21 · Threads of thought](21-threads-of-thought.md) | The surface as time: ropes, then a braid, then a grid of squares — three published surfaces in three days, and why each replaced the last. **§9 is the four errors that stopped the braid reading as one; §10 is why the grid replaced it: on the braid nothing had an address you could point at** |
+| [22 · ai-storage on a local model](22-ai-storage-qwen.md) | The knowledge layer for a **local** model held to 8,192 tokens on purpose: notes, provenance, a navigable index, five specialists, promotion. **§0 is that the model has not been verified to exist from here; §59 is the first benchmark, and it came back against the design — exact search beats the hierarchy and the flat file does not fit** |
 | [**The plan**](PLAN.md) | What is in flight today, what it costs to pick up, and the four rules this week re-earned |
 | [`upstream/`](upstream/) | Proposals aimed at `yc-software/qm`, kept here until sent. Their `CONTRIBUTING.md` asks for **human-written, informal** text and says *"do not have AI artificially expand what you'd like to do into a formal proposal"* — so these are checklists of evidence to be rewritten in the sender's own voice, never pasted |
+
+<a id="house-rules"></a>
 
 ## House rules
 

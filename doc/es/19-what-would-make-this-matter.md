@@ -74,7 +74,7 @@ cualquiera de los dos idiomas, y falla ante una discrepancia, ante una afirmaci�
 en un archivo que nadie listó, y ante un archivo listado que dejó de declararlo
 **[ran]** — más un job de CI para que corra en cada PR. `NEXT.md` está reescrito.
 El caso 605/626 *no* está cerrado: `check-test-count.sh` sigue mirando solo los
-dos READMEs, y extenderlo es [P0](#p0--frenar-la-podredumbre-de-la-evidencia) abajo.
+dos READMEs, y extenderlo es [P0](#p0) abajo.
 
 ### La asimetría que más importa
 
@@ -242,6 +242,8 @@ significa terminado y qué diría que el ítem era el equivocado.
 | **P4** | Un usuario que no sea el autor | una máquina limpia y un cronómetro | no hay evidencia de que nada de esto sea usable por una segunda persona |
 | **P5** | Decirlo una vez, angosto | un día de escritura | (b) y (c) de §2 no pueden encontrar esto |
 | **P6** | `ai-storage`, contra 3.0 | un milestone | es trabajo real y está detrás de cinco cosas más baratas |
+
+<a id="p0"></a>
 
 ### P0 · Frenar la podredumbre de la evidencia — **hecho, y correrlo es la §7**
 
@@ -560,6 +562,24 @@ de corridas que nadie guardó. No se les puede construir un checker, y el
 movimiento útil no es construirlo — es dejar de citarlos como mediciones en
 presente, o re-correrlos hacia un artefacto. Cuál de las dos corresponde es una
 decisión por número, no una política.
+
+### La afirmación que no es un número, y era la más podrida — 2026-08-24
+
+Todo lo de arriba son cifras. La afirmación más barata que hacen estos documentos
+no es una cifra: **un link dice dónde está algo.** `scripts/check-doc-links.py`
+resolvió los 697 links internos y **once no apuntaban a nada** — no porque se
+hubiera borrado un archivo, sino porque el slug de un título es su redacción, así
+que `### P0 · Frenar la podredumbre de la evidencia` cambió de dirección el día en
+que le creció `— **hecho, y correrlo es la §7**`. Los once habían sido correctos
+cuando se escribieron. Es la misma podredumbre que la tabla de arriba existe para
+atrapar, en la única forma que no cuesta nada chequear.
+
+La reparación no fue perseguir los slugs. Diez anclas `<a id="…"></a>` viven ahora
+encima de los títulos a los que se linkea, así que la redacción queda libre de
+moverse; el checker corre en `projects.yml` e informa cuál de las dos fallas
+encontró — una ruta que no existe, o una sección que no existe. Tiene un límite
+honesto que conviene decir: chequea solo links internos. Un link `https://` a una
+página reescrita es exactamente la misma falla y acá no la ve nadie.
 
 ## Qué cambió este documento
 

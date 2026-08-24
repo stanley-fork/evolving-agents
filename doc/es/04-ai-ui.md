@@ -7,13 +7,20 @@
 
 > **El inglés es canónico.** Traducción de [`doc/04-ai-ui.md`](../04-ai-ui.md).
 >
-> **Referencia.** Construido y corriendo — `ai-ui/`, 61 tests. Sin probar.
+> **Referencia.** Construido y corriendo — `ai-ui/`, 300 tests. Sigue sin probar.
 >
-> El escritorio existe: documentos, cubitos de agentes, la cara de traza,
-> disposición que persiste por scope. Lo que *no* pasó es la falsificación al pie
-> de este documento — el cronómetro, un flow de tres días que corrió otra
-> persona, escritorio contra transcripción. Hasta que eso corra, lo honesto es
-> decir que funciona, no que ayuda. Ver [el manual, Parte 6](manual.md).
+> El escritorio existe: documentos, cubos de agente, la cara de traza, layout que
+> persiste por scope, y `make up` lo sigue sirviendo. Sobre los mismos módulos se
+> construyeron y publicaron otras tres superficies — carriles, una trenza, y el
+> canvas de actividad que está en `/demo/` ahora ([21](../21-threads-of-thought.md)
+> §9–10, en inglés).
+>
+> Lo que **no** pasó, en ninguna de las cuatro, es la falsación al pie de este
+> documento — el cronómetro, un flow de tres días que corrió otra persona,
+> escritorio contra transcript. **Cuatro superficies y ningún cronómetro es peor
+> que una superficie y ningún cronómetro**, porque es cuatro veces la evidencia
+> de que nadie midió si alguna ayuda. Hasta que corra, la afirmación honesta es
+> que funcionan, no que ayudan.
 
 ## El problema
 
@@ -202,7 +209,7 @@ de diagramación general.
 
 > La exclusión de la edición simultánea es la que hay que decir en voz alta, dado
 > que el problema que enmarca el proyecto es
-> [multijugador](../../README.es.md#el-problema-la-ia-sigue-siendo-de-un-solo-jugador).
+> [multijugador](../../README.es.md).
 > ai-os apunta a **multijugador asincrónico** — varias personas actuando sobre un
 > objeto durable a lo largo de días — no a co-presencia en tiempo real. Es una
 > afirmación más angosta, y hay que sostenerla en vez de dejar que se lea como la
@@ -426,6 +433,8 @@ dicho en el panel antes de apretarlo.
 riesgo tiene de costar un trimestre de infraestructura antes de haberlo ganado, y
 un bundler es la primera cuota de esa cuenta. Si el cronómetro de abajo dice que
 el canvas gana, agregar un build es barato y va a estar pagado.
+
+<a id="falsification"></a>
 
 ## Cómo se falsifica
 

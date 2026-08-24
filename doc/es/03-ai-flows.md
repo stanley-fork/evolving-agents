@@ -100,7 +100,7 @@ pasado no se puede diffear, ni revertir, ni explicar.
 **Trabajos distintos tienen formas distintas, y el sistema debería saber en cuál
 está.** Una forma es un objeto real, no una etiqueta: determina cómo se elige el
 paso siguiente, qué significa "listo", qué renderiza el canvas y — la parte que
-importa para [el problema multijugador](../../README.es.md#el-problema-la-ia-sigue-siendo-de-un-solo-jugador)
+importa para [el problema multijugador](../../README.es.md)
 — *qué puede hacerle una segunda persona al flow sin romperlo*.
 
 Seis formas. Cada una se define abajo sobre los mismos siete campos, porque una

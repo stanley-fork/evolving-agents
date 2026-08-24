@@ -72,7 +72,7 @@ the reports, scans every markdown file for a published count in either language,
 and fails on a mismatch, on a claim in a file nobody listed, and on a listed file
 that has stopped stating one **[ran]** — plus a CI job so it runs on every PR.
 `NEXT.md` is rewritten. The 605/626 case is *not* closed: `check-test-count.sh`
-still looks at the two READMEs only, and extending it is [P0](#p0--stop-the-evidence-rotting) below.
+still looks at the two READMEs only, and extending it is [P0](#p0) below.
 
 ### The asymmetry that matters most
 
@@ -236,6 +236,8 @@ means and what would say the item was the wrong one.
 | **P4** | One user who is not the author | a clean machine and a stopwatch | there is no evidence anything here is usable by a second person |
 | **P5** | Say it once, narrowly | a day of writing | (b) and (c) from §2 cannot find this |
 | **P6** | `ai-storage`, against 3.0 | a milestone | it is real work and it is behind five cheaper things |
+
+<a id="p0"></a>
 
 ### P0 · Stop the evidence rotting — **done, and running it is §7**
 
@@ -580,6 +582,24 @@ from runs nobody kept. No checker can be built for them, and the useful move is
 not to build one — it is to stop quoting them as present-tense measurements, or
 to re-run them into an artifact. Which of those is right is a decision per
 number, not a policy.
+
+### The claim that is not a number, and had rotted worst — 2026-08-24
+
+Everything above is about figures. The cheapest claim these documents make is not
+a figure at all: **a link says where something is.** `scripts/check-doc-links.py`
+resolved all 697 internal links and **eleven of them pointed at nothing** — not
+because a file was deleted, but because a heading's slug is its wording, so
+`### P0 · Stop the evidence rotting` changed address the day it grew
+`— **done, and running it is §7**`. Every one of the eleven had been correct when
+it was written. That is the same decay the table above exists to catch, in the
+one form that costs nothing to check.
+
+The repair was not to chase the slugs. Ten `<a id="…"></a>` anchors now sit above
+the headings that get linked to, so the wording is free to move; the checker runs
+in `projects.yml` and reports which of the two failures it found — a path that
+does not exist, or a section that does not. It has one honest limit worth
+stating: it checks internal links only. An `https://` link to a page that has
+been rewritten is exactly the same failure and nothing here sees it.
 
 ## What this document changed
 

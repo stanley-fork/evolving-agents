@@ -76,6 +76,10 @@ Documentos sobre el trabajo, no sobre el sistema.
 | [08 · Roadmap](08-roadmap.md) | Milestones en orden de dependencia, con los bloqueos dichos con honestidad |
 | [19 · Qué haría que esto importe](19-what-would-make-this-matter.md) | El repositorio completo leído desde afuera: qué corre, para quién es, qué es genuinamente distinto, y un plan ordenado por el hecho de que hay un autor y ningún usuario. **Incluye la deriva que encontró y el check que ahora la frena** |
 | [20 · Todo es un agente](20-everything-is-an-agent.md) | El rediseño del escritorio, del demo y del tour: los agentes como los objetos, los traspasos como cables que se pueden abrir, un Inspector con una segunda posición que le entrega el objeto a un agente — y la regla de que cada hallazgo cita el artefacto que leyó. **Incluye los tres defectos que encontró dibujar los flujos** |
+| [21 · Hilos de pensamiento](../21-threads-of-thought.md) | La superficie como tiempo: cuerdas, después una trenza, después una grilla de cuadrados — tres superficies publicadas en tres días, y por qué cada una reemplazó a la anterior. **§9 son los cuatro errores que impedían que la trenza se leyera como un objeto; §10 es por qué la grilla la reemplazó: en la trenza nada tenía una dirección que se pudiera señalar** *(en inglés)* |
+| [22 · ai-storage sobre un modelo local](../22-ai-storage-qwen.md) | La capa de conocimiento para un modelo **local** limitado a 8.192 tokens a propósito. **§0 es que el modelo no fue verificado como existente desde acá; §59 es el primer benchmark, y salió en contra del diseño — la búsqueda exacta le gana a la jerarquía y el archivo plano no entra** *(en inglés)* |
+
+<a id="house-rules"></a>
 
 ## Reglas de la casa
 

@@ -182,6 +182,19 @@ jobs:
           python3 scripts/check-demo-provenance.py --demo /tmp/threads.html
           python3 scripts/check-demo-provenance.py --demo /tmp/desk.html
 
+  documents:
+    name: The documents' internal links
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - name: Every internal link resolves to the thing it names
+        # The cheapest claim in the repository to check and the one that had
+        # rotted worst: eleven links in `doc/` pointed at sections that had been
+        # renamed, and every one of them had been correct when it was written.
+        # A link is a claim about where something is; this is the same rule the
+        # gates apply to numbers, applied to the prose that cites them.
+        run: python3 scripts/check-doc-links.py
+
   ai-storage:
     name: ai-storage — the local model's memory
     runs-on: ubuntu-latest
