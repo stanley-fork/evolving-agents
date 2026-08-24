@@ -21,6 +21,19 @@ and the operating-system part is *how*; the sentence above is *why*.
 | **Attestation, not assertion** | content-addressed runs, a hash-chained ledger, `make reproduce`, and the environment recorded in the artifact |
 | **Every published number tied to its producer** | five of the nine numbers on this page and in `doc/` are checked against the artifact that produced them, nightly |
 
+**And the honest limit of "prove it to a stranger", since this page makes the
+claim.** A hash chain inside our own repository demonstrates **integrity** —
+nobody changed the number after the fact. It does not demonstrate **truth**: a
+92% computed by buggy code has perfect cryptographic integrity. What narrows the
+gap here is not the hash. It is that the checker cannot import the thing it
+checks, the threshold was written down before the run, and `make reproduce`
+re-derives the artifact somewhere that has never seen it — which is how
+`hemo-verified` found a per-oracle number that was a property of its machine
+rather than of the physics. What would *close* it is signing the gate reports as
+in-toto attestations through Sigstore into a transparency log, so a third party
+need not trust the author of this README either. That is not built. See
+[the evidence layer](https://evolvingagentslabs.github.io/#evidence).
+
 **The strong version of that argument is false and we are the ones who measured
 it.** `physics-verifiers` gave a frontier model twelve fabricated physics results
 and nine subtly defective ones. It caught **all of them, twice**
@@ -80,12 +93,25 @@ Español: [Correr ai-os](doc/es/manual.md).
 
 ## State
 
-`ai-base`, `ai-flows` and `ai-ui` run — **626 tests of our own**, on top of the
-3,768 `ai-base` carries from upstream. `ai-storage` is specified and not built,
-though the first piece of its argument now runs inside `ai-flows`: a project
-knowledge base an eight-thousand-token window can navigate — a flat file of the
-same material stops fitting at 16 units, the index is still at 4,523 of 8,000
-tokens at 2,000 ([05](doc/05-ai-storage.md)).
+All four pillars now run — **828 tests of our own**, on top of the 3,768
+`ai-base` carries from upstream. `ai-storage` is built around a **local** model
+held to 8,192 tokens on purpose: notes with verified provenance, a navigable
+index that refuses to render a node over budget, five specialists, scopes,
+promotion and history ([22](doc/22-ai-storage-qwen.md)).
+
+**Its first benchmark came back against the design, and it is published because
+that was the rule.** At the ceiling — a perfect navigator, no weights — a flat
+memory file does not fit at any size (two hundred notes is already 12,566 tokens
+against a lane of 2,300), and **exact lexical search beats the hierarchy the
+component was built for**: 3/3 against 1–2/3, reading less to do it. `doc/05`
+said the burden of proof was on the axis; this is the second flat result in that
+direction. See [22 §59](doc/22-ai-storage-qwen.md#59) for the confounds, stated
+rather than tuned away.
+
+The model it is built around has **not been verified to exist** from the machine
+that wrote this: every field in [`MODEL.json`](MODEL.json) says
+`verified: false`, a test asserts they still do, and
+`ai-storage/scripts/verify-model.ts` is the only thing that may say otherwise.
 
 Both projects' evidence now runs **nightly** in
 [`projects.yml`](.github/workflows/projects.yml) — the gates, the ledger, the
@@ -104,7 +130,7 @@ every screenshot is from a live instance.
 | [`ai-memory/`](ai-memory/) | The memory agents, as a tree that runs as a tree | Apache 2.0 |
 | [`ai-ui/`](ai-ui/) | The desk | Apache 2.0 |
 | [`projects/`](projects/) | Work running **on** the OS. Two: [`coclea-sr/`](projects/coclea-sr/), Python, **28 gates / 135 checks**, and [`hemo-verified/`](projects/hemo-verified/), whose kill gate survived at AUC 0.906 | Apache 2.0 |
-| `ai-storage/` | Not built | — |
+| [`ai-storage/`](ai-storage/) | The local model's memory: notes with verified provenance, a token-bounded index, five specialists, and the benchmark whose first result went **against** the design | Apache 2.0 |
 
 `ai-base/` stays byte-identical to upstream. Anything we change there needs a
 line in [`ai-base/AI-OS-PATCHES.md`](ai-base/AI-OS-PATCHES.md), and CI enforces
@@ -113,7 +139,10 @@ it. Full terms: [licensing](doc/06-licensing.md).
 ## Languages
 
 English is canonical. Every document has a Spanish mirror in
-[`doc/es/`](doc/es/); when they disagree, the English one is right.
+[`doc/es/`](doc/es/); when they disagree, the English one is right. That sentence
+was false for two documents until 2026-08-24, so
+[`check-doc-mirrors.py`](scripts/check-doc-mirrors.py) now checks it, and a
+document that is deliberately English-only has to say why.
 
 ---
 

@@ -128,7 +128,7 @@ showed it **[ran]**:
 - A project created in the web UI was **invisible to the conformation projector**
   running as a second process against the same `dataDir`. With `store=memory` the
   `ProjectStore` lives inside the core's process; another process sees workspace
-  files and none of the state ([manual § Part 4](manual.md#part-4--what-the-holes-told-us-running-it-live)).
+  files and none of the state ([manual § Part 4](manual.md#holes-live)).
 - `SessionStore.distinctScopes()` returned 0 for the same reason, so the scope
   list had to be recovered by decoding directory names.
 - A flow that resumes on Wednesday cannot resume out of a process that exited on
@@ -188,7 +188,7 @@ baseline drops to at most 7 on `staleness`, or M4 does not proceed. It scored
 on one revising a policy once across forty-three — density does not break the flat
 file, horizon does. The condition is met with room to spare, **M4 proceeds**, and
 the number it has to beat is 3.0. Details and the two caveats are in
-[§ M4](#m4--ai-storage-v1--not-started). Building M4 is a milestone, not this
+[§ M4](#m4). Building M4 is a milestone, not this
 phase.
 
 **Depth-2 delegation — the plan's instrument cannot be built.** This phase said
@@ -327,7 +327,19 @@ decide which branch to keep.
 Diff stands alone and ships before merge. If merge never happens, this is still
 the most useful thing in `ai-flows`.
 
-## M4 · ai-storage v1 — **not started**
+<a id="m4"></a>
+
+## M4 · ai-storage v1 — **built, and its first benchmark came back negative**
+
+> **2026-08-24.** No longer not started. The store, the five specialists, scopes,
+> promotion, history and the navigation benchmark are built around a local model
+> — 119 tests — and the benchmark's first result is that **exact lexical search
+> beats the hierarchy** and the flat baseline does not fit at any size. The gate
+> below opened on `staleness`; this is a different measurement and it went the
+> other way. Both are recorded: [22 §59](22-ai-storage-qwen.md#59).
+>
+> What the section below still describes correctly is the *design*, which is why
+> it is left standing rather than rewritten to match the outcome.
 
 Four levels behind QM's `MemoryService`, level-ordered recall, explicit
 promotion. **No embeddings.** ([05](05-ai-storage.md))
@@ -463,6 +475,8 @@ Not a milestone; continuous.
 [07](07-freeze-policy.md). Three repositories to freeze; `evolving-agents` needs
 its README and `PLAN.md` made true first, because 452 stars is the only real
 distribution the new project has.
+
+<a id="not-planned"></a>
 
 ## Deliberately not planned
 

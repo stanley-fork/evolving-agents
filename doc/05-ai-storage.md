@@ -4,11 +4,17 @@
 
 <sub>Four levels. Only one promotion arrow is built.</sub>
 
-> **Specification.** Specified, not implemented.
+> **Built, 2026-08-24 — and the prior result repeated itself.** This document is
+> the design; [22](22-ai-storage-qwen.md) is the implementation, around a
+> **local** model held to 8,192 tokens. 119 tests.
 >
 > **Read the "Prior result" section before designing anything here.** A closely
 > related claim from this organisation measured _no better than the naive
-> approach_, and that result shapes this document more than any other input.
+> approach_, and that result shapes this document more than any other input —
+> **and the first benchmark of the thing built from it came back the same way.**
+> At the ceiling, exact lexical search beats the hierarchy, and the flat file
+> does not fit at any size. The burden of proof was on the axis and it has not
+> been met: [22 §59](22-ai-storage-qwen.md#59).
 
 
 ## The shape, drawn before it is built — 2026-08-09

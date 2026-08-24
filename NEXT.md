@@ -1,6 +1,6 @@
 # Next
 
-> **Snapshot, 2026-08-23, after P0.** A plan is the document most likely to rot,
+> **Snapshot, 2026-08-24, after P0 and ai-storage.** A plan is the document most likely to rot,
 > so this one is short and dated. The version before this one carried
 > `2026-08-09` and was nineteen merged pull requests behind by the time anybody
 > noticed — which is the finding that produced
@@ -9,9 +9,11 @@
 
 ## Where things stand
 
-`ai-base`, `ai-flows` and `ai-ui` run — **626 tests of our own**, checked against
-the suites by CI so the number cannot drift again. `ai-memory` runs the six
-memory agents as a tree. **`ai-storage` still does not exist.**
+All four pillars run — **828 tests of our own**, checked against the suites by CI
+so the number cannot drift again. `ai-memory` runs the six memory agents as a
+tree. **`ai-storage` exists as of 2026-08-24**, built around a local model held
+to 8,192 tokens on purpose — and its first benchmark went against the design, so
+the head of §7 is the thing to read before building more of it, not this line.
 
 Two projects run **on** the OS, and as of today both of them run **in CI**:
 
@@ -186,12 +188,37 @@ cheapest possible evidence that this item is not a nicety, and it cost nothing
 because something else needed it first. **What is still unpaid is the OS itself:
 nobody has timed `make up`**, and the two projects are the easy half.
 
-## 7. `ai-storage`, against 3.0
+## 7. `ai-storage` — built, and its first result says the hierarchy loses
 
-Unchanged and last. A second long-horizon fixture written to a different shape by
-a different hand, and the open question answered on paper against two real flows
-— *when two notes say the same thing, which survives?* — before any store is
-built.
+**Changed, 2026-08-24.** It is no longer last and no longer unbuilt: the store,
+the five specialists, scopes, promotion, history and the navigation benchmark
+are all in, with 119 tests, around a **local** model.
+
+**The first result is negative and it is published.** At the ceiling — a perfect
+navigator, no weights — exact lexical search answers 3/3 at every corpus size
+and reads less doing it; hierarchical navigation answers 1–2/3 and runs out of
+steps; the flat `MEMORY.md` baseline does not fit an 8K window at two hundred
+notes, let alone fifty thousand.
+
+That is the second flat result in this direction. The predecessor measured a
+related idea and got 80% acc@1 either way; `doc/05` said the burden of proof is
+on the axis, and it has not been met. It is a ceiling measurement with no model
+in it, so it does not close the question — but it changes what the next
+measurement is for. The honest next step is not more storage machinery. It is
+either
+
+- a question family whose wording does not appear in the target note, which is
+  where an index should win and search should not; or
+- accepting that lexical search over a flat set of notes is the v1, and that the
+  index earns its place by making *writing* manageable rather than reading.
+
+Read [doc/22 §59](doc/22-ai-storage-qwen.md#59) before building anything else in
+that component.
+
+The old open question is still open and still worth answering on paper against
+two real flows: *when two notes say the same thing, which survives?* The
+Reconciler has an answer in code — `same` keeps the older, `conflict` keeps
+both — and no fixture has tested it.
 
 ## Smaller, if a session ends early
 

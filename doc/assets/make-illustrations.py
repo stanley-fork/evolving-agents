@@ -36,6 +36,18 @@ opinion about what the series looks like; it is what the series is.
 * **18** — the arc. A trajectory that decays and stops (amber, ending red), and a
   second one that propagates on a base the first did not have and opens into the
   seven signatures, one of them open because it is a posit.
+* **19** — what the gate encloses and what it does not: an enclosure around the
+  suites, and the larger field of gate checks with nothing drawn around it.
+* **20** — everything is the same kind of thing. Identical marks, three chains,
+  one link missing because it was never recorded, and one mark attached to a
+  chain by a stem: the system agent, drawn like everything else.
+* **21** — the braid, and the width at which it stops being drawn. Two strands
+  wound around one axis on the right, the same two parallel on the left, and the
+  width at which a turn becomes finer than the marks drawing it.
+* **22** — a corpus, a window, and **the shorter route**. The teal path narrows
+  through three enclosures; the amber one enters none of them and arrives
+  sooner, because that is what the benchmark measured. The plate carries the
+  result rather than the intention.
 """
 
 from __future__ import annotations
@@ -257,9 +269,160 @@ def plate_19():
     save(fig, "19-what-would-make-this-matter.jpg")
 
 
+def plate_20():
+    """Everything is the same kind of thing, and one of them is watching another.
+
+    The chapter's argument is that the surface has no special shapes: an agent, a
+    person and a task are drawn the same way, and what differs is what they are
+    connected to. So every mark here is identical, three chains run through them,
+    and the only departure is a stem hanging off one chain carrying an amber
+    mark — the system agent attached to a flow, which is an agent like the rest
+    and is drawn like the rest.
+
+    One link is missing rather than dashed. An unrecorded handoff is absence, and
+    absence is drawn by leaving it out.
+    """
+    fig, ax = canvas()
+
+    rows = [(178, [230, 380, 530, 680, 830, 980, 1130]),
+            (297, [300, 450, 600, 750, 900, 1050]),
+            (416, [230, 380, 530, 680, 830, 980, 1130])]
+
+    for y, xs in rows:
+        for i in range(len(xs) - 1):
+            # The gap: one link of the middle chain was never recorded, so it is
+            # not there. Nothing is drawn in its place.
+            if y == 297 and i == 2:
+                continue
+            line(ax, [xs[i] + 14, xs[i + 1] - 14], [y, y])
+        for x in xs:
+            dot(ax, x, y)
+
+    # The attachment. A stem, and a mark identical to every other except in
+    # colour, because it is not a different kind of object.
+    # Below the bottom chain rather than above it: hung upward it landed thirty
+    # pixels from the middle row and read as a member of that chain, which is the
+    # one thing the mark must not say — it is attached to the chain it watches.
+    ax_x, ax_y = 830, 416
+    line(ax, [ax_x, ax_x], [ax_y + 16, ax_y + 78], AMBER, lw=1.1)
+    dot(ax, ax_x, ax_y + 92, AMBER)
+    save(fig, "20-everything-is-an-agent.jpg")
+
+
+def plate_21():
+    """The braid, and the width at which it stops being drawn.
+
+    Right: two strands wound around one axis in antiphase — flows sharing a band
+    of screen and separating in depth rather than in height. Thickness is
+    distance, so each strand thins as it turns away. Three strands were drawn
+    first and read as moiré: ten crossings in this width is a texture, not a
+    braid.
+
+    Left: the same two strands, parallel. Past that width a turn would be
+    narrower than the marks available to draw it, and what a reader would see is
+    the sampling rather than the shape. The surface refuses, and the plate draws
+    the refusal — which is the chapter's rule about motion carried into a still
+    image.
+    """
+    import math
+
+    fig, ax = canvas()
+    cy, amp = 297, 120
+    flat_end, right_end = 470, 1330
+    pitch = 268.0
+    n = 300
+
+    # Two strands, not three. Three at three phases put ten crossings across the
+    # plate and the eye read a moiré rather than a braid — in the interface they
+    # are told apart by hue, and this series has no hue to spend on identity.
+    for k in range(2):
+        phase = math.pi * k
+        xs, ys, ws = [], [], []
+        for i in range(n + 1):
+            x = flat_end + (right_end - flat_end) * i / n
+            th = phase + 2 * math.pi * (x - flat_end) / pitch
+            xs.append(x)
+            ys.append(cy + amp * math.sin(th))
+            ws.append(math.cos(th))
+        # Drawn in short pieces so thickness follows depth *along* the strand
+        # rather than jumping once per strand — which is the whole reason the
+        # bundle reads as one object rather than as curves that cross.
+        for i in range(n):
+            near = (ws[i] + 1) / 2
+            line(ax, xs[i:i + 2], ys[i:i + 2], INK, lw=0.6 + 3.2 * near)
+
+        # The flat stretch. Genuinely parallel, and it does not reach across to
+        # meet the coil: the first version drew each line to the phase its strand
+        # happens to start at, so three parallel strands came out as a funnel
+        # converging to a point — a perspective effect saying something the
+        # chapter does not. Below the threshold there is no coil to join.
+        y_flat = cy + (k * 2 - 1) * 18
+        line(ax, [110, flat_end - 14], [y_flat, y_flat], INK, lw=1.4)
+
+    # Where the two regimes meet. A single upright, so the eye reads the change
+    # as a threshold and not as the drawing running out of room.
+    line(ax, [flat_end, flat_end], [cy - amp - 34, cy + amp + 34], AMBER, lw=1.1)
+    save(fig, "21-threads-of-thought.jpg")
+
+
+def plate_22():
+    """A corpus, a window, and the shorter route the benchmark found.
+
+    Left: the corpus — many marks, more than any window holds. Right: the window,
+    a small enclosure with three marks in it.
+
+    Between them, two routes. The teal one descends through three enclosures,
+    each smaller than the last: the index, narrowing. The amber one leaves from
+    the same point, enters none of them, and arrives at the same window, because
+    that is what the first benchmark measured —
+    exact lexical search beat the hierarchy the component was built for. The plate
+    carries the result rather than the intention.
+    """
+    fig, ax = canvas()
+
+    # The corpus. Dense enough to be obviously larger than what arrives.
+    for row in range(11):
+        for col in range(13):
+            dot(ax, 110 + col * 27, 118 + row * 33, r=2.4)
+
+    # The narrowing: three enclosures, each holding fewer marks than the last.
+    stages = [(560, 150, 210, 294, 4, 3), (830, 196, 150, 202, 3, 2), (1030, 236, 96, 122, 2, 1)]
+    for x, y, w, h, cols, rows_ in stages:
+        box(ax, x, y, w, h)
+        for c in range(cols):
+            for r in range(rows_):
+                dot(ax, x + w * (c + 1) / (cols + 1), y + h * (r + 1) / (rows_ + 1), TEAL, r=3.2)
+
+    for a, b in ((480, 560), (770, 830), (980, 1030)):
+        line(ax, [a, b], [297, 297], TEAL)
+
+    # The window.
+    box(ax, 1178, 246, 108, 102, TEAL)
+    for i in range(3):
+        dot(ax, 1232, 272 + i * 25, r=3.4)
+    line(ax, [1126, 1178], [297, 297], TEAL)
+
+    # The shorter route. It leaves the corpus at the same height the narrowing
+    # does, passes under all three enclosures without entering one, and rises
+    # into the same window.
+    #
+    # The first version drew it as a diagonal from the corpus's bottom corner,
+    # which read as a trend line rather than a route and did not arrive
+    # anywhere -- the caption said "straight across" and the drawing did not.
+    # A plate whose caption is a claim about the plate is subject to the same
+    # rule as everything else here.
+    line(ax, [480, 480], [297, 472], AMBER)
+    line(ax, [480, 1232], [472, 472], AMBER)
+    line(ax, [1232, 1232], [472, 348], AMBER)
+    save(fig, "22-ai-storage-qwen.jpg")
+
+
 if __name__ == "__main__":
     plate_15()
     plate_16()
     plate_17()
     plate_18()
     plate_19()
+    plate_20()
+    plate_21()
+    plate_22()

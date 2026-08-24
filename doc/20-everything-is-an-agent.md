@@ -1,5 +1,10 @@
 # Everything is an agent
 
+<img src="assets/20-everything-is-an-agent.jpg" alt="" width="100%">
+
+<sub>Identical marks, three chains, one link never recorded — and one mark attached to a chain by a stem: the system agent, drawn like everything else.</sub>
+
+
 *A redesign of the desk, the demo, and the tour. Written before the code, because
 the last version was built against an example that stopped being the project.*
 

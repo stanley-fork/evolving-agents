@@ -45,9 +45,14 @@ total_of() {
   ( cd "$1" && npm test 2>&1 | grep -oE '(^|[^a-z])tests [0-9]+$' | grep -oE '[0-9]+' )
 }
 
+# `ai-storage` was added on 2026-08-24 and is not optional here: its tests are
+# ours in exactly the sense the published sentence means, and a suite left out
+# of this sum makes the front page understate itself while the check reports
+# green. Every package of ours that has a suite is counted.
 flows=$(total_of ai-flows)
 ui=$(total_of ai-ui)
-actual=$((flows + ui))
+storage=$(total_of ai-storage)
+actual=$((flows + ui + storage))
 
 # ## It scans every document, not the two READMEs
 #
@@ -73,7 +78,7 @@ while IFS= read -r f; do
   found=$((found + 1))
   for c in $claimed; do
     if [ "$c" != "$actual" ]; then
-      echo "FAIL  $f says $c; the suites report $actual (ai-flows $flows + ai-ui $ui)"
+      echo "FAIL  $f says $c; the suites report $actual (ai-flows $flows + ai-ui $ui + ai-storage $storage)"
       fail=1
     else
       echo "ok    $f — $actual"
@@ -92,6 +97,57 @@ if [ "$found" -eq 0 ]; then
   echo "FAIL  no document states a test count at all"
   fail=1
 fi
+
+# ## And the per-package numbers, which this check used to walk straight past
+#
+# On 2026-08-24 the aggregate above was green at 828 while `ai-flows/README.md`
+# said **267 tests** and `ai-ui/README.md` said **114**. The suites report 409
+# and 300. Both had been correct once; both had been wrong for weeks; and this
+# script -- the script that exists to stop exactly that -- did not look, because
+# its pattern requires the words "of our own" and a package README has no reason
+# to say them.
+#
+# A check with a blind spot the width of a whole class of claims is the failure
+# it was written to prevent, one directory down. So the phrasing is now fixed
+# and mechanical: a package that publishes its own count writes
+# "N tests in this package", every occurrence is checked, and a package with a
+# suite that publishes none fails.
+#
+# Two things are deliberately NOT checked, and naming them is cheaper than
+# implying the coverage is total:
+#
+#   * a sentence about one file, like ai-ui's "16 tests in
+#     `test/layout.test.ts`". That is a different quantity from the package
+#     total, and comparing them would produce a failure that is not a defect --
+#     which is how a check gets silenced.
+#   * ai-flows' without-a-database figure. This script refuses to run without
+#     `DATABASE_URL`, so it can only ever measure the with-database number.
+#     Checking the other one means running that suite twice.
+pkg_pattern='[0-9,\.]+ tests in this package'
+
+for pkg in ai-flows ai-ui ai-storage; do
+  case "$pkg" in
+    ai-flows)   want=$flows ;;
+    ai-ui)      want=$ui ;;
+    ai-storage) want=$storage ;;
+  esac
+  f="$pkg/README.md"
+  claimed=$(grep -ohE "$pkg_pattern" "$f" | grep -oE '^[0-9,\.]+' | tr -d ',.' | sort -u || true)
+  if [ -z "$claimed" ]; then
+    echo "FAIL  $f states no count, and a package with a suite has to"
+    echo "      Write it as \"$want tests in this package\"."
+    fail=1
+    continue
+  fi
+  for c in $claimed; do
+    if [ "$c" != "$want" ]; then
+      echo "FAIL  $f says $c; $pkg's suite reports $want"
+      fail=1
+    else
+      echo "ok    $f — $want"
+    fi
+  done
+done
 
 if [ "$fail" -ne 0 ]; then
   echo

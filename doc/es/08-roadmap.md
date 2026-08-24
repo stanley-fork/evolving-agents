@@ -126,7 +126,7 @@ que lo mostró **[ran]**:
   conformación** corriendo como segundo proceso contra el mismo `dataDir`. Con
   `store=memory` el `ProjectStore` vive dentro del proceso del core; otro proceso
   ve los archivos del workspace y nada del estado
-  ([manual § Parte 4](manual.md#parte-4--lo-que-dijeron-los-agujeros-corriéndolo-en-vivo)).
+  ([manual § Parte 4](manual.md#holes-live)).
 - `SessionStore.distinctScopes()` devolvió 0 por la misma razón, así que la lista
   de scopes hubo que recuperarla decodificando nombres de directorio.
 - Un flow que se retoma el miércoles no puede retomarse de un proceso que terminó
@@ -188,7 +188,7 @@ baseline de archivo plano baje a lo sumo a 7 en `staleness`, o M4 no procede. Sa
 una que revisa una política una vez a lo largo de cuarenta y tres — la densidad no
 rompe el archivo plano, el horizonte sí. La condición se cumple con margen, **M4
 procede**, y el número a batir es 3,0. El detalle y los dos reparos están en
-[§ M4](#m4--ai-storage-v1--not-started). Construir M4 es un milestone, no esta fase.
+[§ M4](#m4). Construir M4 es un milestone, no esta fase.
 
 **Delegación de profundidad 2 — el instrumento del plan no se puede construir.**
 Esta fase decía que lo barato no era construir profundidad 2 sino *instrumentarla*:
@@ -230,7 +230,7 @@ implementados.
 
 ### Lo que este plan deliberadamente no contiene
 
-Más allá de [§ Deliberadamente no planeado](#deliberadamente-no-planeado): **ningún
+Más allá de [§ Deliberadamente no planeado](#not-planned): **ningún
 intento de hacer las Fases 1 y 2 en paralelo.** La vista renderiza estado de flow;
 construirla contra un motor de flows que todavía no existe significa diseñar para
 estado imaginado, y lo único que este repositorio probó repetidamente es que el
@@ -290,7 +290,21 @@ persona usa para decidir qué rama conservar.
 El diff se sostiene solo y sale antes que el merge. Si el merge nunca ocurre, esto
 sigue siendo lo más útil de `ai-flows`.
 
-## M4 · ai-storage v1 — **no arrancado**
+<a id="m4"></a>
+
+## M4 · ai-storage v1 — **construido, y su primer benchmark salió negativo**
+
+> **2026-08-24.** Ya no está sin empezar. El store, los cinco especialistas,
+> scopes, promoción, historial y el benchmark de navegación están construidos
+> alrededor de un modelo local — 119 tests — y el primer resultado del
+> benchmark es que **la búsqueda léxica exacta le gana a la jerarquía** y el
+> baseline plano no entra a ningún tamaño. El gate de abajo se abrió sobre
+> `staleness`; ésta es otra medición y salió al revés. Las dos quedan
+> registradas: [22 §59](../22-ai-storage-qwen.md#59) *(en inglés)*.
+>
+> Lo que la sección de abajo sigue describiendo bien es el *diseño*, que es
+> por qué queda en pie en vez de reescribirse para que coincida con el
+> resultado.
 
 Cuatro niveles detrás del `MemoryService` de QM, recall ordenado por nivel,
 promoción explícita. **Sin embeddings.** ([05](05-ai-storage.md))
@@ -346,6 +360,8 @@ No es un milestone; es continuo.
 [07](07-freeze-policy.md). **Hecho el 2026-08-01:** 26 de 29 repos archivados. A
 `evolving-agents` se le corrigieron el README y el `PLAN.md` antes de archivar,
 porque 452 estrellas es la única distribución real que tiene el proyecto nuevo.
+
+<a id="not-planned"></a>
 
 ## Deliberadamente fuera del plan
 

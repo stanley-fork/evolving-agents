@@ -39,6 +39,27 @@ for how expensive each one is to build and to maintain against a moving upstream
 | `ai-flows` | **Own package over the signed HTTP API** + own `flow_` store. Was "new service inside core", cost **High**, until the seam was read — [ADR-0006](adr/0006-ai-flows-lives-outside-core.md) | **Low** — it imports nothing from `ai-base` |
 | `ai-base` | Is the upstream | n/a |
 
+### What `ai-storage` actually attached to, which is not this row — 2026-08-24
+
+The row above says **implements QM's `MemoryService`, Postgres, low drift**. What
+was built is a **filesystem store around a local model**: `FileStore` with an
+atomic write and a journal, notes as JSON on disk, an index that splits when it
+exceeds a token budget, and five specialists. It implements no upstream
+interface, touches no Postgres table, and is registered in no wiring file.
+
+That is a divergence from the plan, and it is recorded rather than edited away
+because the reason is worth keeping. `MemoryService` is keyed by scope and
+returns whole documents; [22 §17](22-ai-storage-qwen.md#17) is built on a
+guarantee that interface cannot express — **a read that does not fit is refused,
+never truncated** — and the refusal has to reach the caller as an event. A
+`get(scope)` that returns a string has nowhere to put `MEMORY_CONTEXT_LIMIT`.
+
+So the row is not yet wrong about the *attachment*; it is a plan that has not
+been executed. Sitting behind `MemoryService` is still the right end state, and
+what has to happen first is an adapter that can express a refusal. Until that
+exists, `ai-storage` is a package the rest of the system does not import — which
+is the honest cost of the divergence and the reason it is written down here.
+
 That table is the actual architecture decision, and one row of it changed on
 2026-08-02. It used to read that `ai-flows` requires cutting into core — the
 stated reason the fork exists ([ADR-0001](adr/0001-fork-vs-dependency.md)) and

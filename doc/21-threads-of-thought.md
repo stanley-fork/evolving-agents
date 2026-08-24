@@ -1,5 +1,10 @@
 # Threads of thought
 
+<img src="assets/21-threads-of-thought.jpg" alt="" width="100%">
+
+<sub>Right, the braid: two strands wound around one axis, thickness carrying depth. Left, the same two strands parallel — past that width a turn would be finer than the marks drawing it, so the coil is not drawn.</sub>
+
+
 *A proposal, what it is better at, what it would cost, and the order to build it
 in. Written alongside a working sketch rather than instead of one.*
 

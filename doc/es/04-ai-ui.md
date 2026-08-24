@@ -7,13 +7,20 @@
 
 > **El inglés es canónico.** Traducción de [`doc/04-ai-ui.md`](../04-ai-ui.md).
 >
-> **Referencia.** Construido y corriendo — `ai-ui/`, 61 tests. Sin probar.
+> **Referencia.** Construido y corriendo — `ai-ui/`, 300 tests. Sigue sin probar.
 >
-> El escritorio existe: documentos, cubitos de agentes, la cara de traza,
-> disposición que persiste por scope. Lo que *no* pasó es la falsificación al pie
-> de este documento — el cronómetro, un flow de tres días que corrió otra
-> persona, escritorio contra transcripción. Hasta que eso corra, lo honesto es
-> decir que funciona, no que ayuda. Ver [el manual, Parte 6](manual.md).
+> El escritorio existe: documentos, cubos de agente, la cara de traza, layout que
+> persiste por scope, y `make up` lo sigue sirviendo. Sobre los mismos módulos se
+> construyeron y publicaron otras tres superficies — carriles, una trenza, y el
+> canvas de actividad que está en `/demo/` ahora ([21](../21-threads-of-thought.md)
+> §9–10, en inglés).
+>
+> Lo que **no** pasó, en ninguna de las cuatro, es la falsación al pie de este
+> documento — el cronómetro, un flow de tres días que corrió otra persona,
+> escritorio contra transcript. **Cuatro superficies y ningún cronómetro es peor
+> que una superficie y ningún cronómetro**, porque es cuatro veces la evidencia
+> de que nadie midió si alguna ayuda. Hasta que corra, la afirmación honesta es
+> que funcionan, no que ayudan.
 
 ## El problema
 
@@ -66,6 +73,84 @@ eso son instrucciones, no sólo cambios de vista.
 El modo de falla contra el que hay que diseñar: un layout generado que se
 reacomoda bajo las manos del usuario. **Regla: el sistema propone cuando cambia el
 estado; nunca reacomoda lo que el usuario tocó.**
+
+### Una quinta propiedad, agregada el 2026-08-23
+
+Cuatro propiedades aguantaron la relectura. Una estaba escrita demasiado chica, y
+la corrección está en [doc 20](20-everything-is-an-agent.md).
+
+**Dirigible** dice que el usuario puede actuar sobre lo que ve. La versión más
+fuerte —y la que ai-os puede hacer y un diagrama no— es:
+
+**Delegable.** Le podés poner un agente encima. No "podés inspeccionar este
+objeto", sino *podés entregarle este objeto a un agente y recibir lo que
+encontró*. El inspector no es una función de la herramienta, es un participante:
+`INSPECTOR` tiene un nombre, un archivo y una sola herramienta declarada, `read`.
+Si pudiera hacer algo que ningún otro agente puede, "todo es un agente" sería
+decoración sobre un caso especial.
+
+Y la propiedad que hace que delegar valga más que una ventana de chat, que es la
+única regla de toda esta superficie:
+
+> **Todo hallazgo cita el artefacto que leyó, y la cita es una dirección.**
+
+Cuando el agente no tiene nada que leer está obligado a devolver `unknown` —no un
+rodeo, no una lectura plausible— y el escritorio lo dibuja distinto de una
+respuesta. Eso es la división de `freezeVerdict` entre `blockers` y `unknown`
+([doc 19 §4](19-what-would-make-this-matter.md)) expresada como una affordance en
+vez de como un párrafo.
+
+### Y la metáfora se movió
+
+El escritorio de abajo se decidió contra System 7, que era lo correcto para
+*documentos dispuestos en el espacio*. Es lo equivocado para *información
+moviéndose entre cosas vivas*, porque en un escritorio System 7 no se mueve nada
+salvo que lo muevas vos — y los flujos de información son lo que esta superficie
+más necesita mostrar.
+
+La referencia es NeXT: la paleta de objetos, el canvas, el único **Inspector**
+atado a la selección, y sobre todo las **conexiones que se podían ver e
+inspeccionar**. En Interface Builder arrastrabas un cable de un objeto a otro y la
+conexión se volvía real, en el archivo. Nadie la tipeaba. Acá los objetos son
+agentes y los cables son traspasos — con la cosa que se movió viajando por uno,
+y se puede abrir.
+
+### Y después se fue también el chrome — 2026-08-23
+
+El párrafo de arriba decía "el chrome de System 7 se queda". No se quedó, y la
+razón es el mismo argumento una vuelta después.
+
+**El disfraz no cargaba información.** Barras de título rayadas, dos cuadraditos
+de ventana falsos en cada panel que no cierran ni maximizan nada, un dither al
+50% en el fondo, una sombra dura de 3px sobre todo a la misma profundidad. Nada
+de eso le dice nada al lector sobre el sistema. Es referencia de época, y la
+referencia de época es decoración por más cuidadosamente que esté dibujada — que
+es exactamente contra lo que este documento dedica una sección a advertirle al
+canvas.
+
+**Y una colisión sí era estructural.** `AGENT_COLOR` y `STATE_COLORS.running`
+eran el mismo ámbar. Un agente en reposo y un paso en vuelo eran del mismo color,
+en la misma superficie, al mismo tiempo. Eso no es un problema de estilo; es el
+vocabulario reclamando una distinción que no puede dibujar.
+
+Así que la regla que sigue ahora la paleta, y la única que sigue:
+
+> **El color es estado y evidencia. Nada más en la superficie está coloreado.**
+
+Los agentes son una piedra cálida; los subagentes un tono de ella; una persona un
+gris frío. La especie es forma y peso. Todo lo saturado del escritorio es o el
+estado de un paso o el de un cable — lo que quiere decir que un lector que
+aprende cinco marcas puede leer toda la superficie, y una captura de pantalla
+carga la misma información que la página.
+
+Lo que se conserva del look viejo, porque nunca fue disfraz: la grilla de
+píxeles, la densidad, monoespaciada para cualquier cosa con dirección, y la regla
+de que todo color dibujado aparece en una leyenda generada desde las tablas y no
+desde una lista mantenida a mano.
+
+Lo que lo reemplaza: la tipografía propia de la plataforma, una sola escala de
+sombra que significa elevación, líneas de un pelo en vez de negro de 1px, y un
+fondo que se retira.
 
 ## La metáfora: un escritorio, no un dashboard — decidido 2026-08-09
 
@@ -202,7 +287,7 @@ de diagramación general.
 
 > La exclusión de la edición simultánea es la que hay que decir en voz alta, dado
 > que el problema que enmarca el proyecto es
-> [multijugador](../../README.es.md#el-problema-la-ia-sigue-siendo-de-un-solo-jugador).
+> [multijugador](../../README.es.md).
 > ai-os apunta a **multijugador asincrónico** — varias personas actuando sobre un
 > objeto durable a lo largo de días — no a co-presencia en tiempo real. Es una
 > afirmación más angosta, y hay que sostenerla en vez de dejar que se lea como la
@@ -426,6 +511,8 @@ dicho en el panel antes de apretarlo.
 riesgo tiene de costar un trimestre de infraestructura antes de haberlo ganado, y
 un bundler es la primera cuota de esa cuenta. Si el cronómetro de abajo dice que
 el canvas gana, agregar un build es barato y va a estar pagado.
+
+<a id="falsification"></a>
 
 ## Cómo se falsifica
 

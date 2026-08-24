@@ -496,3 +496,352 @@ data/workspaces/personal__matias/memory/MEMORY.md
 El segundo desenlace hay que reportarlo tan fuerte como un éxito. El benchmark
 80/80 está en el README del repositorio anterior precisamente porque volvió en
 cero, y ese es el estándar acá.
+
+<a id="experiment-1"></a>
+
+## Experimento 1 — destilar en reposo (`MEMORY_STRATEGY=dream`)
+
+La única capacidad que esta organización inventó primero y que la línea activa no
+tiene: **evolución por proyecto a través de una pasada tomada en reposo.** Grepeá
+el árbol vendorizado y no hay resultados — lo que existe es consolidación, que
+reescribe una lista de bullets ya extraídos. Así que éste es el experimento más
+barato que pregunta si la idea vale algo acá, y es deliberadamente de una sola
+variable de ancho.
+
+**La hipótesis.** La extracción turno a turno tira señal que sólo contiene el arco
+entero. Una pasada que lee los episodios crudos en vez de bullets pre-extraídos
+debería superar hechos viejos que la pasada por turno ya dio por buenos.
+
+**Por qué es una sola variable.** `dream` reusa el `PROMOTION_PROMPT` de
+`scratch-promote` textualmente, más un agregado de cinco líneas que dice que la
+entrada son intercambios crudos y no capturas. Mismas reglas, mismo juez, mismas
+conversaciones. La única diferencia entre las dos ramas es **qué se le permite
+mirar a la pasada** — que es por qué `scratch-promote` se agregó al benchmark como
+control en el mismo cambio.
+
+**El instrumento, nombrado antes que el código:** `npm run bench:memory`, el juez
+de upstream, sus tres ejes, sus seis conversaciones. Dos de ellas
+(`stale-fact-supersession`, `long-project-arc`) son de nivel de arco por
+construcción, así que los fixtures no necesitaron agregados — si los hubieran
+necesitado, eso solo habría sido razón para desconfiar del resultado.
+
+**La afirmación:** `dream` baja `staleness` contra `per-turn` sin perder
+`signalToNoise` ni `inferenceVsObservation`.
+
+**Se falsifica con:** ninguna mejora de `staleness` sobre `per-turn`. Entonces
+destilar en reposo no compra nada en este eje, la extracción por turno de upstream
+es la respuesta correcta, y la pasada dream no se lleva a `ai-storage`. Este
+desenlace se publica exactamente igual que el 80/80 de arriba.
+
+### Qué no mide este experimento, y qué no se puede leer como que mide
+
+La pasada escribe dos archivos. `memory/MEMORY.md` es declarativo y es lo que lee
+el juez. `memory/STRATEGIES.md` es procedimental — `cuando <situación> -> <qué
+hacer>`, destilado de los mismos episodios y recordado junto al cuaderno — y el
+juez **nunca lo ve**, cosa deliberada: no puede inflar el puntaje, y es igual de
+cierto que este benchmark no devuelve evidencia alguna sobre él. La afirmación
+procedimental es *"una estrategia aprendida el lunes cambia lo que el agente hace
+el miércoles"*, y zanjar eso necesita una suite de tareas con situaciones
+repetidas, no un juez de cuaderno. Hasta que exista, `STRATEGIES.md` es **[read]**,
+no **[ran]**.
+
+Peor: el tercer eje de upstream penaliza activamente lo que produce la capa
+procedimental — una generalización a través de episodios *es* inferencia y no
+observación. Puntuar estrategias con este juez no sería una medición débil, sería
+una invertida.
+
+### Dos divulgaciones sobre las ramas
+
+**`scratch-promote` mete un marcador en el cuaderno que lee el juez**
+(`<!-- captures-since-promote: n -->`, quitado al recordar pero presente en disco).
+Estaba excluido de `KNOWN_KINDS` antes de este cambio y está incluido ahora, así
+que su fila se puntúa con ese artefacto adentro. Es un comentario HTML contra seis
+conversaciones, divulgado en vez de corregido, porque editar la entrada del juez
+para halagar a una rama es la falla que este documento existe para evitar.
+
+**`dream` no copia hechos al scope de una persona.** `ccCaptureToPersonal` se
+dispara en las otras dos estrategias porque una captura por turno tiene
+exactamente un hablante. Un hecho abstraído sobre un episodio con varios actores
+no lo tiene, así que promoverlo al scope `personal:` de alguien sería una
+promoción sin procedencia — prohibida por la regla 1 de arriba. La flecha
+`proyecto → usuario` no está disponible para esta estrategia por diseño, no por
+omisión.
+
+### Resultado — la afirmación queda falsificada, y el instrumento está saturado **[ran]**
+
+2026-08-05, `HARNESS=pi`, `deepseek/deepseek-v4-flash` vía OpenRouter, 24 replays,
+~70 minutos. Reporte completo:
+[`ai-flows/measurements/memory-bench-2026-08-05-dream.json`](../../ai-flows/measurements/memory-bench-2026-08-05-dream.json).
+
+| estrategia        | señal/ruido | staleness | infer-vs-obs | total |
+| ----------------- | ----------: | --------: | -----------: | ----: |
+| `dream`           |         9.8 |  **10.0** |         10.0 |   9.9 |
+| `per-turn`        |         9.5 |  **10.0** |         10.0 |   9.8 |
+| `scratch-promote` |         9.3 |       9.2 |          9.0 |   9.2 |
+| `agent-only`      |         1.3 |       7.8 |         10.0 |   6.4 |
+
+**La afirmación era que `dream` baja `staleness` contra `per-turn`. No lo hace —
+las dos quedan en 10.0.** Por la condición escrita antes del código, eso está
+falsificado, y la pasada dream no se lleva a `ai-storage` con esta evidencia.
+
+**El hallazgo que importa más es por qué.** `per-turn` saca un 10/10/10 perfecto en
+cinco de las seis conversaciones. No queda espacio libre donde medir, así que este
+benchmark no puede separar "el tratamiento no hace nada" de "el instrumento no lo
+puede ver" — ni para nosotros ni para upstream. Un `staleness` de 10.0 en seis
+conversaciones no son dos estrategias perfectas; son seis conversaciones que no
+estresan la supersesión lo suficiente para este modelo. **La saturación es el
+resultado reportable**, e invalida el plan de medición de *Cómo se falsifica* de
+arriba tal como está escrito: el recall por niveles iba a puntuarse sobre el mismo
+eje, contra el mismo techo.
+
+**Una señal de mecanismo sobrevive, y es una pista, no un resultado.** El par de
+una sola variable es `dream` contra `scratch-promote` — mismo `PROMOTION_PROMPT`,
+difiriendo sólo en si la pasada lee episodios crudos o bullets pre-extraídos. En
+`stale-fact-supersession` divergen fuerte:
+
+|                                          | señal/ruido | staleness | infer-vs-obs |
+| ---------------------------------------- | ----------: | --------: | -----------: |
+| `dream` (episodios crudos)               |           9 |    **10** |       **10** |
+| `scratch-promote` (bullets extraídos)    |           7 |     **5** |        **6** |
+
+La nota del juez sobre la rama perdedora: *"incluye una inferencia vieja sobre que
+el proceso de sync quedaba sin cambios después de la mudanza, que fue superada más
+tarde."* El pipeline de dos pasos **introdujo** una inferencia que ninguna de las
+ramas de un solo paso hizo — la representación intermedia ya había descartado lo
+que hacía falta para saber que el hecho estaba superado. Ése es el mecanismo
+hipotetizado apareciendo exactamente donde se predijo. Es además **n = 1
+conversación**, vale 0,3 de `signalToNoise` agregado, y no hay que construir nada
+encima.
+
+La misma forma aparece una vez más: `per-turn` sacó 7 en `noise-heavy-debugging`
+por conservar un número de puerto y un test inestable, donde `dream` sacó 10
+habiendo tirado los dos. Lectura a nivel de arco descartando lo que parecía durable
+turno a turno — de nuevo n = 1.
+
+**Dos artefactos, divulgados como se prometió.** El marcador de `scratch-promote`
+estaba en el cuaderno que leyó el juez. Y el juez le bajó a `infer=9` en
+`long-project-arc` por *"las fechas agregadas (2026-08-05) son inferidas y no
+están explícitamente enunciadas"* — eso es la propia gramática de bullets
+`- (AAAA-MM-DD) hecho` de upstream siendo puntuada como especulación, que es un
+defecto del juez y no de la estrategia, y deprime a toda rama que escriba fechas.
+
+**Qué compraron los seis replays de `agent-only`:** un 1,3 en `signalToNoise`
+confirma que los fixtures sí contienen hechos durables, así que el techo de arriba
+no es un artefacto de conversaciones vacías. Ése es todo el valor de la rama nula,
+y es por qué no hace falta correrla de nuevo.
+
+**Qué zanjaría esto de verdad.** No más conversaciones a esta dificultad. El
+próximo instrumento tiene que ser uno donde el espacio libre sea *chequeable antes
+de comprar el experimento*, y donde el grader no sea un modelo: la suite de física
+(`ai-flows/src/tasks/physics.ts`, sin correr) puntúa por aritmética contra un
+oráculo exacto, cuenta `undetected` —un número equivocado dicho con confianza—
+aparte de `detected`, y computa la dificultad en vez de etiquetarla. Corré la rama
+de control sola primero y leé la tasa de `undetected`; si está cerca de cero no hay
+espacio libre y el experimento muere por el precio de una rama. Ésa es la misma
+falla en la que este resultado acaba de caer, hecha barata de detectar.
+
+**El código se queda.** 240 líneas detrás de `MEMORY_STRATEGY=dream`, con el
+default sin cambios, y es la única implementación de destilación-en-reposo del
+árbol. Ahora es un mecanismo sin testear en vez de uno prometido, que es el estado
+correcto para él.
+
+## Experimento 2 — el traspaso, y una falla que este modelo no tiene **[ran]**
+
+La premisa, enunciada por la persona que primero construyó agentes como archivos
+markdown: *una primera versión de un agente no es óptima, y su aptitud inicial
+para ser parte de un sistema multiagente tampoco.* Si eso vale, el lugar donde
+encontrarlo es un traspaso —un agente terminando un paso que otro continúa— y la
+falla es **informacional** y no computacional, así que ninguna cantidad de
+capacidad aritmética la elimina. Por eso existe este experimento y por eso las
+tareas atómicas del Experimento 1 no podían haberla encontrado: con un sandbox, la
+aritmética simplemente no es difícil
+([11 § Puntuado, al fin](11-choosing-a-model.md#puntuado-al-fin-el-lift-del-harness-en-l2-es-total-ran)).
+
+`ai-flows/src/tasks/handoff.ts` puebla `structure: "sequential"`, que era un tipo
+declarado con cero instancias. Una pregunta física se parte en dos: un explorador
+computa cantidades nombradas y escribe una nota; un finalizador, en otra
+conversación que comparte el mismo workspace, tiene que terminar sólo desde esa
+nota.
+
+### El primer diseño fue nulo, y el segundo es el resultado
+
+**Corrida 1, 2026-08-05 — nula.** Seis traspasos, cero pérdidas, todos los
+finalizadores pasando — *incluidos tres cuyo propio explorador había computado mal
+un intermedio.* Pasaron porque el prompt del finalizador traía los parámetros de la
+tarea, así que podía recomputar desde cero e ignorar la nota por completo. **El
+traspaso era decorativo, y un canal que nadie necesita no puede perder nada.** La
+tasa de pérdida era cero por construcción. Reporte conservado:
+[`handoff-probe-2026-08-05-control.json`](../../ai-flows/measurements/handoff-probe-2026-08-05-control.json).
+
+Dos arreglos, y el segundo importa más que el primero. El finalizador ahora no
+tiene **ningún número de la tarea** — sólo una fórmula simbólica (`T = 4·P·K(m)`,
+`N = K/(1 + A·B)`) — con un test que falla si alguna vez se filtra un parámetro de
+vuelta a su prompt, porque la filtración era invisible mientras nada la vigilara. Y
+la completitud se lee ahora **de la nota** en vez de inferirse de si el finalizador
+falló. Esa distinción es toda la medición: un finalizador puede pasar de suerte
+sobre una nota incompleta, que es exactamente lo que le pasó a una nota que era la
+cadena pelada `0.04528057257316896` y se contó como éxito.
+
+**Corrida 2, 2026-08-06 — sin espacio libre, y el final honesto de esta línea.**
+
+|                                                          |           |
+| -------------------------------------------------------- | --------: |
+| traspasos                                                 |         6 |
+| notas con todo lo que el sucesor necesitaba               | **6 / 6** |
+| notas que omiten algo (falla de registro)                 |     **0** |
+| notas completas que el finalizador leyó mal (falla de lectura) | **0** |
+| finalizadores que caen dentro de tolerancia               |     6 / 6 |
+
+Reporte y log:
+[`handoff-probe-2026-08-06-control-v2.json`](../../ai-flows/measurements/handoff-probe-2026-08-06-control-v2.json).
+Las notas dicen por qué mejor que los conteos. Pedido sólo por dos cantidades y sin
+que se le dijera nada sobre qué incluir, un explorador escribió:
+
+```
+# Cómputo del péndulo — traspaso
+## Parámetros
+- L = 1.717 m
+- g = 9.80665 m/s²
+- Amplitud angular = 5.04°
+## Resultados
+| P = √(L/g) | 0.41843192250151073 |
+| m = sin²(amplitud/2) | 0.001933195428413767 |
+| K(m) (integral elíptica completa de primera especie) | 1.5715563175063318 |
+| P × K(m) | 0.657589331253569 |
+```
+
+Registró los parámetros que le dieron, las dos cantidades pedidas *con sus
+definiciones simbólicas*, un intermedio que nadie pidió, y el producto que su
+sucesor estaba por necesitar. Otro cerró con *"Ambos valores computados con doble
+precisión completa."* Ésta no es una primera versión que necesite enseñanza.
+
+**Así que: la falla no está presente en `deepseek-v4-flash` a esta escala**, y el
+gate escrito antes de la corrida dice qué hacer al respecto — no rediseñar una
+tercera vez para perseguir un número. Ya van tres diseños, cada uno acercando el
+instrumento a la hipótesis; un cuarto sería buscar el resultado en vez de medirlo.
+
+**Qué acota la afirmación**, porque es angosta: n = 6; las tareas nombran las
+cantidades que quieren, y que a uno le pidan cosas nombradas hace natural
+registrarlas, donde un traspaso abierto (*"averiguá qué está pasando y pasalo"*) no
+lo haría; y una nota con un propósito es el artefacto más fácil posible. La falla
+de registro real probablemente vive en cadenas largas y desordenadas con muchos
+artefactos y ninguna respuesta obvia a *qué importa acá*. Nada de eso está medido,
+y nada de eso se afirma.
+
+## Qué dicen juntos los cuatro instrumentos
+
+Leídos por separado, hoy produjeron cuatro fracasos en medir evolución. Leídos
+juntos son un solo hallazgo:
+
+| instrumento                          | resultado                                    |
+| ------------------------------------ | -------------------------------------------- |
+| `bench:memory`, baseline plano       | `staleness` 10,0 / 10 — saturado             |
+| física L2, `oneShot` pelado          | 0 / 24 pasan                                 |
+| física L2, harness con sandbox       | **12 / 12 pasan** — espacio libre 0%         |
+| traspaso, filtración cerrada         | **6 / 6 notas completas** — espacio libre 0% |
+
+**A esta escala el lift del harness lo es todo y el residuo aprendible no es
+nada.** Las filas dos y tres son la formulación más limpia de eso: de 0% a 100%
+sobre tareas idénticas, una variable. Y ésa no es una sorpresa a la defensiva de la
+que este repositorio deba ponerse — es el propio argumento de
+[11](11-choosing-a-model.md) llegando desde otra dirección. El lift es enorme **y**
+no es el número que decide nada.
+
+Lo que se sigue para `ai-storage` y para la pasada dream es la misma oración: **no
+hay todavía caso medido para ninguna de las dos**, y el próximo intento honesto no
+es otra suite aritmética. Es un dominio donde el artefacto compartido es prosa o
+código, donde *qué registrar* no tiene respuesta obvia, y donde el sucesor no puede
+chequear por sí mismo si lo que recibió alcanzaba.
+
+## Experimento 3 — feedback, y por qué los primeros cuatro instrumentos no podían funcionar
+
+**Planeado, no corrido.** Escrito antes de construirlo, según la regla con la que
+abre este documento.
+
+### El diagnóstico al que suman los cuatro resultados nulos
+
+Todos los instrumentos de arriba comparten una propiedad, y era invisible hasta que
+los cuatro devolvieron la misma respuesta: **el comportamiento correcto era
+derivable de información que la tarea ya contenía.** Física con sandbox — el modelo
+lo computa y se chequea solo. El traspaso — el finalizador podía recomputar, y el
+explorador registró lo que había usado. El cuaderno de memoria — juzgado por el
+mismo modelo que lo escribió.
+
+Donde la respuesta es derivable, una estrategia aprendida no agrega nada, porque el
+modelo simplemente la deriva. Así que se construyeron cuatro instrumentos en los
+que **aprender era estructuralmente innecesario**, y su acuerdo no es evidencia
+sobre el aprendizaje en absoluto. Es evidencia de que las tareas de forma cerrada
+no lo pueden testear.
+
+Aprender rinde sólo donde el comportamiento correcto **no** es derivable — donde
+depende de algo fuera del modelo:
+
+- qué hace *esta* organización, que es arbitrario por naturaleza
+- qué pasó realmente la última vez en producción
+- qué corrigió un humano
+- qué se rompió río abajo, de forma invisible, horas después
+
+**El feedback es el mecanismo que introduce información no derivable**, y la
+información no derivable es lo único que una pasada de memoria puede cargar y que
+el modelo no podría haber recomputado. Por eso este experimento no es una mejora de
+los tres anteriores; es el primero cuya premisa es sólida.
+
+Además elimina el problema que mató a los cuatro: si el hecho necesario está
+genuinamente ausente en el primer intento, **el fracaso está garantizado y el
+espacio libre es 100% por construcción**. Ya no hay que salir a cazarlo.
+
+Y corrige una sugerencia hecha al cerrar el resultado del traspaso — que el residuo
+podría vivir en un modelo *más chico*. Probablemente equivocada. Un modelo más chico
+falla más seguido al *derivar*, y una falla de derivación tampoco se repara con una
+regla recordada. El residuo vive en lo que no se puede derivar, no más abajo.
+
+### Cuatro fuentes, en orden de costo, y sólo la primera corre mañana
+
+1. **Un corrector sintético con una regla oculta.** Determinista, sin humano,
+   oráculo exacto. La regla es una que el agente no puede inferir de la tarea — una
+   convención de unidades, un chequeo de sanidad obligatorio, una restricción de
+   orden que sólo esta organización impone. El agente intenta, el corrector dice
+   que está mal y enuncia la regla en términos generales, la pasada en reposo la
+   destila, y una **instancia distinta** que requiere la misma regla se puntúa
+   después. Ésta es la versión que entra en un día.
+   **La arbitrariedad es el punto, no una debilidad** — arbitrario es precisamente
+   lo que no se puede derivar, y la convención organizacional es arbitraria
+   exactamente de esta manera.
+2. **Un agente experto de IA como corrector.** Crítica real, barata, y escala. Una
+   advertencia que decide si mide algo: lo que sepa el modelo más fuerte, el más
+   débil quizá también lo pueda derivar — y ahí esto colapsa de vuelta a los cuatro
+   resultados nulos de arriba. Usá al experto para producir la *crítica*, y mantené
+   la *regla* no derivable.
+3. **Feedback del mundo real.** Trazas de producción, fallas reales río abajo. El
+   valor más alto y el más lento, y necesita el sistema en uso real.
+   `Attempt.observation`
+   ([ADR-0007](adr/0007-observation-captured-not-derived.md)) ya es el gancho, que
+   es la única suerte que hay acá.
+4. **Feedback de un experto humano.** La señal más alta por ítem, el rendimiento
+   más bajo, y la verdad de referencia que las otras tres aproximan. Vale gastarlo
+   en los casos donde 1–3 no coinciden.
+
+### La forma en que este experimento hace trampa, nombrada antes de que pueda
+
+El feedback introduce una filtración propia, y es de la misma forma que la que
+anuló la corrida 1 del traspaso.
+
+**Si el mensaje del corrector contiene la respuesta, no se aprende nada — se copia
+una pista.** Así que: el corrector enuncia la regla, nunca el valor; y el puntaje se
+toma sobre una *instancia distinta* donde aplica la misma regla, nunca sobre un
+reintento de la corregida. Un reintento mide seguimiento de instrucciones a corto
+plazo, que no es la afirmación.
+
+Dos más, que vale la pena anotar mientras la respuesta se desconoce:
+
+- **La regla tiene que ser chequeable sin el corrector.** Si no, la evaluación
+  depende del mismo componente bajo prueba.
+- **Una rama de control con feedback pero sin persistencia.** Corregida cada vez,
+  sin recordar nada. Si esa rama iguala al tratamiento, la ganancia era la
+  corrección y no la memoria — que es la forma más probable de que esto vuelva
+  pareciendo un éxito sin serlo.
+
+**Se falsifica con:** ninguna brecha entre la rama de tratamiento y el control con
+feedback-sin-persistencia, sobre instancias retenidas de la misma regla. Ésa es
+toda la afirmación de la destilación-en-reposo, y a diferencia de la condición del
+Experimento 1, ésta sí puede dispararse.

@@ -182,6 +182,54 @@ jobs:
           python3 scripts/check-demo-provenance.py --demo /tmp/threads.html
           python3 scripts/check-demo-provenance.py --demo /tmp/desk.html
 
+  documents:
+    name: The documents — links, and both languages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - name: Every internal link resolves to the thing it names
+        # The cheapest claim in the repository to check and the one that had
+        # rotted worst: eleven links in `doc/` pointed at sections that had been
+        # renamed, and every one of them had been correct when it was written.
+        # A link is a claim about where something is; this is the same rule the
+        # gates apply to numbers, applied to the prose that cites them.
+        run: python3 scripts/check-doc-links.py
+      - name: Every document has a Spanish mirror, and the mirror is not behind
+        # `README.md` ends by claiming it. Two documents had no mirror at all and
+        # five had one that was behind — `doc/es/05` was missing three whole
+        # experiments. A stale mirror is worse than an absent one: the absent one
+        # sends you to the English, the stale one answers confidently and wrongly.
+        run: python3 scripts/check-doc-mirrors.py
+
+  ai-storage:
+    name: ai-storage — the local model's memory
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version-file: ai-base/.node-version
+      # The suite needs no server and no weights: what it asserts is that the
+      # code refuses what it says it refuses. Everything that depends on the
+      # model's own behaviour lives in bench/, is not built, and would not be
+      # runnable here anyway.
+      #
+      # The citation tests are the ones worth having in CI: MODEL.json is a
+      # document of nothing but claims about the platform's model, and a
+      # renumbered section would leave its provenance a dead link that still
+      # looks authoritative.
+      - name: The storage layer's own rules
+        run: |
+          cd ai-storage
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm test
+          # The ceiling, which needs no weights. It is the number the README
+          # publishes, so it is regenerated here rather than trusted: a result
+          # committed once and never re-derived is a result that quietly stops
+          # being true.
+          node bench/navigation.ts --oracle --sizes 200,1000,10000 --json /tmp/ceiling.json
+
   verify-page:
     name: The verification page's logic
     runs-on: ubuntu-latest

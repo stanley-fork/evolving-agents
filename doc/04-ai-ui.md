@@ -5,13 +5,19 @@
 <sub>A stream rearranged into a map.</sub>
 
 
-> **Reference.** Built and running — `ai-ui/`, 61 tests. Unproven.
+> **Reference.** Built and running — `ai-ui/`, 300 tests. Still unproven.
 >
 > The desk exists: documents, agent cubes, the trace face, layout that persists
-> per scope. What has *not* happened is the falsification at the foot of this
-> document — the stopwatch, a three-day-old flow somebody else ran, desk against
-> transcript. Until that runs, the honest claim is that it works, not that it
-> helps. See [the manual, Part 6](manual.md).
+> per scope, and `make up` still serves it. Three further surfaces were built on
+> the same modules and published in turn — swimlanes, a braid, and the activity
+> canvas that is at `/demo/` now ([21](21-threads-of-thought.md) §9–10).
+>
+> What has *not* happened, across any of the four, is the falsification at the
+> foot of this document — the stopwatch, a three-day-old flow somebody else ran,
+> desk against transcript. **Four surfaces and no stopwatch is worse than one
+> surface and no stopwatch**, because it is four times the evidence that nobody
+> has measured whether any of it helps. Until it runs, the honest claim is that
+> they work, not that they help. See [the manual, Part 6](manual.md).
 
 ## The problem
 
@@ -473,6 +479,8 @@ before it is pressed.
 most at risk of costing a quarter of infrastructure before it has earned one, and
 a bundler is the first instalment of that bill. If the stopwatch below says the
 canvas wins, a build step is cheap to add and will have been paid for.
+
+<a id="falsification"></a>
 
 ## How this gets falsified
 

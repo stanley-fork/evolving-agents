@@ -28,7 +28,8 @@ documento que cambia de clase se reescribe el cartel el mismo día.
 | [01 · Arquitectura](01-architecture.md) | Los cuatro pilares, cómo encajan y dónde se engancha cada uno a la base |
 | [02 · ai-base](02-ai-base.md) | Qué da QM realmente — verificado contra el código, no contra su README — y los seams sobre los que se construye |
 | [03 · ai-flows](03-ai-flows.md) | El modelo de flow: objetivo, pasos, intentos, observaciones. `Open` y `Gated` corren; las otras cuatro formas son especificación |
-| [04 · ai-ui](04-ai-ui.md) | El escritorio: documentos, cubitos de agentes, la cara de traza. Construido; su propia falsificación no se corrió |
+| [04 · ai-ui](04-ai-ui.md) | El escritorio: documentos, cubitos de agentes, la cara de traza. Construido y todavía servido por `make up`; la superficie **publicada** es ahora el canvas de actividad (21 §10). Su propia falsificación — el cronómetro de §Cómo se falsifica — sigue sin correrse |
+| [05 · ai-storage](05-ai-storage.md) | Memoria en cuatro niveles — sistema, usuario, proyecto, flow — con promoción explícita y reversible. **Dibujada en el escritorio antes de construirla**, y el dibujo es parte de la spec. **Construida al 2026-08-24**, alrededor de un modelo local — el 22 es la especificación con la que se construyó y el resultado que salió en contra |
 | [15 · Interacción generada](15-generated-interaction.md) | Zoom semántico, el menú que se auto-revela, deixis y fork — lo que un modelo puede hacer y una GUI no podía. Fases 1–4 construidas, fase 5 especificada |
 | [09 · Escalas](09-scales.md) | Individual, colectiva, proyecto, sistema — un solo eje para flows y memoria, y es `scopeId` |
 | [10 · Observabilidad](10-observability.md) | Si el progreso de un flow se puede leer siquiera. Deriva contra ilegible, y el piso de ruido medido entre las dos |
@@ -41,8 +42,10 @@ documento que cambia de clase se reescribe el cartel el mismo día.
 
 | | |
 |---|---|
-| [05 · ai-storage](05-ai-storage.md) | Memoria en cuatro niveles — sistema, usuario, proyecto, flow — con promoción explícita y reversible. **Dibujada en el escritorio antes de construirla**, y el dibujo es parte de la spec |
 | [03 § Formas de flow](03-ai-flows.md#formas-de-flow) | `Sequence`, `Loop`, `Fan-out`, `Deliberation`, `Watch`, y el merge |
+
+El 05 salió de esta sección el 2026-08-24. Es el último documento en hacerlo, y
+la sección tiene ahora una sola fila.
 
 ## Hallazgos — qué dijeron las mediciones
 
@@ -76,6 +79,10 @@ Documentos sobre el trabajo, no sobre el sistema.
 | [08 · Roadmap](08-roadmap.md) | Milestones en orden de dependencia, con los bloqueos dichos con honestidad |
 | [19 · Qué haría que esto importe](19-what-would-make-this-matter.md) | El repositorio completo leído desde afuera: qué corre, para quién es, qué es genuinamente distinto, y un plan ordenado por el hecho de que hay un autor y ningún usuario. **Incluye la deriva que encontró y el check que ahora la frena** |
 | [20 · Todo es un agente](20-everything-is-an-agent.md) | El rediseño del escritorio, del demo y del tour: los agentes como los objetos, los traspasos como cables que se pueden abrir, un Inspector con una segunda posición que le entrega el objeto a un agente — y la regla de que cada hallazgo cita el artefacto que leyó. **Incluye los tres defectos que encontró dibujar los flujos** |
+| [21 · Hilos de pensamiento](21-threads-of-thought.md) | La superficie como tiempo: cuerdas, después una trenza, después una grilla de cuadrados — tres superficies publicadas en tres días, y por qué cada una reemplazó a la anterior. **§9 son los cuatro errores que impedían que la trenza se leyera como un objeto; §10 es por qué la grilla la reemplazó: en la trenza nada tenía una dirección que se pudiera señalar** |
+| [22 · ai-storage sobre un modelo local](22-ai-storage-qwen.md) | La capa de conocimiento para un modelo **local** limitado a 8.192 tokens a propósito. **§0 es que el modelo no fue verificado como existente desde acá; §59 es el primer benchmark, y salió en contra del diseño — la búsqueda exacta le gana a la jerarquía y el archivo plano no entra** |
+
+<a id="house-rules"></a>
 
 ## Reglas de la casa
 

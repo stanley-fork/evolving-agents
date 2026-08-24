@@ -29,7 +29,7 @@ La tentación es definir seis shapes de flow × cuatro escalas, y cuatro niveles
 memoria × cuatro escalas. Eso son veinticuatro definiciones de shape y dieciséis
 celdas de memoria escritas antes de que haya corrido un solo flow — exactamente
 la falla que esta organización ya registró una vez
-([regla de la casa 4](README.md#reglas-de-la-casa-para-estos-documentos)).
+([regla de la casa 4](README.md#house-rules)).
 
 Este documento hace la versión barata: establece que **el eje de escalas ya
 existe en la base**, nombra qué implementa upstream en cada escala, y especifica

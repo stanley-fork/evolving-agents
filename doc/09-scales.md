@@ -26,7 +26,7 @@ answer for each:
 The tempting move is to define six flow shapes × four scales and four memory
 levels × four scales. That is twenty-four shape definitions and sixteen memory
 cells written before a single flow has run, which is the exact failure this
-organisation has already recorded once ([README house rule 4](README.md#house-rules-for-these-documents)).
+organisation has already recorded once ([README house rule 4](README.md#house-rules)).
 
 This document does the cheap thing instead: it establishes that **the scale axis
 already exists in the base**, names what upstream already implements at each

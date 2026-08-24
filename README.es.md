@@ -21,6 +21,20 @@ sistema operativo es el *cómo*; la frase de arriba es el *por qué*.
 | **Atestación, no afirmación** | corridas direccionadas por contenido, un ledger encadenado por hash, `make reproduce`, y el entorno registrado en el artefacto |
 | **Cada número publicado atado a su productor** | cinco de los nueve números de esta página y de `doc/` se chequean contra el artefacto que los produjo, todas las noches |
 
+**Y el límite honesto de «probártelo a vos, que sos un desconocido», ya que esta
+página lo afirma.** Una cadena de hashes dentro de nuestro propio repositorio
+demuestra **integridad** — nadie cambió el número después. No demuestra
+**verdad**: un 92% calculado por código con un bug tiene integridad
+criptográfica perfecta. Lo que acorta la distancia acá no es el hash. Es que el
+verificador no puede importar lo que verifica, que el umbral se escribió antes
+de la corrida, y que `make reproduce` re-deriva el artefacto en una máquina que
+nunca lo vio — que es como `hemo-verified` encontró un número por oráculo que
+era una propiedad de su máquina y no de la física. Lo que la *cerraría* es
+firmar los reportes de gate como attestations in-toto vía Sigstore hacia un
+transparency log, para que un tercero tampoco tenga que confiar en quien
+escribió este README. Eso no está construido. Ver
+[la capa de evidencia](https://evolvingagentslabs.github.io/#evidence).
+
 **La versión fuerte de ese argumento es falsa y fuimos nosotros los que la
 medimos.** `physics-verifiers` le dio a un modelo frontier doce resultados de
 física fabricados y nueve sutilmente defectuosos. Los cazó **todos, dos veces**
@@ -81,13 +95,26 @@ cd ai-ui    && node scripts/serve.ts                         # escritorio  :8098
 
 ## Estado
 
-`ai-base`, `ai-flows` y `ai-ui` corren — **626 tests propios**, arriba de los
-3.768 que `ai-base` trae de upstream. `ai-storage` está especificado y no
-construido, aunque la primera pieza de su argumento ya corre dentro de
-`ai-flows`: una base de conocimiento de proyecto que una ventana de ocho mil
-tokens puede navegar — un archivo plano del mismo material deja de entrar a las
-16 unidades; el índice sigue en 4.523 de 8.000 tokens con 2.000
-([05](doc/es/05-ai-storage.md)).
+Los cuatro pilares ya corren — **828 tests propios**, arriba de los 3.768 que
+`ai-base` trae de upstream. `ai-storage` está construido alrededor de un modelo
+**local** limitado a 8.192 tokens a propósito: notas con procedencia verificada,
+un índice navegable que se niega a renderizar un nodo por encima de su
+presupuesto, cinco especialistas, scopes, promoción e historial
+([22](doc/22-ai-storage-qwen.md)).
+
+**Su primer benchmark salió en contra del diseño, y se publica porque ésa era la
+regla.** En el techo — un navegador perfecto, sin pesos — un archivo de memoria
+plano no entra a ningún tamaño (doscientas notas ya son 12.566 tokens contra un
+carril de 2.300), y **la búsqueda léxica exacta le gana a la jerarquía para la
+que se construyó el componente**: 3/3 contra 1–2/3, leyendo menos para hacerlo.
+`doc/05` decía que la carga de la prueba estaba sobre el eje; éste es el segundo
+resultado plano en esa dirección. Los confundidos están en
+[22 §59](doc/22-ai-storage-qwen.md#59), escritos en vez de ajustados.
+
+El modelo alrededor del cual está construido **no fue verificado como existente**
+desde la máquina que escribió esto: cada campo de [`MODEL.json`](MODEL.json) dice
+`verified: false`, un test afirma que siguen diciéndolo, y
+`ai-storage/scripts/verify-model.ts` es lo único que puede decir otra cosa.
 
 La evidencia de los dos proyectos ahora corre **nightly** en
 [`projects.yml`](.github/workflows/projects.yml) — los gates, el ledger, la
@@ -107,7 +134,7 @@ captura es de una instancia viva.
 | [`ai-memory/`](ai-memory/) | Los agentes de memoria, como un árbol que corre como árbol | Apache 2.0 |
 | [`ai-ui/`](ai-ui/) | El escritorio | Apache 2.0 |
 | [`projects/`](projects/) | Trabajo corriendo **sobre** el sistema. Dos: [`coclea-sr/`](projects/coclea-sr/), Python, **28 gates / 135 chequeos**, y [`hemo-verified/`](projects/hemo-verified/), cuyo gate de muerte sobrevivió con AUC 0.906 | Apache 2.0 |
-| `ai-storage/` | No construido | — |
+| [`ai-storage/`](ai-storage/) | La memoria del modelo local: notas con procedencia verificada, un índice acotado en tokens, cinco especialistas, y el benchmark cuyo primer resultado salió **en contra** del diseño | Apache 2.0 |
 
 `ai-base/` queda byte a byte igual a upstream. Cualquier cambio ahí necesita una
 línea en [`ai-base/AI-OS-PATCHES.md`](ai-base/AI-OS-PATCHES.md), y CI lo exige.
@@ -116,7 +143,10 @@ Términos completos: [licencias](doc/es/06-licensing.md).
 ## Idiomas
 
 El inglés es canónico. Cada documento tiene su espejo en español en
-[`doc/es/`](doc/es/); cuando difieren, el correcto es el inglés.
+[`doc/es/`](doc/es/); cuando difieren, el correcto es el inglés. Esa oración fue
+falsa para dos documentos hasta el 2026-08-24, así que ahora
+[`check-doc-mirrors.py`](scripts/check-doc-mirrors.py) la chequea, y un documento
+deliberadamente sólo en inglés tiene que decir por qué.
 
 ---
 

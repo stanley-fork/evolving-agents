@@ -217,6 +217,60 @@ primera lectura de dónde cae el punto de cruce. No es un workload legal ni
 literario**, y un resultado acá se transfiere a esos como hipótesis, no como
 evidencia.
 
+## Puntuado, al fin: el lift del harness en L2 es total **[ran]**
+
+2026-08-05, `deepseek/deepseek-v4-flash` sobre `pi`, tareas L2, la misma suite y el
+mismo grader aritmético en las dos ramas. La única variable es si el modelo tiene
+herramientas.
+
+| rama                                                |   n | pasan | detectadas | no detectadas |
+| --------------------------------------------------- | --: | ----: | ---------: | ------------: |
+| pelada — `oneShot`, sin herramientas                |  24 | **0** |         24 |             0 |
+| harness — camino de turno real, sandbox y `execute` |  12 | **12**|          0 |             0 |
+
+Reportes: [`physics-probe-2026-08-05-L2.json`](../../ai-flows/measurements/physics-probe-2026-08-05-L2.json),
+[`physics-agent-probe-2026-08-05-L2.json`](../../ai-flows/measurements/physics-agent-probe-2026-08-05-L2.json).
+
+**La cuarta afirmación de diseño de la suite queda confirmada.** Se escribió
+afirmando que "las herramientas se vuelven estructurales … una condición pelada
+genuinamente no puede hacer lo que puede una con sandbox, así que el lift del
+harness que se mide es real y no simulado". Eso era **[read]** cuando se escribió.
+Ahora es **[ran]**, y el lift no es marginal — es el intervalo entero, de 0% a
+100%, sobre tareas idénticas con un oráculo exacto. La rama que pasa aterriza en
+errores relativos de entre 1e-6 y 1e-13, y produjo cero violaciones de protocolo,
+así que el grader nunca tuvo que adivinar.
+
+**El número de la rama pelada es un piso, no una medida de capacidad**, y hay dos
+defectos que lo inflan. El generador exigía seis cifras significativas planas sin
+importar una tolerancia que va de 1e-1 a 1e-5, así que una tarea que necesitaba
+dos cifras igual pedía seis; y las dos sondas agregaban esa instrucción una
+segunda vez, ya que `PhysicsTask.prompt` la trae. Los dos están arreglados —la
+precisión ahora se deriva de la tolerancia— y ninguno toca la rama del harness,
+donde Python hace la exigencia trivialmente satisfacible. Así que "0 de 24" se
+lee con seguridad como _nada pasa peladо_, y no como una estimación de con qué
+frecuencia un modelo pelado se equivocaría bajo un protocolo justo.
+
+### La consecuencia, que no es la que se estaba buscando
+
+Las sondas se corrieron como pre-chequeo de espacio libre para otro experimento:
+si un agente puede **aprender** un procedimiento en reposo y aplicarlo después
+([05 § Experimento 1](05-ai-storage.md#experimento-1--destilar-en-reposo-memory_strategydream)).
+Para ese propósito la respuesta es no — 12 de 12 pasando no deja nada que una
+estrategia aprendida pueda aportar, y construir la rama de tratamiento sobre esta
+suite se canceló por el precio de una rama.
+
+Ésos son el mismo hecho visto desde dos direcciones, y la dirección importa. Es
+tentador anotar esto como "el instrumento es ciego"; eso es injusto con el
+instrumento. **La suite midió algo grande y real. Simplemente cerró la brecha tan
+completamente que no quedó residuo procedimental que aprender**, que es un
+hallazgo sobre el dominio y no un defecto de la herramienta. La aritmética con
+sandbox no es donde la segunda versión de un agente le gana a la primera.
+
+Donde el residuo sobrevive es en la falla **informacional** —un agente que no
+registra lo que el siguiente necesita— porque ninguna cantidad de Python la
+arregla. Para eso está `structure: "sequential"`, y era un tipo declarado con cero
+instancias hasta que [`handoff.ts`](../../ai-flows/src/tasks/handoff.ts) lo pobló.
+
 ## Cómo se falsifica
 
 **Los estimadores** se falsifican con su propia calibración: tienen que recuperar
