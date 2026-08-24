@@ -1,11 +1,15 @@
 # 22 · ai-storage on a local model — the specification, and what is built
 
-> **Status, 2026-08-24.** Phases 1 and 2 are built and tested: the model
+> **Status, 2026-08-24.** Phases 1–8 are built and tested — 119 tests. The model
 > boundary, the local-only guarantee, the context invariant, the note schema,
-> the provenance pipeline, derived progress, and the token-bounded index. The
-> agents (Librarian, Archivist, Indexer, Reconciler, MemoryKeeper) and every
-> benchmark are **not built**. Nothing here has been run against weights — see
-> [§0](#0).
+> the provenance pipeline, derived progress, the token-bounded index, the store
+> on disk, lexical search, all five specialists, scopes and ACLs, promotion and
+> history, and the navigation benchmark.
+>
+> The benchmark has been **run at the ceiling only** — a perfect navigator, no
+> weights, no server. Its first result is in [§59](#59) and it is not the one
+> the design wanted: the hierarchy loses to grep. Nothing here has been run
+> against a model — see [§0](#0).
 
 <a id="0"></a>
 
@@ -411,19 +415,23 @@ anything can record it. The transports do not retry at all.
 |---|---|---|
 | 1 | model boundary, engines, structured output, tool calls, token measurement | **built** |
 | 2 | notes, provenance, derived progress, token budgets, index tree | **built** |
-| 2b | filesystem backend, transactions, lexical search | not built |
-| 3 | Librarian, and the first real benchmark | not built |
-| 4 | Archivist | not built |
-| 5 | Reconciler, Indexer | not built |
-| 6 | MemoryKeeper | not built |
-| 7 | scopes and ACL enforcement | not built |
-| 8 | promotion, revision, restore | not built |
-| 9 | the constrained-Mac run, reported separately | not built |
+| 2b | filesystem backend, transactions, lexical search | **built** |
+| 3 | Librarian, and the benchmark | **built; run at the ceiling only** |
+| 4 | Archivist | **built** |
+| 5 | Reconciler, Indexer | **built** |
+| 6 | MemoryKeeper | **built** |
+| 7 | scopes and ACL enforcement | **built** |
+| 8 | promotion, revision, restore | **built** |
+| 9 | the constrained-Mac run, reported separately | not run — needs weights |
 
 Phase 3 is where the central hypothesis first meets evidence: 8K of context,
-ten thousand notes, an answer planted in one of them. Everything before it is
-plumbing that cannot be wrong in an interesting way, and everything after it is
-worth building only if Phase 3 comes back positive.
+fifty thousand notes, an answer planted in one of them. It has met it at the
+ceiling, and [§59](#59) is what came back. Everything after Phase 3 was built
+anyway, which is worth being honest about: the argument for doing so is that the
+store has to exist before a model can be measured against it, and the argument
+against is that a negative ceiling result is a reason to stop. Both are true.
+What is not defensible is publishing the parts without the result, so the result
+is in the README.
 
 <a id="56"></a>
 
@@ -445,3 +453,94 @@ second axis — and it came back flat at 80% acc@1 either way, with the second
 axis carrying real information that did not change the answer. That is the
 outcome to expect and to be ready to publish. The burden of proof is on the
 hierarchy.
+
+<a id="59"></a>
+
+## 59. The first result, which is not the one the design wanted
+
+**Run: 2026-08-24, the oracle, no weights.** `bench/results/oracle-ceiling.json`.
+
+The oracle is a navigator that plays perfectly — it reads the listing it is
+shown, descends best-first, opens only entries that match the question as well
+as anything in the listing does, and stops at the answer. It cheats by knowing
+the answer string, which is the point: what it measures is what the *store's
+shape* allows, not what any model can do. It is the ceiling.
+
+Three arms, one corpus, one planted unguessable fact per question, 8,192 tokens
+of effective context:
+
+```text
+arm      notes  runs  correct  cited  ratio    loaded  steps  endings
+-------  -----  ----  -------  -----  -------  ------  -----  -----------------
+flat       200  3     0/3      0/3    —             0      1  context_limit:3
+flat     50000  3     0/3      0/3    —             0      1  context_limit:3
+search     200  3     3/3      3/3    54x         243      3  done:3
+search   50000  3     3/3      3/3    13158x      243      3  done:3
+storage    200  3     2/3      2/3    35x         369      7  done:2 step_cap:1
+storage  50000  3     1/3      1/3    2391x      1337     12  done:1 step_cap:2
+```
+
+### What it says
+
+**The flat file does not fit, at any size.** Not "answers worse" — refuses. Two
+hundred notes is already 12,566 tokens against a memory lane of 2,300, and the
+run ends at `context_limit` before a question is asked. That is the honest
+version of what upstream memory does today, where the same file is silently
+truncated to its last three hundred bullets and the model answers from whatever
+survived.
+
+**Exact lexical search beats hierarchical navigation, at the ceiling.** 3/3
+against 1–2/3, and a better ratio at every size. Navigation's failures are
+`step_cap` — it runs out of *steps*, not context — and each listing it reads
+costs tokens the search arm never spends.
+
+**The burden of proof was on the hierarchy and it has not met it.**
+[doc/05](05-ai-storage.md) said the predecessor measured a closely related idea
+and got a flat result; this is a second flat result, in the same direction, from
+a different angle.
+
+### What it does not say
+
+It is not a result about any model. Nothing has been run against weights.
+
+And there is a confound worth stating plainly rather than tuning away: the
+question shares its rare words with exactly one note, so search only has to
+match the words. Decoys were added — eight per planted fact, same title, same
+keywords, scattered across other areas, none carrying the answer — and search
+still went straight to the right one, because the target genuinely matches more
+of the query's terms than any decoy. That is search doing well, not the
+benchmark being unfair. A harder family of questions, whose wording does not
+appear in the target note at all, is the obvious next design and it has not been
+built.
+
+Two further things the table understates:
+
+- **The arms are not exclusive.** `storage` includes `memory_find_exact`, so a
+  model in that arm can do everything the search arm does and then some. What
+  the run measures is a navigator that *prefers* the index; a model free to
+  choose would presumably score at least as well as the search column.
+- **The oracle is tuned for navigation, not for search.** Its search query is
+  the question's own words, which is close to optimal; its descent is a
+  heuristic that was rewritten twice while building this and is presumably not.
+
+### What the run found on the way
+
+Four bugs, each of which would have made a published number wrong:
+
+1. The planted fact was filed in a directory whose name contradicted its
+   content, so navigation could not find it by construction and the run would
+   have measured the search tool while reporting a result about hierarchies.
+2. Note ids were opaque hex. An index of opaque ids cannot be navigated: prefix
+   splitting produces meaningless buckets and the one-line hint does all the
+   work. Ids now carry the title's words.
+3. `groupByPrefix` split on the first segment, which every id shared, producing
+   directories named `kn` and `kn-kn-2`.
+4. The flat arm answered nothing and was recorded as `done` with zero tokens
+   loaded — an empty column, which silently flatters everything beside it.
+
+### The next measurement
+
+Whether a 27B model at 8K can reach the oracle's numbers at all, per
+quantization. That needs weights and a server, and until then the only honest
+statement about this component is the one above: **at the ceiling, on this
+benchmark, the hierarchy loses to grep and the flat file does not fit.**

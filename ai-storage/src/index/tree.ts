@@ -232,25 +232,46 @@ export function planSplit(
   }
 }
 
+/**
+ * Group by the first segment that is not shared by everything.
+ *
+ * The first version took segment zero, and the benchmark found out why that is
+ * wrong: every note id starts with `kn_`, so every entry landed in one group
+ * called `kn`, the split degenerated into buckets, and the buckets were named
+ * `kn` and `kn-kn-2`. Three levels of directory, none of which said anything.
+ *
+ * A segment every entry shares carries no information, by definition — it
+ * cannot separate anything. So the grouping skips leading segments until it
+ * finds one that differs, which turns `kn_deployment-key-rotation-…` into
+ * `deployment` and `kn_keys-must-never-…` into `keys`.
+ */
 function groupByPrefix(entries: IndexEntry[]): Map<string, IndexEntry[]> {
+  const parts = entries.map((e) => e.name.toLowerCase().split(/[-_/.]+/).filter(Boolean));
+  let at = 0;
+  const depth = Math.min(...parts.map((p) => p.length));
+  while (at < depth - 1 && new Set(parts.map((p) => p[at])).size === 1) at += 1;
+
   const out = new Map<string, IndexEntry[]>();
-  for (const e of entries) {
-    const head = e.name.split(/[-_/.]/)[0] || e.name[0] || "_";
-    const key = head.toLowerCase();
+  entries.forEach((e, i) => {
+    const key = parts[i]![at] || parts[i]![0] || "_";
     const list = out.get(key);
     if (list) list.push(e);
     else out.set(key, [e]);
-  }
+  });
   return out;
 }
 
 function bucketise(entries: IndexEntry[], per: number): Map<string, IndexEntry[]> {
   const sorted = [...entries].sort(cmp);
   const out = new Map<string, IndexEntry[]>();
+  // Named from the part of the name that differs, for the same reason
+  // groupByPrefix skips shared segments: `kn`–`kn` is not a range.
+  const shared = commonPrefix(sorted.map((e) => e.name.toLowerCase()));
+  const tag = (e: IndexEntry | undefined) => (e?.name.toLowerCase().slice(shared) ?? "").slice(0, 3);
   for (let i = 0; i < sorted.length; i += per) {
     const slice = sorted.slice(i, i + per);
-    const lo = (slice[0]?.name ?? "").slice(0, 2).toLowerCase() || "aa";
-    const hi = (slice[slice.length - 1]?.name ?? "").slice(0, 2).toLowerCase() || "zz";
+    const lo = tag(slice[0]) || "aa";
+    const hi = tag(slice[slice.length - 1]) || "zz";
     let name = lo === hi ? lo : `${lo}-${hi}`;
     // Two buckets can want the same name when many entries share two letters.
     // Suffixed rather than merged: merging them would put the node back over
@@ -301,4 +322,13 @@ export function reachableNotes(nodes: readonly IndexNode[]): Set<string> {
   const out = new Set<string>();
   for (const n of nodes) for (const e of n.entries) if (e.kind === "note") out.add(e.name);
   return out;
+}
+
+/** How many leading characters every one of these shares. */
+function commonPrefix(names: readonly string[]): number {
+  if (names.length < 2) return 0;
+  const first = names[0]!;
+  let n = 0;
+  while (n < first.length && names.every((s2) => s2[n] === first[n])) n += 1;
+  return n;
 }

@@ -205,6 +205,11 @@ jobs:
           npm ci --no-audit --no-fund
           npm run typecheck
           npm test
+          # The ceiling, which needs no weights. It is the number the README
+          # publishes, so it is regenerated here rather than trusted: a result
+          # committed once and never re-derived is a result that quietly stops
+          # being true.
+          node bench/navigation.ts --oracle --sizes 200,1000,10000 --json /tmp/ceiling.json
 
   verify-page:
     name: The verification page's logic

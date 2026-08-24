@@ -3,10 +3,12 @@
 Memory at four levels: system, user, project, flow — for a **local model with
 8K of working context** operating on a project orders of magnitude larger.
 
-> **Status: phases 1 and 2 built, 2026-08-24.** The model boundary, the
-> local-only guarantee, the context invariant, the note schema, the provenance
-> pipeline, derived progress and the token-bounded index are implemented and
-> tested — 79 tests. The agents and every benchmark are **not built**.
+> **Status: phases 1–8 built, 2026-08-24.** The model boundary, the local-only
+> guarantee, the context invariant, the note schema, the provenance pipeline,
+> derived progress, the token-bounded index, the store on disk, lexical search,
+> all five specialists, scopes and ACLs, promotion and history, and the
+> navigation benchmark — 119 tests. The benchmark has been run **at the ceiling
+> only**: no weights, no server, no model result.
 > Design: [`../doc/22-ai-storage-qwen.md`](../doc/22-ai-storage-qwen.md).
 > Earlier design: [`../doc/05-ai-storage.md`](../doc/05-ai-storage.md);
 > scope-kind decision: [ADR-0003](../doc/adr/0003-storage-scope-axis.md).
@@ -51,6 +53,27 @@ a request; a type with no id field is a wall.
 component produces is a ratio whose denominator is *tokens the model actually
 had to see*. One silent trim anywhere and that denominator is fiction.
 
+## The first result, and it is not the one the design wanted
+
+**The hierarchy loses to grep at the ceiling.** A perfect navigator against
+three arms, 8K of context, one unguessable fact planted per question:
+
+```text
+arm      notes  correct  ratio     endings
+flat     50000  0/3      —         context_limit:3
+search   50000  3/3      13158x    done:3
+storage  50000  1/3      2391x     done:1 step_cap:2
+```
+
+The flat file does not fit at any size — not "answers worse", *refuses*, at two
+hundred notes. Exact lexical search finds the answer every time and reads less
+doing it. Hierarchical navigation runs out of steps.
+
+`doc/05` said the burden of proof is on the axis; this is the second flat result
+in that direction. It is a ceiling measurement with no model in it, and the
+confounds are stated in [doc/22 §59](../doc/22-ai-storage-qwen.md#59) rather than
+tuned away. `bench/results/oracle-ceiling.json` has every row.
+
 ## What is here
 
 ```text
@@ -59,16 +82,24 @@ src/context/     the 8K budget, in lanes, and the refusal that protects it
 src/knowledge/   what a note is, what a model may propose, and the wall between
 src/provenance/  evidence, slice hashes, and progress derived from what was stored
 src/index/       the navigable tree, and the split that keeps every node in budget
+src/backend/     the store on disk: atomic writes, a journal, paths as capabilities
+src/search/      exact lexical search — no vector database in v1, on purpose
+src/agents/      Librarian, Archivist, Indexer, Reconciler, MemoryKeeper
+src/promotion/   flow → project → user/system, justified, recorded, reversible
+src/security/    who reads what: outward only, and a note is not its source
+src/bench/       the synthetic corpus, the three arms, and the metric
+bench/           the runner, and results as they are produced
 ```
 
-Nothing in `bench/` yet, on purpose: a benchmark directory with unrun scripts in
-it reads like a result.
+`bench/results/` holds what has actually been run. Nothing in it came from
+weights.
 
 ## Running it
 
 ```bash
 npm install
-npm test          # 79 tests, no server needed
+npm test          # 119 tests, no server needed
+node bench/navigation.ts --oracle   # the ceiling, no weights required
 npm run typecheck
 npm run verify-model            # asks a local server what it is serving
 npm run verify-model -- --profile constrained --engine ollama \
