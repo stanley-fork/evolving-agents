@@ -21,6 +21,20 @@ sistema operativo es el *cómo*; la frase de arriba es el *por qué*.
 | **Atestación, no afirmación** | corridas direccionadas por contenido, un ledger encadenado por hash, `make reproduce`, y el entorno registrado en el artefacto |
 | **Cada número publicado atado a su productor** | cinco de los nueve números de esta página y de `doc/` se chequean contra el artefacto que los produjo, todas las noches |
 
+**Y el límite honesto de «probártelo a vos, que sos un desconocido», ya que esta
+página lo afirma.** Una cadena de hashes dentro de nuestro propio repositorio
+demuestra **integridad** — nadie cambió el número después. No demuestra
+**verdad**: un 92% calculado por código con un bug tiene integridad
+criptográfica perfecta. Lo que acorta la distancia acá no es el hash. Es que el
+verificador no puede importar lo que verifica, que el umbral se escribió antes
+de la corrida, y que `make reproduce` re-deriva el artefacto en una máquina que
+nunca lo vio — que es como `hemo-verified` encontró un número por oráculo que
+era una propiedad de su máquina y no de la física. Lo que la *cerraría* es
+firmar los reportes de gate como attestations in-toto vía Sigstore hacia un
+transparency log, para que un tercero tampoco tenga que confiar en quien
+escribió este README. Eso no está construido. Ver
+[la capa de evidencia](https://evolvingagentslabs.github.io/#evidence).
+
 **La versión fuerte de ese argumento es falsa y fuimos nosotros los que la
 medimos.** `physics-verifiers` le dio a un modelo frontier doce resultados de
 física fabricados y nueve sutilmente defectuosos. Los cazó **todos, dos veces**

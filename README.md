@@ -21,6 +21,19 @@ and the operating-system part is *how*; the sentence above is *why*.
 | **Attestation, not assertion** | content-addressed runs, a hash-chained ledger, `make reproduce`, and the environment recorded in the artifact |
 | **Every published number tied to its producer** | five of the nine numbers on this page and in `doc/` are checked against the artifact that produced them, nightly |
 
+**And the honest limit of "prove it to a stranger", since this page makes the
+claim.** A hash chain inside our own repository demonstrates **integrity** —
+nobody changed the number after the fact. It does not demonstrate **truth**: a
+92% computed by buggy code has perfect cryptographic integrity. What narrows the
+gap here is not the hash. It is that the checker cannot import the thing it
+checks, the threshold was written down before the run, and `make reproduce`
+re-derives the artifact somewhere that has never seen it — which is how
+`hemo-verified` found a per-oracle number that was a property of its machine
+rather than of the physics. What would *close* it is signing the gate reports as
+in-toto attestations through Sigstore into a transparency log, so a third party
+need not trust the author of this README either. That is not built. See
+[the evidence layer](https://evolvingagentslabs.github.io/#evidence).
+
 **The strong version of that argument is false and we are the ones who measured
 it.** `physics-verifiers` gave a frontier model twelve fabricated physics results
 and nine subtly defective ones. It caught **all of them, twice**
