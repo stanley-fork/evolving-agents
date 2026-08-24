@@ -180,10 +180,23 @@ function rotationFor(ordinal, count, now) {
 
 function bundleOf(world, opts) {
   var n = world.threads.length;
-  var per = opts.steps === undefined ? 14 : opts.steps;
+  var base = opts.steps === undefined ? 14 : opts.steps;
   var out = [];
 
+  /**
+   * Sample the angle, not the segment.
+   *
+   * A fixed count per segment is a fixed count per *step*, and a step is not a
+   * fixed amount of winding: a forty-minute rest on a fifteen-minute pitch
+   * sweeps nearly three turns, and fourteen points across three turns is a
+   * sawtooth — the drawing showed the sampling rate, not the coil. So the count
+   * comes from how much angle this segment actually covers, at sixteen points a
+   * turn, floored at the old count for segments that barely turn at all and
+   * capped so one long stretch cannot fill the document with path data.
+   */
   var sample = function (ordinal, a, b) {
+    var swept = Math.abs((opts.twist === undefined ? 0 : opts.twist) * (b - a));
+    var per = Math.max(base, Math.min(600, Math.ceil((swept / (Math.PI * 2)) * 16)));
     var s = [];
     for (var i = 0; i <= per; i += 1)
       s.push(phaseOf(ordinal, n, a + ((b - a) * i) / per, opts.now, opts.rotation, opts.twist));

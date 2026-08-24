@@ -275,3 +275,59 @@ The next move is not more surface. It is `doc/04`'s stopwatch, run on both with
 the same person and the same flow — which is the thing [NEXT.md](../NEXT.md) has
 been asking for since before either of them existed, and which now has two
 candidates to compare instead of one to defend.
+
+## 9. Making it read as a helix, which was four errors and no decoration
+
+Reference offered: an illustration of a replication fork — two backbones, base
+pairs filling the tube, polymerase riding it. The instruction was to take the
+idea the way Ive would, which means taking the *principles* and refusing the
+artifact: one projection, hard occlusion, and a ladder whose rhythm is what turns
+two curves into one object. Nothing borrowed for its looks.
+
+What that turned up was four separate errors, none of them about style.
+
+**The pitch was longer than the work.** `PITCH` was a constant ninety minutes. A
+flow in these projects runs about an hour, so a strand existed for less than one
+turn and *could not wind*: five flows, five slow arcs, crossing. A pitch fixed in
+advance is honest right up until it is longer than the thing it is supposed to
+measure, and then it measures nothing. It is now a quarter — call it two and a
+half turns — of how long a typical flow in *this* scope actually runs, and the
+readout says how long a turn is, the way a map says how long an inch is. The
+number is on screen either way; this one is true of what you are looking at.
+
+**The window opened on a keyhole.** `resetWin` fits the frame to the most recent
+cluster of work, which was the right fix for two-thirds of an empty canvas and
+the wrong one here: it opened twenty-eight minutes cut out of three days, and a
+keyhole onto a coil shows a curve. `TWIST_FLOOR_PX` already refuses to draw a
+turn narrower than the marks available to draw it. A turn *wider than the frame*
+is the same failure upside down, and now has the same guard — the opening window
+is at least wide enough that a turn is no wider than the rope is thick. Zooming
+in past it stays allowed, because up close a helix really is a long slow arc.
+
+**Depth was quantised per step.** Width and opacity came from each segment's
+*mean* depth, so a strand changed thickness in one jump at a step boundary and
+stayed flat in between. A coil does not read from brightness; it reads from a
+thickness that changes continuously as the curve turns away. The strand is now
+drawn in chunks of three samples — about five a turn — each with the width its own
+depth asks for, and the dash pattern carries its accumulated length as an offset
+so `carried nothing forward` and `no verdict yet` survive being cut up. Opacity
+is out of the depth business entirely: what it says now is what happened.
+
+**The taper was four to one, which the projection says and the screen refused.**
+At one pixel the far half of every turn stopped being a rope and became a wire,
+and a wire crossing the whole amplitude reads as a separate straight object laid
+over the coil. In any drawing of a helix the far side is barely narrower; what
+tells you it is behind is that the near side covers it. Occlusion is the depth
+cue, width is the confirmation, and the ratio came down to under two to one.
+
+The rungs were the one borrowed element, and they had to earn it. A rung is the
+boundary of a step — a moment something was recorded to have started or finished —
+so the density of rungs is the density of recorded events, and a stretch of
+strand with no rungs is a stretch where nothing was written down. Drawn across
+the whole tube they looked like grid lines, because a base pair has a second
+backbone to hold at the far end and here there is nothing there. So a rung stops
+at the axis, where something really is, and is also the second thing it always
+was: a tick against the time line, dropped from the moment it marks.
+
+Everything above changed geometry or removed a channel. Not one of it added a
+mark that is not a measurement.
