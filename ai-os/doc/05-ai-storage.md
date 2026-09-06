@@ -1,0 +1,874 @@
+# 05 · ai-storage — memory with an address space
+
+<img src="assets/05-ai-storage.jpg" alt="" width="100%">
+
+<sub>Four levels. Only one promotion arrow is built.</sub>
+
+> **Built, 2026-08-24 — and the prior result repeated itself.** This document is
+> the design; [22](22-ai-storage-qwen.md) is the implementation, around a
+> **local** model held to 8,192 tokens. 119 tests.
+>
+> **Read the "Prior result" section before designing anything here.** A closely
+> related claim from this organisation measured _no better than the naive
+> approach_, and that result shapes this document more than any other input —
+> **and the first benchmark of the thing built from it came back the same way.**
+> At the ceiling, exact lexical search beats the hierarchy, and the flat file
+> does not fit at any size. The burden of proof was on the axis and it has not
+> been met: [22 §59](22-ai-storage-qwen.md#59).
+
+
+## The shape, drawn before it is built — 2026-08-09
+
+<img src="assets/manual/11-trace-memory.jpg" alt="" width="100%">
+
+<sub>The memory drawer on the desk, stamped <strong>NOT BUILT — THIS IS THE SPEC</strong>. Nothing in it is stored: the notes are recomputed from the flow traces on every read, which is what makes it a sketch rather than memory.</sub>
+
+This document is a specification, and a picture is a cheaper one — an interactive
+picture cheaper still, because you find out what a promotion needs by trying to
+press the button. `ai-ui/src/memory.ts` draws it, and the module exists to be
+argued with and then thrown away.
+
+What the drawing commits this document to:
+
+- **Four levels, longest-lived first**, and one rung per promotion:
+  flow → project → user → system.
+- **Provenance is not optional.** Every note names the flows it came from. A note
+  nobody can trace back to the work that produced it is indistinguishable from a
+  note somebody typed, and cannot be revisited when that work turns out to have
+  been wrong.
+- **Consolidation keeps what carried forward.** The steps that moved something on
+  survive; the ones `contribution.ts` flagged as carrying nothing are dropped.
+
+That last one is the cheap insight, and it is why this is not a port of
+[evolving-memory](https://github.com/EvolvingAgentsLabs/evolving-memory). That
+project calls the same job `TraceCurator`.
+
+**Corrected 2026-09-06, against this document's own §"Two failures of
+instrument".** An earlier version of this paragraph said the hard part of
+consolidating a trace — *which steps mattered* — is a question `contribution.ts`
+already answers on every flow. It is not, and this document contradicts itself
+270 lines later: **`contribution.ts` is right about handoffs and wrong about
+coverage.** Word overlap answers *did the next step use what this one produced*;
+it cannot answer *is the claim still made*. `evaluation.ts` and `gates.ts` put it
+harder still — it was built to detect a step that contributed nothing **with no
+notion of a right answer**, and was falsified the same day, because with no
+ground truth there is nothing to be right or wrong about.
+
+So the consolidation rule above stands only in its handoff shape, and anything
+built on it must say which of the two questions it is asking. A trace curator
+that needs the coverage question does not have an instrument here yet.
+
+**What the sketch does not answer, and this document must:** when two notes say
+the same thing, which survives? Consolidation cannot be a loop over finished
+flows, and that is the reason.
+
+## Prior result, stated first
+
+The previous flagship (`evolving-agents`) indexed every component twice — once
+for what it _is_, once for what it is _for_ — on the hypothesis that retrieval
+would improve. Rebuilt and measured in July 2026:
+
+| Configuration                   |   acc@1 |   MRR |
+| ------------------------------- | ------: | ----: |
+| Description matching (baseline) | **80%** | 0.900 |
+| Both axes, evenly weighted      | **80%** | 0.900 |
+| Applicability only              | **80%** | 0.900 |
+
+No difference. And it was _not_ a plumbing bug: `cosine(content, applicability) = 0.753`,
+so the second axis was genuinely distinct information. It simply did not change
+the answer on a modern encoder.
+
+**The lesson ai-storage takes:** _adding an axis to memory is not automatically
+an improvement, and the burden of proof is on the axis._ This document therefore
+specifies the cheapest possible version of each idea and names what would falsify
+it, rather than specifying the elaborate version and assuming it wins.
+
+### The standing rule this becomes
+
+The result above is not a war story about one experiment. It is the rule for
+every axis proposed after it:
+
+> **No new memory axis ships without a benchmark the baseline could lose, named
+> before the axis is built.
+
+Memory design attracts structural proposals with a great deal of prior appeal —
+episodic versus semantic, short- versus long-term, consolidation passes, decay
+curves, replay. Each is a real distinction somewhere. **None of them is evidence
+that a retrieval system gets better by encoding it**, and the measurement above
+is what an appealing structure looks like when it is finally asked for a number:
+80%, 80%, 80%.
+
+The rule costs one sentence up front and it is the cheapest guard this pillar
+has. An axis that cannot name the benchmark it expects to win is not being
+proposed; it is being assumed.
+
+## There is already a memory benchmark upstream
+
+Found after this document was first written, which is its own small lesson:
+**`npm run bench:memory`** — `src/memory/bench.ts` (151 lines) plus
+`scripts/memory-bench.ts`.
+
+It runs scripted conversations through each `MemoryStrategyKind` and judges the
+resulting notebook on three axes:
+
+| Metric                   | What it asks                               |
+| ------------------------ | ------------------------------------------ |
+| `signalToNoise`          | how much of what was kept is worth keeping |
+| `staleness`              | how much of it is no longer true           |
+| `inferenceVsObservation` | how much was inferred rather than observed |
+
+**`staleness` is one of the two metrics this document proposed inventing.** The
+third, `inferenceVsObservation`, is one we had not thought of and is arguably
+sharper than either — a memory system that quietly promotes inference to fact is
+failing in a way retrieval accuracy cannot see.
+
+So the measurement plan below is rewritten around extending this harness rather
+than building a parallel one. Writing our own scale would have made our numbers
+incomparable with upstream's, which is the specific way benchmarks get used to
+flatter their author.
+
+## What exists today
+
+`ai-base/src/memory/memory-service.ts`. One markdown file per scope:
+
+- `memory/MEMORY.md`, bullets as `- (YYYY-MM-DD) fact`
+- capped at `MAX_FACTS = 300`; **overflow drops the oldest**
+- dedup by normalized text
+- untrusted provenance defanged textually (`(said in X)` → `[claimed source: X]`)
+- sha256 revision tokens, with optional `history` / `restore` / `replaceIfRevision`
+- `query(scopeId, q, limit)` is the only retrieval affordance
+
+This is a better design than it looks. Its real limits are two: **FIFO is the
+only forgetting policy**, and **a scope is the only address**.
+
+## The four levels
+
+| Level       | Scope                      | Lifetime                             | Holds                                                                   | Visibility      |
+| ----------- | -------------------------- | ------------------------------------ | ----------------------------------------------------------------------- | --------------- |
+| **System**  | the deployment             | permanent                            | How this OS operates: conventions, defaults, hard-won operational facts | everyone        |
+| **User**    | a person                   | long                                 | Preferences, voice, working agreements, standing context                | that person     |
+| **Project** | a team / channel / project | project-lived                        | Decisions, constraints, domain facts, who-does-what                     | project members |
+| **Flow**    | one flow                   | flow-lived, then promoted or dropped | What this specific piece of work learned                                | the flow        |
+
+Two properties matter more than the taxonomy:
+
+**Lifetime differs per level.** Flow memory is _expected to die_. That is the
+point: today, every fact learned anywhere becomes something the system believes
+forever, and 300-bullet FIFO is the only thing standing between that and
+unbounded drift.
+
+**Promotion is explicit and reversible.** A flow fact becomes a project fact only
+by promotion, which records why and by whom, and can be undone. Silent promotion
+is how a one-off workaround becomes an organisational belief.
+
+## Promotion
+
+```
+flow ──promote──▶ project ──promote──▶ system
+  │                  │
+user ◀───────────────┘   (a fact about a person, learned in shared work)
+```
+
+Rules:
+
+1. **Never automatic without a record.** Automatic promotion is allowed;
+   unrecorded promotion is not. Every promotion carries source level, source id,
+   actor (human or agent), timestamp, reason.
+2. **Reversible.** Demotion restores the prior state at every level touched.
+3. **No skipping.** Flow facts do not become system facts directly. Two
+   independent decisions, not one.
+4. **Conflict is surfaced, not merged.** If a promoted fact contradicts one
+   already held, the system does not silently pick. Contradiction detection is
+   the expensive part and is explicitly deferred to v2.
+
+Implementation note: this is a `MemoryStrategy`
+(`ai-base/src/memory/strategy.ts:14` — `onTurnEnd` / `maintain` / `promptLines`),
+not a new subsystem. The selectable strategies are
+`per-turn | scratch-promote | agent-only` (`strategy.ts:28`), and the
+consolidation machinery they share lives in `strategies/consolidation.ts` — a
+module to build on, not a fourth kind to imitate.
+
+**One arrow of this diagram is already built.** `ccTargetFor` /
+`ccCaptureToPersonal` (`memory-service.ts:158,166`) copy a fact learned in a
+shared scope into the acting person's `personal:` scope with the source labelled,
+firing only for `channel` / `group` origins and never for system actors. It is
+wired into two of the three strategies (`per-turn.ts:140`,
+`scratch-promote.ts:167-170`). That is `project → user`, in production today —
+so the arrows ai-storage actually has to build are `flow → project` and
+`project → system`, and the first is blocked on a `flow` scope existing at all.
+**[read]**
+
+## How it attaches
+
+`ai-storage` implements QM's `MemoryService` (`src/memory/memory-service.ts:28`)
+and registers in `src/wiring.ts`. All five required methods plus the optional
+revision family, which we implement rather than skip — history is the affordance
+that makes promotion reversible.
+
+The scope-kind problem: QM's union (`src/types.ts:12`) is
+`personal | channel | team | org | group`. Our four levels map to
+`org` / `personal` / `group` / **nothing**. There is no flow scope, and
+`org` is not quite "system". Resolution in
+[ADR-0003](adr/0003-storage-scope-axis.md): add `flow` and `system` to the union
+inside `ai-base` — a two-line widening, recorded in `AI-OS-PATCHES.md` and offered
+upstream — rather than encoding a fake scope in the `ref` string, which would be
+invisible to every permission check that parses a `ScopeId`.
+
+That last clause is the actual reason: a fake scope silently bypasses ACLs.
+
+**The project level maps to `group`, not `team`** — corrected here after reading
+`src/projects/project-store.ts`. A QM project _is_ a group scope with a reserved
+ref prefix (`projectScopeId(id) → group:web-project-<id>`, `project-store.ts:47`),
+carrying a roster (`ownerId`, `memberIds`) and a version per roster. `team:`
+comes from `Principal.teamIds` — identity-provider teams, not project rosters.
+The scale axis and its consequences are [09](09-scales.md). **[read]**
+
+## Retrieval
+
+Deliberately boring in v1, given the prior result:
+
+1. **Level-ordered recall.** Assemble context from flow → project → user →
+   system, with a budget per level. Nearer levels win ties.
+2. **Keep `query()` as upstream has it.** No embedding layer in v1.
+3. **Then measure.** Only add retrieval machinery — embeddings, a second axis,
+   a graph — when level-ordered recall is _measurably_ insufficient, with the
+   insufficiency written down first.
+
+Inverting this order is exactly the mistake the 80/80 result recorded.
+
+## The first thing actually built: an index a small window can navigate — 2026-08-12 [ran]
+
+Everything above is specification. This section is not: `ai-flows/src/wiki.ts`
+runs, and it is here rather than in `ai-storage/` because `ai-storage` has no
+package and inventing one to hold four hundred lines would be the expensive kind
+of progress.
+
+### The problem, which is not retrieval accuracy
+
+A project's material outgrows the window long before it outgrows the disk. Three
+hundred kilobytes of notes is roughly eighty thousand tokens; a local model worth
+running on a laptop has eight. The work cannot be done by reading the material,
+and it cannot be done by summarising it either — the question that motivates this
+is *what is in the material that is missing from the work*, and a summary is a
+list of what somebody already noticed.
+
+So retrieval stops being a search over text and becomes **navigation over an
+index the model can hold**. The index is a directory, not a summary: one line per
+unit, each line naming a note file that holds the unit. The model reads the
+directory, which fits, and opens the two notes it needs, which also fit.
+
+### The benchmark, named before the axis was built
+
+The standing rule above says no memory axis ships without a benchmark the
+baseline could lose, named first. The baseline is `ai-base`'s flat `MEMORY.md`.
+The benchmark is deliberately **not** retrieval accuracy — the previous flagship
+already bought 80% → 80% → 80% there. It is capacity:
+
+> At what corpus size does the thing the model must read stop fitting the window?
+
+Measured, at an 8,000-token window, notes of ~1,800 characters:
+
+| | what the model must read | verdict |
+|---|---|---|
+| flat file (baseline) | the material | **16 units**, then it stops fitting |
+| index (the axis) | root + one shard | 500 notes → **3,940 tok**, 21 shards |
+| | | 2,000 notes → **4,523 tok**, 87 shards |
+
+The axis holds two orders of magnitude past the point where the baseline has
+already failed. This is a *capacity* claim and it is deliberately the cheap one:
+it is deterministic, needs no model, and is the risk that actually kills the
+design. Whether a small model **uses** a well-formed index well is a separate and
+more expensive question, and it cannot even be asked until the index is known to
+fit.
+
+### Where it runs out, which is written down rather than discovered later
+
+Bounded is not unbounded. Two levels — a root of shards over a shard of notes —
+buy about **15,000 notes**, and what fails there is the root: 624 shards is 6,011
+tokens of table of contents before a single note is named. Past that the answer
+is a third level, not a bigger machine. It is a constant in the module and an
+assertion in the suite, because a limit nobody wrote down gets described as
+absent.
+
+### Every decision is an agent; every mechanic is code
+
+Hashing, splitting, counting, budgeting, linking, rendering and linting are code:
+cheap, reproducible, auditable, and a model call in the assembly path is a model
+call that can truncate the thing being assembled. On a local model at a dozen
+tokens a second, a call that could have been a regex is minutes.
+
+What is left is judgement, and it lives in `ai-flows/agents/system/memory/` as
+six markdown files in the format upstream already parses:
+
+| agent | what it decides |
+|---|---|
+| **MemoryKeeper** | the order, and nothing else — it writes nothing |
+| **Archivist** | what this material is, what one unit of it is, which metadata this case needs |
+| **Indexer** | the iterative step: root + shard + window → one note |
+| **Reconciler** | are these the same idea, which is canonical, what does each variant add |
+| **CoverageAuditor** | what is in the index that has no realisation in the work |
+| **Librarian** | given a task, which notes to open |
+
+They are **system** agents, so doc/12's reachability finding applies to them
+directly: a project scope cannot delegate to them — they mount at
+`global/agents/<name>.md` and agent names cannot contain `/` — and the composer
+marks such steps `inline`, which is strictly worse. That is a known defect of the
+harness, not of these files, and it is named here so nobody reads the table above
+as a working delegation.
+
+### Two failures of instrument, found by measuring rather than by reading
+
+**Word overlap cannot answer a coverage question.** Measured over a real
+300-kilobyte source against a derived work: no section fell below half its
+distinctive words surviving, and the median section had four fifths of them
+present — in material where ideas had plainly been dropped. Overlap says *these
+words are still around*; the question is whether the *claim* is still made.
+`contribution.ts` is right about handoffs and wrong about coverage, and the
+CoverageAuditor's instructions say so in its own words.
+
+**A validation set can have zero positives.** A suppression log asserting
+"nothing was lost" was checked word-for-word: all 23 suppressed blocks did
+survive. An auditor validated only against that material would find nothing, and
+finding nothing would read as though it worked. Any coverage measurement has to
+state its expected rate of absence *before* it runs — which is now the first
+instruction the CoverageAuditor is given.
+
+### Verified against two models, and what that comparison found — 2026-08-12 [ran]
+
+The tree in [`ai-memory`](../ai-memory/) was driven end to end against
+`google/gemini-3.5-flash` and `google/gemma-4-31b-it`, one message per step:
+delegate to the archivist, delegate to the indexer, run the lint. **Both
+completed**, and both wrote a real knowledge base to disk — `INDEX.md`, a shard,
+a note file, and the machine mirror.
+
+Both archivists reached the same decision from the same sample: a draft of notes,
+indexed by idea. Both notes carried concrete keywords rather than adjectives, and
+both linted clean.
+
+**And putting the two side by side found a defect neither would have shown
+alone.** On identical input, one reported the source range `0-98` for 98
+characters of text; the other reported `0-75` for the same 98. The second note
+therefore cannot be walked back to its source — follow the range and you land on
+different words, and the hash that was supposed to prove otherwise is a hash of
+text nobody can find. `chars` and `source` come from different places: one is
+measured from the text, the other is what the writer said it read.
+
+Nothing checked that they agreed. `lint` now does, which is the right home for it
+— it is decidable by code, and the whole division in this design is that code
+decides what is decidable.
+
+### Four failures of enforcement, and the lesson under all of them
+
+Getting that run to work took four fixes, and they were the same fix:
+
+| symptom | cause |
+|---|---|
+| 13-16 turns spent in `bash` before doing any work | the specialists had general-purpose tools |
+| the keeper inspecting files by hand | it had them too, against its own instructions |
+| a subagent retrying a project path forever | eve's file tools run in an isolated container; ours run in the server process |
+| the build refusing to compile | a model outside the gateway catalogue has no context-window metadata |
+
+The first three are one lesson: **an instruction is not an enforcement.** The
+keeper's own instructions say it is an orchestrator that writes nothing, and it
+wrote; the indexer had a purpose-built tool and reached for `bash`. What changed
+the behaviour was not better prose — it was deleting the tool file from the
+agent's directory. A specialist with a general-purpose escape hatch is a
+generalist, and the narrowing has to be structural to be real.
+
+The fourth is worth keeping for the opposite reason: the build was **right** to
+refuse. A compaction threshold computed from a guessed context window compacts at
+the wrong moment and drops turns silently, so the window is now declared.
+
+### Three improvements adopted, one named and not built — 2026-08-12 [ran]
+
+**Check the note at the door, not in a lint report.** The division of labour here
+assumes the model supplies judgement and code supplies mechanics, and that
+assumption has a specific failure: the model gets the judgement right and the
+mechanics wrong, *without erroring*. `verifyNote` runs before a note is written
+and hands the reasons back to the writer while it still has the source in front
+of it. A note caught a thousand notes later cannot be recovered, because by then
+nobody knows what it should have said.
+
+**Resumability is derived, never counted.** Indexing a large source is hours and
+will be interrupted. The obvious fix is a counter of where the last run got to,
+and it is wrong: a counter is a second record of the same fact, and when it
+disagrees the run either repeats work or skips material — and skipping is
+silent. `progressOf` reads the notes' own provenance instead, and reports the
+**gaps**, which a naive `max(to)` hides.
+
+**Coverage is counted in ideas, and a prune is not a loss.** Coverage measured in
+characters cannot express the complaint it exists for: a work can drop a third of
+the ideas and score 1.0 by being more verbose about the ones it kept. And a
+missing idea is not automatically a fault — an author prunes, and pruning is part
+of writing. A repetition whose canonical survived was correctly cut, so the
+verdicts are `realised · transformed · pruned · absent` rather than a ratio. An
+audit that reports correct cuts as losses trains its reader to stop reading it,
+and then the real loss goes past too.
+
+**Named, not built: a semantic similarity primitive.** Three places ask "is this
+like that" — the indexer avoiding a duplicate, the reconciler grouping variants,
+the librarian choosing what to open — and all three answer it by word overlap
+today. The measurement above says why that is not enough: the same idea in other
+words resembles nothing. An embedding pass would answer it for a fraction of a
+model call. It is not built here, and under doc/05's standing rule it does not
+ship until it has a benchmark the keyword filter could lose — stated so the gap
+is a decision rather than an oversight.
+
+### The tour crosses the scope change rather than faking it
+
+The tour's rule is that it drives the real client and never plays a recording,
+and changing scope **navigates** — against a server that is a fresh read. So the
+tour really changes it, leaves its position in `sessionStorage`, and picks up on
+the other side: two flows, both green, and the one that is wrong. It is
+`sessionStorage` rather than `localStorage` because a tour half-finished
+yesterday must not start playing at somebody tomorrow, and it ends gracefully on
+a desk that has only one scope, which is the desk the product ships.
+
+### The memory lab, on the demo
+
+<img src="assets/05-memory-lab-flows.jpg" alt="" width="100%">
+
+<sub>Two flows index the same field notes with the same five agents. Both are
+green; one of them is wrong. From a live instance.</sub>
+
+A third scope, `group:memory-lab`, and an invented project that says so. Two
+flows index the same heap of field notes with the same five agents; both are
+green. One built an index where every note can be walked back to its source. The
+other contains one note that cannot: it claims 663 characters of a passage that
+is 1,105, so following the range lands on different words and the hash that was
+supposed to prove otherwise is of text nobody can find.
+
+<img src="assets/05-memory-lab-flag.jpg" alt="" width="100%">
+
+<sub>The panel is the answer to "how do you inspect this". The digest counts the
+flagged step, the menu offers it as somewhere to look, and the trace names the
+instrument that caught it. From a live instance.</sub>
+
+It looks exactly like the others in the list, because that is the point — it was
+written by a model that got the judgement right and the mechanics wrong. The desk
+finds it with the instruments it already had, and the flag says which instrument
+spoke: *cannot be walked back to its source — the source range is 663 characters
+but the text is 1105*.
+
+Two defects the scope found in the desk itself, both by switching to it and
+reading: the living-documents panel listed the **first scope's** documents in
+every scope, asserting read-only about a project nobody was looking at; and the
+trace banner claimed distinctive-word overlap whatever had actually been
+measured. Both now follow the same rule the per-step flag already did — name the
+instrument that spoke.
+
+## How this gets falsified
+
+**The harness:** extend `ai-base/src/memory/bench.ts` with a levelled strategy,
+so ai-storage is scored by the same judge, on the same conversations, as
+upstream's three. Adding a row to an existing table beats publishing a new table.
+
+**Metrics, in order of what they actually settle:**
+
+1. **`staleness`** (upstream's) — the claim four levels are _for_. Flow memory
+   that dies with its flow should measurably reduce the stock of no-longer-true
+   facts. If it does not, the level idea has failed at its own thesis.
+2. **`signalToNoise`** and **`inferenceVsObservation`** (upstream's) — guards.
+   Levelling must not buy staleness by discarding useful facts, or by promoting
+   inference to fact at a boundary.
+3. **acc@1 / MRR** on a retrieval set — kept as a secondary, and deliberately
+   secondary. It is the instrument the _prior_ attempt used, and the prior
+   attempt measured 80% either way. Leading with it would mean betting the pillar
+   on the one number that has already come back flat.
+
+**The claim:** level-ordered recall lowers `staleness` against the flat-file
+baseline without losing `signalToNoise` — bounding what the system believes
+forever, which is the thing one flat file cannot do at all.
+
+**The baseline is already observed**, not assumed — this is what a real turn
+wrote to disk on 2026-08-01:
+
+```
+data/workspaces/personal__matias/memory/MEMORY.md
+- (2026-08-01) User is building ai-os, an agent operating system.
+- (2026-08-01) Flagship repo is EvolvingAgentsLabs/ai-os.
+```
+
+**Two ways this fails, both reportable:**
+
+- Same accuracy → the levels are bookkeeping, not retrieval. Possibly still
+  worth it for the lifetime property alone, but the retrieval claim is dropped.
+- Same accuracy _and_ no lifetime benefit → **ai-storage is not worth building**,
+  and the upstream flat file is the right answer.
+
+The second outcome must be reported as loudly as a success. The 80/80 benchmark
+is in the previous repository's README precisely because it came back flat, and
+that is the standard here.
+
+## Experiment 1 — distil at rest (`MEMORY_STRATEGY=dream`)
+
+The one capability this organisation invented first and the active line does not
+have: **per-project evolution through a pass taken at rest.** Grep the vendored
+tree for it and there are no hits — what exists is consolidation, which rewrites a
+list of already-extracted bullets. So this is the cheapest experiment that asks
+whether the idea is worth anything here, and it is deliberately one variable wide.
+
+**The hypothesis.** Turn-by-turn extraction throws away signal that only the whole
+arc contains. A pass that reads the raw episodes instead of pre-extracted bullets
+should supersede stale facts the per-turn pass has already committed to.
+
+**Why it is one variable.** `dream` reuses `scratch-promote`'s `PROMOTION_PROMPT`
+verbatim, plus a five-line addendum that says the input is raw exchanges rather
+than captures. Same rules, same judge, same conversations. The only difference
+between the two arms is **what the pass is allowed to look at** — which is why
+`scratch-promote` was added to the benchmark as the control in the same change.
+
+**The instrument, named before the code:** `npm run bench:memory`, upstream's
+judge, upstream's three axes, its six conversations. Two of them
+(`stale-fact-supersession`, `long-project-arc`) are arc-level by construction, so
+the fixtures needed no additions — if they had, that alone would have been a
+reason to distrust the result.
+
+**The claim:** `dream` lowers `staleness` against `per-turn` without losing
+`signalToNoise` or `inferenceVsObservation`.
+
+**Falsified by:** no `staleness` improvement over `per-turn`. Then distilling at
+rest buys nothing on this axis, upstream's per-turn extraction is the right answer,
+and the dream pass is not carried into `ai-storage`. This outcome gets published
+exactly like the 80/80 one above.
+
+### What this experiment does not measure, and must not be read as measuring
+
+The pass writes two files. `memory/MEMORY.md` is declarative and is what the judge
+reads. `memory/STRATEGIES.md` is procedural — `when <situation> -> <what to do>`,
+distilled from the same episodes and recalled alongside the notebook — and the
+judge **never sees it**, which is deliberate: it cannot inflate the score, and it
+is equally true that this benchmark returns no evidence about it. The procedural
+claim is _"a strategy learned on Monday changes what the agent does on Wednesday"_,
+and settling that needs a task suite with repeated situations, not a notebook
+judge. Until that exists, `STRATEGIES.md` is **[read]**, not **[ran]**.
+
+Worse, upstream's third axis actively penalises what the procedural tier produces:
+a generalisation across episodes _is_ inference rather than observation. Scoring
+strategies with this judge would not be a weak measurement, it would be an
+inverted one.
+
+### Two disclosures about the arms
+
+**`scratch-promote` carries a marker into the notebook the judge reads**
+(`<!-- captures-since-promote: n -->`, stripped on recall but present on disk).
+It was excluded from `KNOWN_KINDS` before this change and is included now, so its
+row is scored with that artifact in it. It is one HTML comment against six
+conversations, disclosed rather than corrected, because editing the judge's input
+to flatter an arm is the failure mode this document exists to avoid.
+
+**`dream` does not copy facts into a person's scope.** `ccCaptureToPersonal`
+fires in the other two strategies because a per-turn capture has exactly one
+speaker. A fact abstracted over a multi-actor episode does not, so promoting it
+into someone's `personal:` scope would be a promotion without provenance —
+forbidden by rule 1 above. The `project → user` arrow is therefore unavailable to
+this strategy by design, not by omission.
+
+### Result — the claim is falsified, and the instrument is saturated **[ran]**
+
+2026-08-05, `HARNESS=pi`, `deepseek/deepseek-v4-flash` via OpenRouter, 24 replays,
+~70 minutes. Full report:
+[`ai-flows/measurements/memory-bench-2026-08-05-dream.json`](../ai-flows/measurements/memory-bench-2026-08-05-dream.json).
+
+| strategy          | signal/noise | staleness | infer-vs-obs | overall |
+| ----------------- | -----------: | --------: | -----------: | ------: |
+| `dream`           |          9.8 |  **10.0** |         10.0 |     9.9 |
+| `per-turn`        |          9.5 |  **10.0** |         10.0 |     9.8 |
+| `scratch-promote` |          9.3 |       9.2 |          9.0 |     9.2 |
+| `agent-only`      |          1.3 |       7.8 |         10.0 |     6.4 |
+
+**The claim was that `dream` lowers `staleness` against `per-turn`. It does not —
+both sit at 10.0.** By the condition written before the code, that is falsified,
+and the dream pass is not carried into `ai-storage` on this evidence.
+
+**The finding that matters more is why.** `per-turn` scores a perfect 10/10/10 on
+five of the six conversations. There is no headroom left to measure in, so this
+benchmark cannot separate "the treatment does nothing" from "the instrument cannot
+see it" — for us or for upstream. A `staleness` of 10.0 across six conversations is
+not two perfect strategies; it is six conversations that do not stress supersession
+hard enough for this model. **The saturation is the reportable result**, and it
+invalidates the measurement plan in _How this gets falsified_ above as written:
+level-ordered recall was going to be scored on the same axis, against the same
+ceiling.
+
+**One mechanism signal survives, and it is a hint, not a result.** The single-
+variable pair is `dream` against `scratch-promote` — same `PROMOTION_PROMPT`,
+differing only in whether the pass reads raw episodes or pre-extracted bullets. On
+`stale-fact-supersession` they diverge sharply:
+
+|                                       | signal/noise | staleness | infer-vs-obs |
+| ------------------------------------- | -----------: | --------: | -----------: |
+| `dream` (raw episodes)                |            9 |    **10** |       **10** |
+| `scratch-promote` (extracted bullets) |            7 |     **5** |        **6** |
+
+The judge's note on the losing arm: _"includes a stale inference about the sync
+process remaining unchanged after the move, which was later superseded."_ The
+two-step pipeline **introduced** an inference that neither single-step arm made —
+the intermediate representation had already discarded what was needed to know the
+fact was superseded. That is the hypothesised mechanism showing up exactly where it
+was predicted. It is also **n = 1 conversation**, worth 0.3 of aggregate
+`signalToNoise`, and nothing should be built on it.
+
+The same shape appears once more: `per-turn` scored 7 on `noise-heavy-debugging`
+for keeping a port number and a flaky test, where `dream` scored 10 having dropped
+both. Arc-level reading discarding what looked durable turn-by-turn — again n = 1.
+
+**Two artifacts, disclosed as promised.** `scratch-promote`'s marker was in the
+notebook the judge read. And the judge docked it to `infer=9` on `long-project-arc`
+for _"the added dates (2026-08-05) are inferred and not explicitly stated"_ — that
+is upstream's own `- (YYYY-MM-DD) fact` bullet grammar being scored as
+speculation, which is a judge defect rather than a strategy defect, and it depresses
+every arm that writes dates.
+
+**What `agent-only`'s six replays bought:** 1.3 on `signalToNoise` confirms the
+fixtures do contain durable facts, so the ceiling above is not an artifact of empty
+conversations. That is the whole value of the null arm, and it is why it does not
+need running again.
+
+**What would actually settle this.** Not more conversations at this difficulty. The
+next instrument has to be one where headroom is _checkable before the experiment
+is bought_, and where the grader is not a model: the physics suite
+(`ai-flows/src/tasks/physics.ts`, unrun) grades by arithmetic against an exact
+oracle, counts `undetected` — a confidently stated wrong number — separately from
+`detected`, and computes difficulty rather than labelling it. Run the control arm
+alone first and read the `undetected` rate; if it is near zero there is no headroom
+and the experiment dies for the price of one arm. That is the same failure this
+result just walked into, made cheap to detect.
+
+**The code stays.** 240 lines behind `MEMORY_STRATEGY=dream`, default unchanged, and
+it is the only implementation of distillation-at-rest in the tree. It is now an
+untested mechanism rather than a promised one, which is the correct state for it.
+
+## Experiment 2 — the handoff, and a failure mode this model does not have **[ran]**
+
+The premise, stated by the person who first built agents as markdown files: _a first
+version of an agent is not optimal, and its initial fitness to be part of a
+multi-agent system is not either._ If that holds, the place to find it is a handoff —
+one agent finishing a step another continues — and the failure is **informational**
+rather than computational, so no amount of arithmetic ability removes it. That is why
+this experiment exists and why Experiment 1's atomic tasks could not have found it:
+with a sandbox, the arithmetic is simply not hard
+([11 § Scored, at last](11-choosing-a-model.md#scored-at-last-the-harness-lift-at-l2-is-total-ran)).
+
+`ai-flows/src/tasks/handoff.ts` populates `structure: "sequential"`, which was a
+declared type with zero instances. One physical question is split in two: an explorer
+computes named quantities and writes a note; a finisher, in a different conversation
+sharing the same workspace, must finish from that note alone.
+
+### The first design was void, and the second is the result
+
+**Run 1, 2026-08-05 — void.** Six handoffs, zero losses, every finisher passing —
+_including three whose own explorer had computed the wrong intermediate._ They passed
+because the finisher's prompt carried the task parameters, so it could recompute from
+scratch and ignore the note entirely. **The handoff was decorative, and a channel
+nobody needs cannot lose anything.** The loss rate was zero by construction. Report
+kept: [`handoff-probe-2026-08-05-control.json`](../ai-flows/measurements/handoff-probe-2026-08-05-control.json).
+
+Two fixes, and the second matters more than the first. The finisher now holds **no
+task number at all** — only a symbolic formula (`T = 4·P·K(m)`, `N = K/(1 + A·B)`) —
+with a test that fails if a parameter ever leaks back into its prompt, because the
+leak was invisible while nothing watched for it. And completeness is now read **off
+the note** rather than inferred from whether the finisher failed. That distinction is
+the whole measurement: a finisher can pass by luck over an incomplete note, which is
+exactly what happened to a note that was the bare string `0.04528057257316896` and got
+counted as a success.
+
+**Run 2, 2026-08-06 — no headroom, and the honest end of this line.**
+
+|                                                       |           |
+| ----------------------------------------------------- | --------: |
+| handoffs                                              |         6 |
+| notes carrying everything the successor needed        | **6 / 6** |
+| notes omitting something (recording failure)          |     **0** |
+| complete notes the finisher misread (reading failure) |     **0** |
+| finishers landing inside tolerance                    |     6 / 6 |
+
+Report and log:
+[`handoff-probe-2026-08-06-control-v2.json`](../ai-flows/measurements/handoff-probe-2026-08-06-control-v2.json).
+The notes say why better than the counts do. Asked only for two quantities and told
+nothing about what to include, one explorer wrote:
+
+```
+# Pendulum computation — handoff
+## Parameters
+- L = 1.717 m
+- g = 9.80665 m/s²
+- Angular amplitude = 5.04°
+## Results
+| P = √(L/g) | 0.41843192250151073 |
+| m = sin²(amplitude/2) | 0.001933195428413767 |
+| K(m) (complete elliptic integral of the first kind) | 1.5715563175063318 |
+| P × K(m) | 0.657589331253569 |
+```
+
+It recorded the parameters it was given, both requested quantities _with their
+symbolic definitions_, an intermediate nobody asked for, and the product its successor
+was about to need. Another closed with _"Both values computed with full double
+precision."_ This is not a first version that needs teaching.
+
+**So: the failure mode is not present in `deepseek-v4-flash` at this scale**, and the
+gate written before the run says what to do about it — do not redesign a third time to
+chase a number. Three designs already, each one moving the instrument closer to the
+hypothesis; a fourth would be looking for the result rather than measuring it.
+
+**What bounds the claim**, because it is narrow: n = 6; the tasks name the quantities
+they want, and being asked for named things makes recording them natural, where an open
+handoff (_"work out what is going on and pass it on"_) would not; and one note with one
+purpose is the easiest possible artifact. Real recording failure most likely lives in
+long, messy chains with many artifacts and no obvious answer to _what matters here_.
+None of that is measured, and none of it is claimed.
+
+## What the four instruments say together
+
+Read separately, today produced four failures to measure evolution. Read together they
+are one finding:
+
+| instrument                         | result                                 |
+| ---------------------------------- | -------------------------------------- |
+| `bench:memory`, flat-file baseline | `staleness` 10.0 / 10 — saturated      |
+| physics L2, bare `oneShot`         | 0 / 24 pass                            |
+| physics L2, harness with sandbox   | **12 / 12 pass** — headroom 0%         |
+| handoff, leak closed               | **6 / 6 notes complete** — headroom 0% |
+
+**At this scale the harness lift is everything and the learnable residue is nothing.**
+Rows two and three are the cleanest statement of it: 0% to 100% on identical tasks,
+one variable. And that is not a surprise this repository should be defensive about — it
+is [11](11-choosing-a-model.md)'s own argument arriving from a different direction. The
+lift is enormous **and** it is not the number that decides anything.
+
+What follows for `ai-storage` and for the dream pass is the same sentence: **there is
+no measured case for either yet**, and the next honest attempt is not another
+arithmetic suite. It is a domain where the shared artifact is prose or code, where
+_what to record_ has no obvious answer, and where the successor cannot check for itself
+whether what it received was enough.
+
+## Experiment 3 — feedback, and why the first four instruments could not have worked
+
+**Planned, not run.** Written before building it, per the rule this document opens with.
+
+### The diagnosis the four null results add up to
+
+Every instrument above shares one property, and it was invisible until all four
+returned the same answer: **the correct behaviour was derivable from information the
+task already contained.** Physics with a sandbox — the model computes it and checks
+itself. The handoff — the finisher could recompute, and the explorer recorded what it
+had used. The memory notebook — judged by the same model that wrote it.
+
+Where the answer is derivable, a learned strategy adds nothing, because the model
+simply derives it. So four instruments were built in which **learning was structurally
+unnecessary**, and their agreement is not evidence about learning at all. It is
+evidence that closed-form tasks cannot test it.
+
+Learning pays only where the correct behaviour is **not** derivable — where it depends
+on something outside the model:
+
+- what _this_ organisation does, which is arbitrary by nature
+- what actually happened last time in production
+- what a human corrected
+- what broke downstream, invisibly, hours later
+
+**Feedback is the mechanism that introduces non-derivable information**, and
+non-derivable information is the only thing a memory pass can carry that the model
+could not have recomputed. That is why this experiment is not an enhancement of the
+previous three; it is the first one whose premise is sound.
+
+It also removes the problem that killed all four: if the needed fact is genuinely
+absent at the first attempt, **failure is guaranteed and headroom is 100% by
+construction**. It no longer has to be hunted.
+
+And it corrects a suggestion made in closing the handoff result — that the residue
+might live in a _smaller_ model. Probably wrong. A smaller model fails more often at
+_deriving_, and a derivation failure is not repaired by a remembered rule either. The
+residue lives in what cannot be derived, not lower down.
+
+### Four sources, in cost order, and only the first runs tomorrow
+
+1. **A synthetic corrector holding a hidden rule.** Deterministic, no human, exact
+   oracle. The rule is one the agent cannot infer from the task — a unit convention, a
+   required sanity check, an ordering constraint that only this organisation imposes.
+   The agent attempts, the corrector says it is wrong and states the rule in general
+   terms, the pass at rest distils it, and a **different instance** requiring the same
+   rule is scored later. This is the version that fits in a day.
+   **The arbitrariness is the point, not a weakness** — arbitrary is precisely what
+   cannot be derived, and organisational convention is arbitrary in exactly this way.
+2. **An expert AI agent as corrector.** Real critique, cheap, and it scales. One
+   caution that decides whether it measures anything: whatever the stronger model
+   knows, the weaker one may also be able to derive — and then this collapses back into
+   the four null results above. Use the expert to produce the _critique_, and keep the
+   _rule_ non-derivable.
+3. **Real-world feedback.** Production traces, actual downstream failures. Highest
+   value and slowest, and it needs the system in real use. `Attempt.observation`
+   ([ADR-0007](adr/0007-observation-captured-not-derived.md)) is already the hook, which
+   is the one piece of luck here.
+4. **Human expert feedback.** Highest signal per item, lowest throughput, and the
+   ground truth the other three approximate. Worth spending on the cases where 1–3
+   disagree.
+
+### The way this experiment cheats, named before it can
+
+Feedback introduces a leak of its own, and it is the same shape as the one that voided
+handoff run 1.
+
+**If the corrector's message contains the answer, nothing is learned — a hint is
+copied.** So: the corrector states the rule, never the value; and the score is taken on
+a _different instance_ where the same rule applies, never on a retry of the corrected
+one. A retry measures short-term instruction-following, which is not the claim.
+
+Two more, worth writing down while the answer is unknown:
+
+- **The rule must be checkable without the corrector.** Otherwise the evaluation
+  depends on the same component under test.
+- **A control arm with feedback but no persistence.** Corrected every time, remembering
+  nothing. If that arm matches the treatment, the gain was the correction and not the
+  memory — which is the most likely way this comes back looking like a success when it
+  is not.
+
+**Falsified by:** no gap between the treatment arm and the feedback-without-persistence
+control, on held-out instances of the same rule. That is the whole claim of
+distillation-at-rest, and unlike Experiment 1's condition, this one can fire.
+
+## The corrector exists — 2026-09-06 **[ran]**
+
+Experiment 3 above is still **not run**. What changed is that its instrument is
+built and tested: `ai-flows/src/corrector.ts`, with `test/corrector.test.ts`.
+
+Three rules, each a miniature of one this repository already enforces in CI:
+
+| rule | the real one it mirrors |
+|---|---|
+| a change under `vendored/` must be recorded in `PATCHES.md` | `ci.yml` — `ai-base/AI-OS-PATCHES.md` |
+| the control-arm file must stay inert | `ai-flows/test/view.test.ts` — `src/view.ts` |
+| the published count follows the suite | `scripts/check-test-count.sh` |
+
+Miniatures rather than this repository itself, so a run is seconds and
+repeatable. The **rules** are real, and that is what matters: arbitrary
+organisational convention is the cleanest non-derivable information available,
+which is the whole point of §"the diagnosis the four null results add up to".
+
+The second rule is the sharpest of the three, because **its correct behaviour is
+inaction**. An agent asked to improve an explorer will add interaction — that is
+the obvious move, and general competence produces it. Only knowing that the file
+is a control arm makes doing nothing right. There is no partial credit to
+stumble into.
+
+**Two guards are code rather than authorial care, and both caught real defects
+on their first run:**
+
+- `correctionLeaks` compares a correction against the vocabulary of its own
+  instances and fails if it names a path or a value. It rejected two of the three
+  corrections as first written — a leaking correction makes the experiment
+  *succeed*, which is exactly when nobody looks.
+- `instancesAreDistinct` fails if a rule's two instances share files, because
+  then the scored one is a retry wearing another name.
+
+The API has no function that scores the first instance. Scoring a retry measures
+short-term instruction-following, and the shape of the module is what prevents
+it rather than a note asking someone to remember.
+
+`naiveAttempt` builds the workspace an agent that did only the derivable half
+would leave behind, and a test asserts every rule **fails** it. That is the
+headroom check, run before the treatment exists rather than after.
+
+**Still not built, and it is the arm that decides what the result means:** the
+feedback-without-persistence control named above. Corrected every time,
+remembering nothing. Without it, a gap is not evidence for distillation at rest.

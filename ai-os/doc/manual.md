@@ -1,0 +1,510 @@
+# Running ai-os — a manual for what exists today
+
+**[Español](es/manual.md)**
+
+> **Read this first.** ai-os is four pillars and only one of them is a running
+> product. This manual documents **what actually starts and what you can actually
+> see**, verified by doing it on 2026-08-06 **[ran]**. Where a screenshot shows a
+> feature, that feature runs. Where this manual says something does not exist, it
+> does not exist — see [§ What you cannot run](#what-you-cannot-run).
+>
+> **The web interface in these screenshots is QM's, not ours.** `ai-ui` — the
+> spatial canvas of [04-ai-ui](04-ai-ui.md) — is a specification with no code.
+> What you see below is `ai-base`, the vendored upstream, doing its job.
+
+## What you get
+
+| Component | Runs? | What you can do with it |
+|---|---|---|
+| `ai-base` (QM) | **yes** | Full agent surface: chat, projects, files, crons, memory, skills |
+| `ai-flows` | **partly** | Two libraries with CLIs — the observability instrument and the conformation projector. No flow engine |
+| `ai-ui` | no | Specified in [04](04-ai-ui.md). No code |
+| `ai-storage` | no | Specified in [05](05-ai-storage.md). No code |
+
+---
+
+## Part 1 · Start the platform
+
+### Prerequisites
+
+- Node 24+ (`ai-base/.node-version` pins it)
+- An `OPENROUTER_API_KEY` in `ai-base/.env` — the default harness is `pi`, which
+  is the one that reaches non-Anthropic models
+- Postgres is **optional**. Without it everything falls back to in-memory stores,
+  which is enough to run and has one consequence documented in Part 4
+
+### 1.1 The core
+
+The core is an API, not a web page. It refuses unsigned requests by default, so a
+local run needs the escape hatch upstream provides for exactly this
+(`src/api/server.ts:476`). Note the condition: the flag alone is not enough, the
+signing secret must also be **absent**.
+
+```bash
+cd ai-os/ai-base
+ALLOW_UNAUTHENTICATED_CORE=1 ORG_ID=<your-org> PORT=8080 \
+  HARNESS=pi OPENROUTER_API_KEY=<key> PI_MODEL=<model> \
+  node src/index.ts
+```
+
+You want these two lines:
+
+```
+[server] ALLOW_UNAUTHENTICATED_CORE=1 — HTTP ingress is UNAUTHENTICATED (intentionally isolated deployments only).
+[qm] listening on :8080 (org=…, store=memory, runStore=memory, workers=16, backgroundWork=true)
+```
+
+> **This turns off authentication.** It is for a laptop and an isolated
+> deployment. Do not do this anywhere reachable. With `CORE_SIGNING_SECRET` set
+> instead, every request must carry an HMAC signature and you need the portal for
+> a browser session.
+
+### 1.2 The web surface
+
+A **separate process**, in `plugins/web-ui`. Its sign-in mode is decided by one
+line (`server/index.ts:36`): with no `CORE_SIGNING_SECRET` it uses a local cookie
+and a dev sign-in form; with one, it expects the portal and a real identity
+provider.
+
+```bash
+cd ai-os/ai-base/plugins/web-ui
+npm install && npm run build
+CORE_API_URL=http://localhost:8080 CORE_ORG_ID=<your-org> PORT=8096 \
+  node server/index.ts
+```
+
+```
+[web-ui] surface on http://localhost:8096 → core http://localhost:8080 (org …)
+[web-ui] WEB_UI_PRINCIPALS unset — any principal id may sign in (dev only)
+```
+
+Open `http://localhost:8096`, type any principal id, and you are in.
+
+<img src="assets/manual/01-chat.jpg" alt="" width="100%">
+
+<sub>Signed in. The brown banner never lets you forget the instance is unauthenticated. Model and harness are pickable per turn — here DeepSeek V4 Flash on Pi.</sub>
+
+---
+
+## Part 2 · Projects are group scopes — see it yourself
+
+This is the claim [ADR-0005](adr/0005-scale-is-scope.md) and
+[12-conformation](12-conformation.md) rest on, and the UI proves it in its own
+address bar.
+
+Open **Projects → New project**, name it, and look at the URL:
+
+<img src="assets/manual/03-project-scope.jpg" alt="" width="100%">
+
+```
+http://localhost:8096/contexts?scope=group%3Aweb-project-2dde0e2d-…
+```
+
+URL-decoded that is **`group:web-project-<uuid>`** — a `group` scope with a
+reserved prefix, exactly as `projects/project-store.ts:47` builds it. There is no
+"project" object anywhere. **The roster is the panel on the right** ("People · 1 ·
+OWNER"), served by `ProjectStore`, and it is the *only* place membership lives.
+
+<img src="assets/manual/02-projects.jpg" alt="" width="100%">
+
+<sub>Every project is a scope; "Personal" is your `personal:` scope wearing a friendly name.</sub>
+
+### An agent is a file, and the agent can write it
+
+Ask the assistant, inside a project, to write `agents/reviewer.md`:
+
+<img src="assets/manual/04-agent-written.jpg" alt="" width="100%">
+
+<sub>Scoped to "Conformation Demo context" — the write lands in that project's workspace, not yours.</sub>
+
+On disk:
+
+```
+ai-base/data/workspaces/group__web-project-2dde0e2d-…/agents/reviewer.md
+```
+
+That is the whole "per-project agents folder" feature. It is a directory in the
+scope's workspace, and any agent that can write files can create one.
+
+> **The catch, and it is not small.** Workspace-defined markdown agents are read
+> by exactly one caller in the tree, `pi-tools.ts` **[read]**. On `claude` the
+> child agents are hardcoded; on `codex` and `opencode` delegation happens inside
+> their CLI. **Your `agents/` folder does nothing on three of five harnesses.**
+
+---
+
+## Part 3 · The multi-agent system
+
+This is the part that changed most on 2026-08-07, and everything below was
+verified by running it **[ran]**.
+
+### Every level, its people, and its agents — one page
+
+`ai-flows` serves a page at `GET /` showing the whole system: the levels the OS
+actually has, who is in each, and the agents each scope defines.
+
+```bash
+cd ai-os/ai-flows
+FLOWS_SIGNING_SECRET=<secret> node --env-file=/path/to/core.env scripts/serve.ts
+# → http://localhost:8097
+```
+
+<img src="assets/manual/06-system-explorer.jpg" alt="" width="100%">
+
+<sub>System first, because <code>global/</code> is mounted read-only into every scope below it.</sub>
+
+#### Reading the colours
+
+The page borrows its vocabulary from System 7 and Windows 3.1, and not for
+nostalgia: those interfaces made **kind** and **state** visible before you read a
+word. Every scope role, every agent, every step state has one colour used nowhere
+else, and the page carries its own key — generated from the same table that
+colours it, so it cannot drift from what it explains.
+
+<img src="assets/manual/08-desktop-key.jpg" alt="" width="100%">
+
+<sub>Point at a cube and you know what kind of thing it is. That is the whole idea.</sub>
+
+**Nothing on the page is clickable**, and that is load-bearing rather than
+unfinished. This page is the control arm for the canvas
+([08-roadmap § Phase 2](08-roadmap.md)): anything it cannot do that you turn out
+to need is evidence *for* building M5, and it is only evidence while nobody
+quietly adds interaction here. The bar across the top carries facts, not menus,
+for the same reason.
+
+Read it top to bottom:
+
+- **System** — `org:<your-org>`, whose `agents/` mount into every other scope as
+  `global/agents/`.
+- **Projects** — `group:web-project-<uuid>`, each with a **roster read from
+  `ProjectStore`**. Membership is never read from a folder; see
+  [ADR-0008](adr/0008-conformation-is-projected.md).
+- **Groups & channels**, **Teams**, **Individuals** — the remaining scope kinds.
+
+### Agents and sub-agents are markdown
+
+An agent is `agents/<name>.md`. Frontmatter declares what it is; the body is its
+system prompt:
+
+```markdown
+---
+description: Owns the ledger rewrite. Splits work and routes it to the specialists.
+tools: [read, write, execute]
+subagents: [SchemaAgent, MigrationAgent, ReviewAgent]
+---
+You lead the ledger rewrite. Split the goal, route each piece to the agent in
+your subagents list, and report what came back.
+```
+
+`description` and `tools` are upstream's. **`subagents:` is ours**, and it works
+because upstream's parser validates those three fields and ignores every other
+key — so the same file stays a valid, delegatable agent while carrying the tree.
+There is no sidecar registry and no schema to keep in sync.
+
+A declared name with no file renders struck through as **`declared, no file`**.
+That is deliberate: a declared name is a claim, a file is a fact, and a tree that
+renders a typo as a working composition is worse than no tree.
+
+### Running a tree
+
+`POST /flows/from-agent` turns the declared tree into a flow. Use `?dryRun=1`
+first — a hand-declared tree is exactly the thing to look at before it spends
+model calls.
+
+```jsonc
+POST /flows/from-agent?dryRun=1
+{ "scopeId": "group:web-project-…", "agent": "LedgerLead", "goal": "add a currency column" }
+
+// → step -> SchemaAgent     via:delegate depth:1
+//   step -> MigrationAgent  via:delegate depth:1
+//   step -> ReviewAgent     via:delegate depth:1
+```
+
+Drop `?dryRun=1` to create it, then `POST /flows/:id/advance` per step.
+
+<img src="assets/manual/07-composed-flow.jpg" alt="" width="100%">
+
+<sub>A composed flow in the in-tray, stopped at step 2. The strip under the goal is one cube per step — two green, one grey — so where it stopped is visible before you read anything.</sub>
+
+The strip is there because `2/3 steps done` is a fact you have to read and three
+cubes is a fact you see, and because the fraction throws away *which* steps are
+unfinished. Work still moving sits in the **in-tray**; work that has settled sits
+in the **out-tray**. "Where is this and is anyone holding it" is the question the
+page exists to answer, so it is the question the layout answers first.
+
+There is something else visible in that screenshot, and it is not a rendering
+artefact. Step 0 delegated to `SchemaAgent`, which replied asking *which file
+contains the ledger data* — it did no work — and the flow advanced to step 1
+anyway. Every status on the card says the flow is fine. That is the degradation
+[13-degradation](13-degradation.md) is about, on the page, in a real run.
+
+### What composition does not do, and why
+
+**Depth is flattened, not honoured.** A delegated child is built without
+`runChild` (`pi-harness.ts:1313-1318`), so **an agent cannot delegate to its own
+sub-agent**. What runs is the pattern llmunix's SystemAgent uses: the
+orchestrating session reads the tree and delegates to each named agent itself. A
+deeper tree contributes its descendants as further steps in the same flat
+sequence, and the plan says so rather than leaving you to notice.
+
+**A system agent cannot be delegated to from a project.** `delegate` resolves
+`agents/<name>.md` against the scope's own root; the system scope mounts at
+`global/` and agent names cannot contain `/`. The composer marks those steps
+`inline` — the instructions are pasted into the step instead. That is strictly
+worse (no isolated context, no tool narrowing) and it is labelled so nobody reads
+an inlined step as a delegated one.
+
+### Two write paths, and using the wrong one fails silently
+
+The single most useful thing in this manual, because getting it wrong produces a
+page that renders perfectly and a runtime that finds nothing:
+
+| Layer | Materialised from | Write agents with |
+|---|---|---|
+| `global/` — the org scope, read-only | the `WorkspaceStore`, **rebuilt every turn** | `workspace.write()`. It is also the **only** way: `scopeFor` returns `personal`, `group` or `channel` and never `org`, so no conversation can reach the system scope |
+| your own scope, read-write | the **persisted sandbox** | a **turn** — ask the agent to `write` the file |
+
+`ro-layers.ts` opens with `if (layer.mode === "rw") continue;`. Measured: after
+writing six agent files to the store for a project scope, `ls -1 agents/` inside
+that scope's sandbox returned **two**, and a seventh written and listed a minute
+later never appeared. Materialisation runs sandbox → store, not the reverse.
+
+`scripts/seed-demo.ts` builds the whole demonstration above — system agents,
+project, roster, trees — using the correct path for each layer.
+
+```bash
+node --env-file=/path/to/core.env scripts/seed-demo.ts
+```
+
+### One thing that is a stopgap, and is not pretending otherwise
+
+A shared scope refuses a turn from a non-member, and **a flow records no actor** —
+it has a `scopeId` and nothing about who it acts for. `FLOWS_ACTOR` names one
+principal who must be a member of every scope the server runs flows in. It is
+wrong the way shared service accounts are always wrong: every flow in the audit
+log is attributed to the same person regardless of who asked for it.
+
+This is [ADR-0008](adr/0008-conformation-is-projected.md)'s condition for agent
+principals firing — *an agent that must appear in a roster* — and it is recorded
+rather than papered over.
+
+---
+
+## Part 4 · The conformation projector
+
+The one thing in `ai-flows` you can point at a real system. It answers *what shape
+is this system in, and who has been talking to whom* — read-only, no writes, no
+tables.
+
+```bash
+cd ai-os/ai-flows
+node --env-file-if-exists=../ai-base/.env scripts/conformation-probe.ts --data ../ai-base/data
+```
+
+Against the instance from Part 2:
+
+```
+conformation @ 2026-08-06T21:15:09Z  harness=pi  digest=a197a05cbf3dfcbf
+
+project    group:web-project-2dde0e2d-0b07-4554-8bef-353f7c8400e7
+  agent  reviewer [read] Reviews a change against project policy.
+system     org:evolvingagents
+individual personal:matias
+  memory MEMORY.md
+
+holes (3) — these are the deliverable:
+  [-] Which scopes exist?
+  [group:web-project-…] Who is on this project's roster?
+  [-] Who has been talking to whom?
+```
+
+Flags: `--json` for the document instead of the rendering, `--seed` to write a
+fixture first, `--converse` to run two real turns so the graph has edges.
+
+### Holes are the point
+
+A projection's failure mode is silence — a view that renders cleanly because it
+did not ask. So every unanswerable question is printed. **Read the holes first;
+they are more informative than the tree.**
+
+---
+
+<a id="holes-live"></a>
+
+## Part 5 · What the holes told us, running it live
+
+Three findings from the exact run above, and they are the reason this manual is
+worth more than a feature list.
+
+**The roster hole is correct, and the UI proves it.** The screenshot in Part 2
+shows "People · 1 · OWNER". The projector says it cannot see the roster. Both are
+true: with `store=memory` the `ProjectStore` lives *inside the running core's
+process*, so a second process reading the same `dataDir` sees the workspace files
+and none of the state. **Run Postgres if you want conformation across processes.**
+
+**A project can exist with no workspace at all.** Immediately after creation the
+projector could not see the project — the directory materialises only when a turn
+writes something. Scope enumeration is a session fact, not a workspace fact, and
+no store answers it directly.
+
+**Attribution had to be rebuilt.** `meta.author` is written from
+`actor.displayName` and nothing else (`core/orchestrator.ts:2170`), so turns from
+a surface that supplies no display name — and **every reply the assistant makes** —
+are unattributed. `ai-flows` recovers this from participant windows: 4 of 4 on the
+measured pair, with the principal id rather than the display name
+([12-conformation](12-conformation.md#attribution-recovered)).
+
+---
+
+## Part 6 · The desk — flows as documents, agents as cubes
+
+`ai-ui` is a third process. It reads the system from `ai-flows` and owns nothing
+but the arrangement.
+
+```bash
+cd ai-os/ai-ui
+DATABASE_URL=<same as the flow API> FLOWS_API_URL=http://localhost:8097 \
+  node scripts/serve.ts
+# → http://localhost:8098
+```
+
+<img src="assets/manual/09-desk.jpg" alt="" width="100%">
+
+<sub>Two flows, one finished and one not started. The cubes on each document are the agents with work in it; <code>LedgerLead</code> sits on bare desk because it has none. <code>AnomalyScanner</code> is on the shelf, struck through: declared in <code>DataQualityAgent.md</code> with no file behind it, so it cannot be dragged anywhere.</sub>
+
+**A document is a flow. A cube is an agent.** A cube resting on a document means
+that agent has work in that flow, and the strip under the goal is one cube per
+step, so where a flow stopped is visible before you read anything.
+
+### The four gestures, and what each costs
+
+| Gesture | What happens | Cost |
+|---|---|---|
+| Drag a document | It stays there, for that scope, across reloads | nothing |
+| Drop a cube on a document | That agent gets a **real step** — the same instruction composing a tree writes | nothing to add it |
+| Drag a cube off | That agent's **queued steps are removed** | nothing |
+| Click a document → **Advance** | Runs one step | **one model call** |
+
+Dragging a cube off is the part worth explaining. Dropping one creates work, so
+taking it off has to undo the same work — otherwise the desk would show an agent
+as idle while its step sat queued and ready to run. **A step that has already
+started is not removed**: an attempt is history, and the desk says so and puts
+the cube back rather than drawing a picture that is wrong.
+
+<img src="assets/manual/10-desk-panel.jpg" alt="" width="100%">
+
+<sub>Selecting a document opens its panel: every step by agent, and the one control that spends money — with the cost stated before it is pressed. A document is addressable: <code>?select=&lt;flowId&gt;</code>.</sub>
+
+### The trace: what actually happened
+
+A document's panel has two faces. **State** answers *where is this*. **Trace**
+answers *what happened*, and it is the face this whole system exists for.
+
+<img src="assets/manual/11-trace-memory.jpg" alt="" width="100%">
+
+<sub>The Trace face of a document, from a live instance, and the memory drawer below it. Every step with its result, its attempt, its run and the observation digest captured when that attempt closed — plus the movement verdict, quoted with the bound it is read under.</sub>
+
+Everything on that face is **measured**, not summarised:
+
+- **`progressing` · `3 observations · δ ≤ 14.6%`** — the movement verdict from
+  [10-observability](10-observability.md), computed by the same
+  `observabilityOf` the explorer uses. Below two observations it says *not enough
+  to say* rather than rounding to "fine", because a repeat is proof and a
+  difference is a rumour.
+- **The digest under each attempt** is what that verdict is made of. It is
+  captured when the attempt closes and never inferred
+  ([ADR-0007](adr/0007-observation-captured-not-derived.md)).
+- **A step that used nothing it was given** is flagged in red with the numbers
+  behind the flag — how much of the input it carried, and how many distinctive
+  tokens there were to carry. That is [13-degradation](13-degradation.md)'s
+  headline, and every other signal on the card says the flow is fine.
+
+The screenshot has one of its own. Step 2's `ReviewAgent` reports that it
+*"couldn't access the files due to sandbox isolation, but I have both files in
+context so I'll do the review directly."* It reviewed from memory. Nothing about
+the flow's state says so — the step is green, the flow is `done`, the strip is
+full. **It is legible only in the trace**, which is the argument for the trace
+being on the canvas rather than one page away.
+
+### Memory: a drawing of software that does not exist
+
+<sub><strong>NOT BUILT — THIS IS THE SPEC.</strong> The drawer along the bottom is hatched and every card is dashed, and it says so on the object rather than in a footnote.</sub>
+
+`ai-storage` is [05](05-ai-storage.md) and nothing else. There is no store, no
+promotion, no consolidation. What the drawer shows is a note **recomputed from
+the traces on every read** — a memory that vanishes when you stop looking is not
+one, and that is exactly why it is drawn as a sketch.
+
+It is here because a picture is a cheaper specification than a document, and an
+interactive one is cheaper still: you find out what "promote a flow's notes into
+the project" needs by trying to press the button.
+
+The shape it commits to:
+
+| | |
+|---|---|
+| **Four levels** | `system` · `user` · `project` · `flow`, longest-lived first, from doc/05 |
+| **Promotion is one rung** | flow → project → user → system, explicit and reversible |
+| **Provenance is required** | every note names the flows it came from; a note nobody can trace back is indistinguishable from one somebody typed |
+| **Consolidation keeps what carried** | the steps that moved something forward survive; the ones flagged as carrying nothing are dropped |
+
+That last row is the cheap insight and the reason this is not a port. The hard
+part of consolidation — *which steps of a trace mattered* — is the question
+`contribution.ts` already answers. `evolving-memory` calls it `TraceCurator`;
+here it already runs on every flow.
+
+**What the sketch does not answer**, and the real one must: when two notes say
+the same thing, which survives? That is why consolidation cannot simply be a loop
+over finished flows.
+
+### Reading the desk never starts work
+
+The page re-reads state every five seconds. Nothing about that can launch a step:
+`/assign` writes one and `/advance` runs one, and both are gestures you make.
+
+It *does* collect. A step whose run has finished has to be settled by something,
+and if the desk only ever advanced, a step it started would sit at `running`
+forever. **Measured, by pressing the button:** the first version left a step
+running for over ten minutes with its run long finished, and the agent's cube
+pulsing over it. Collecting launches nothing and spends nothing — it settles a
+run already paid for.
+
+### When every step is done but the flow is not
+
+A flow whose steps have all settled stays `waiting` until something closes it.
+The panel offers **Mark the flow finished** in that case, and says plainly that
+it spends nothing, because there is no step left to run.
+
+---
+
+## What you cannot run
+
+Stated plainly, because a manual that omits this is a brochure:
+
+- **The flow engine is built; the shapes above it are not.** M2 was delivered on
+  2026-08-06 — a flow started by one process and finished by another, 6/6 on both
+  `pi` and `mock` ([08-roadmap § M2](08-roadmap.md)). What is still absent is
+  everything above one shape: no `Sequence`, `Loop`, `Fan-out`, `Deliberation` or
+  `Watch`, and no merge.
+- **The canvas is built but unproven.** Part 6 is real and runs. What has *not*
+  happened is its own falsification: the stopwatch, a three-day-old flow somebody
+  else ran, desk against transcript ([04](04-ai-ui.md)). Until that is run, the
+  honest claim is that it works, not that it helps.
+- **There is no scoped memory.** `ai-storage` is [05](05-ai-storage.md) and
+  nothing else. The `Memory` tab you see is QM's flat `MEMORY.md`.
+- **Orchestrator agents still cannot have their own sub-agents.** Delegation is
+  capped at one level, deliberately, in one line (`pi-harness.ts:1313-1318`). A
+  declared tree is composition the *session* executes, flattened — see Part 3.
+- **Agents are not principals.** `PrincipalType = "internal" | "guest"`. An agent
+  cannot be on a roster or hold its own permissions.
+
+## Shutting down
+
+```bash
+pkill -f "src/index.ts"          # core
+pkill -f "web-ui/server/index.ts"  # surface
+```
+
+In-memory stores mean everything except workspace files disappears with the
+process. That is a configuration choice, not a defect — set `DATABASE_URL` to keep
+it.
