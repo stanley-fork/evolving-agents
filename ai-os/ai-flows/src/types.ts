@@ -1,0 +1,140 @@
+/**
+ * `gated` is the first shape that declares a metric.
+ *
+ * [16-a-workload-with-an-oracle](../../doc/16-a-workload-with-an-oracle.md)
+ * argued for it from a measured need rather than from the list in `doc/03`: a
+ * workload with an **external oracle** — closed-form eigenvalues that a module
+ * forbidden to import the solver produces — can say whether a step was right,
+ * and `open` cannot. A `gated` flow names the checks it must satisfy and
+ * **cannot reach `done` while one of them is red or has never run**.
+ *
+ * That is spec §6.1 of `projects/coclea-sr`, eval-gated freeze, in the OS's own
+ * vocabulary: no artefact becomes frozen until every applicable gate is green.
+ */
+export const FLOW_SHAPES = ["open", "gated"] as const;
+export type FlowShape = (typeof FLOW_SHAPES)[number];
+
+export const FLOW_STATES = ["draft", "running", "waiting", "blocked", "done", "abandoned"] as const;
+export type FlowState = (typeof FLOW_STATES)[number];
+
+export const STEP_STATES = ["pending", "running", "waiting", "done", "failed", "skipped"] as const;
+export type StepState = (typeof STEP_STATES)[number];
+
+export const ATTEMPT_STATES = ["running", "done", "failed"] as const;
+export type AttemptState = (typeof ATTEMPT_STATES)[number];
+
+const TERMINAL_FLOW: ReadonlySet<FlowState> = new Set<FlowState>(["done", "abandoned"]);
+const TERMINAL_STEP: ReadonlySet<StepState> = new Set<StepState>(["done", "failed", "skipped"]);
+
+export function isTerminalFlow(state: FlowState): boolean {
+  return TERMINAL_FLOW.has(state);
+}
+
+export function isTerminalStep(state: StepState): boolean {
+  return TERMINAL_STEP.has(state);
+}
+
+export interface FlowLineage {
+  flowId: string;
+  atStep: number;
+}
+
+/**
+ * What an attempt was observed to produce, captured when the attempt closes.
+ *
+ * Captured rather than derived, and that is forced by upstream rather than
+ * chosen: run activity is deleted after `RUN_ACTIVITY_TTL_MS` — one hour — in
+ * both backends (`ai-base/src/runs/run-activity-store.ts:16`,
+ * `postgres-run-activity-store.ts:30`) and is exposed on no route. A flow
+ * spanning days cannot reconstruct what its attempts did. See ADR-0007.
+ *
+ * Deliberately not a score. `digest` answers "can two states be told apart",
+ * which is defined for every shape; `value` answers "by how much", which is
+ * defined only where a shape declares a metric, and today no shape does.
+ */
+export interface Observation {
+  /** Fingerprint of the state this attempt produced. Opaque to the store. */
+  digest: string;
+  /** Present only where the shape declares a metric. `null` for `open`. */
+  value: number | null;
+  /** What produced the digest. Recorded so two flows are comparable, never inferred. */
+  source: string;
+  at: number;
+}
+
+export interface Attempt {
+  id: string;
+  stepId: string;
+  n: number;
+  state: AttemptState;
+  runId: string | null;
+  sessionId: string | null;
+  error: string | null;
+  /** `null` when the caller closed the attempt without one. Never fabricated. */
+  observation: Observation | null;
+  startedAt: number;
+  finishedAt: number | null;
+}
+
+export interface Step {
+  id: string;
+  flowId: string;
+  index: number;
+  intent: string;
+  state: StepState;
+  result: string | null;
+  attempts: Attempt[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface Flow {
+  id: string;
+  scopeId: string;
+  /**
+   * The principal this flow acts for — recorded at creation, never inferred.
+   *
+   * A step runs as this person, so upstream's roster guard decides whether the
+   * flow may proceed by the same rule it applies to that person's own turns
+   * ([ADR-0009](../../doc/adr/0009-a-flow-records-who-it-acts-for.md)).
+   *
+   * `null` only on flows created before the field existed. They cannot be
+   * advanced, and are **not** backfilled: a guessed actor is manufactured
+   * provenance, and an audit trail naming a plausible person is worse than one
+   * that says it does not know.
+   */
+  actorId: string | null;
+  title: string;
+  goal: string;
+  shape: FlowShape;
+  state: FlowState;
+  /**
+   * The checks a `gated` flow must satisfy before it may finish. `null` on every
+   * other shape, and on `gated` flows created before the field existed.
+   *
+   * An empty array is NOT the same as `null` and both are refused rather than
+   * treated as "nothing to check": a gated flow with no gates is a flow whose
+   * whole point has been configured away, and letting it finish silently is the
+   * failure the shape exists to prevent.
+   */
+  requiredGates: string[] | null;
+  forkedFrom: FlowLineage | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface FlowWithSteps extends Flow {
+  steps: Step[];
+}
+
+export interface CreateFlowInput {
+  scopeId: string;
+  /** Required. A flow with no actor is not created — see `Flow.actorId`. */
+  actorId: string;
+  title: string;
+  goal: string;
+  shape?: FlowShape;
+  /** Required when `shape` is `gated`; ignored otherwise. */
+  requiredGates?: string[];
+  forkedFrom?: FlowLineage;
+}

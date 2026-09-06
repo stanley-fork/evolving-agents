@@ -1,0 +1,247 @@
+name: ai-os
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    working-directory: ai-os/ai-base
+
+jobs:
+  scope-guard:
+    name: Fail-closed scope guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version-file: ai-os/ai-base/.node-version
+          cache: npm
+          cache-dependency-path: ai-os/ai-base/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: An unhandled scope kind must deny, and the union census must hold
+        run: node --experimental-test-module-mocks --test test/scope-kind-fail-closed.test.ts
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version-file: ai-os/ai-base/.node-version
+          cache: npm
+          cache-dependency-path: ai-os/ai-base/package-lock.json
+      - name: Install and typecheck
+        run: |
+          npm ci
+          npm run typecheck
+
+  tests:
+    name: Tests (${{ matrix.shard }}/5)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version-file: ai-os/ai-base/.node-version
+          cache: npm
+          cache-dependency-path: ai-os/ai-base/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Verify the shard plan covers every test file exactly once
+        if: matrix.shard == 1
+        run: npm run test:root:shard:check
+      - name: Root tests
+        env:
+          CORE_TEST_SHARD: ${{ matrix.shard }}/5
+        run: npm run test:root:shard
+
+  postgres:
+    name: Postgres tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: qm
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version-file: ai-os/ai-base/.node-version
+          cache: npm
+          cache-dependency-path: ai-os/ai-base/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Durability, and one-running-per-session under concurrent claims
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/qm
+        run: npm run test:pg
+
+  flows:
+    name: ai-flows
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-os/ai-flows
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: flows
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version-file: ai-os/ai-base/.node-version
+          cache: npm
+          cache-dependency-path: ai-os/ai-flows/package-lock.json
+      - name: Install and typecheck
+        run: |
+          npm ci
+          npm run typecheck
+      - name: Tests, both backends
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/flows
+        run: npm test
+      - name: The published test count matches the suites
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/flows
+        working-directory: ai-os
+        run: ./scripts/check-test-count.sh
+
+  ui:
+    name: ai-ui
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-os/ai-ui
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version-file: ai-os/ai-base/.node-version
+          cache: npm
+          cache-dependency-path: ai-os/ai-ui/package-lock.json
+      - name: Install and typecheck
+        run: |
+          npm ci
+          npm run typecheck
+          npm run typecheck:scripts
+      - name: Tests
+        run: npm test
+
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version-file: ai-os/ai-base/.node-version
+          cache: npm
+          cache-dependency-path: |
+            ai-os/ai-base/package-lock.json
+            ai-os/ai-base/plugins/web-ui/package-lock.json
+      - name: Install
+        run: |
+          npm ci
+          npm ci --prefix plugins/web-ui
+      - name: Formatting
+        run: npm run format:check
+      - name: Lint
+        run: npm run lint
+      - name: Dead code
+        run: npm run lint:knip
+      - name: Oxlint
+        run: npm run lint:ox
+
+  gate-count:
+    name: Published gate count
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-os
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - name: The published gate count matches the reports
+        run: python3 scripts/check-gate-count.py
+
+  ledger:
+    name: ai-base ledger
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-os
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: A change inside ai-base must be recorded in AI-OS-PATCHES.md
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          base=$(git merge-base "$BASE_SHA" "$HEAD_SHA")
+          changed=$(git diff --name-only "$base" "$HEAD_SHA" -- ai-base \
+            ':!ai-base/AI-OS-PATCHES.md')
+          [ -n "$changed" ] || exit 0
+          if git diff --quiet "$base" "$HEAD_SHA" -- ai-base/AI-OS-PATCHES.md; then
+            printf '%s\n' "$changed" >&2
+            echo "these files are vendored upstream; record the change in ai-os/ai-base/AI-OS-PATCHES.md in this PR" >&2
+            exit 1
+          fi
+
+  base:
+    name: ai-base
+    runs-on: ubuntu-latest
+    needs:
+      - scope-guard
+      - typecheck
+      - tests
+      - postgres
+      - flows
+      - ui
+      - lint
+      - gate-count
+    steps:
+      - name: Checks passed
+        run: echo "scope guard, typecheck, five test shards, postgres, ai-flows, ai-ui, lint and the gate count passed."
+        # The workspace root, not ai-os: this job never checks out, so the only
+        # directory that exists is the one the runner made. This `.` was never a
+        # path into the repository, and re-rooting it pointed bash at a
+        # directory nothing had created.
+        working-directory: .

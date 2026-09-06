@@ -1,7 +1,18 @@
-# Plan — closed 2026-08-01
+# Plan — closed 2026-08-01, reopened 2026-09-06
 
-**This plan is finished, not paused.** The repository is frozen; the work below
-either shipped or moved to [ai-os](https://github.com/EvolvingAgentsLabs/ai-os).
+> **Reopened, and the record below is not edited.** On 2026-09-06 `ai-os` was
+> brought in as a subtree, so the destination this plan pointed at is now inside
+> the repository that pointed at it. Every verdict below still reads as it did
+> when it was written — including "moved to ai-os", which now means *moved to
+> [`ai-os/`](ai-os/)*.
+>
+> The active plan is [`ai-os/NEXT.md`](ai-os/NEXT.md) and
+> [`ai-os/doc/PLAN.md`](ai-os/doc/PLAN.md). This file is the closing record of
+> what came before, kept because M2's flat result is load-bearing for what
+> replaced it.
+
+**This plan is finished, not paused.** The work below either shipped or moved to
+[`ai-os/`](ai-os/).
 
 Where each milestone ended:
 

@@ -1,3 +1,23 @@
+# --- anchored 2026-09-06, when ai-os arrived ------------------------------
+# These are Python build outputs, and they were written unanchored, so each one
+# matched a directory of that name at ANY depth. The day a JavaScript tree moved
+# in they began swallowing it: `lib/` hid ai-os/ai-base/scripts/dev/lib/ and
+# `build/` hid ai-os/ai-ui/build/. Nothing failed — the files were simply not
+# there for anything that reads .gitignore, which is how knip lost a binary it
+# could see the day before. Anchored to the root and to the Python packages,
+# which is where they were always meant to apply.
+/build/
+/dist/
+/downloads/
+/lib/
+/lib64/
+/parts/
+/var/
+packages/*/build/
+packages/*/dist/
+legacy/**/build/
+legacy/**/dist/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -8,17 +28,10 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-build/
 develop-eggs/
-dist/
-downloads/
 eggs/
 .eggs/
-lib/
-lib64/
-parts/
 sdist/
-var/
 wheels/
 share/python-wheels/
 *.egg-info/
