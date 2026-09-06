@@ -253,7 +253,7 @@ significa terminado y qué diría que el ítem era el equivocado.
 Las tres partes están construidas y corridas **[ran]**:
 
 1. **Los gates de Python corren en un schedule.**
-   [`.github/workflows/projects.yml`](../../.github/workflows/projects.yml) —
+   [`.github/workflows/projects.yml`](../../../.github/workflows/ai-os-projects.yml) —
    nightly, a demanda, y en cualquier PR que toque `projects/`, y **no
    cancelable por un push posterior** (quinto hallazgo de la §7). Construye los dos
    entornos desde sus manifiestos, corre `make gates`, `check_reports.py`,
@@ -671,7 +671,7 @@ chequear están nombradas en el script en vez de barridas debajo de la alfombra.
 
 ### Y después se construyó P0, que cambió el resto
 
-- [`.github/workflows/projects.yml`](../../.github/workflows/projects.yml) — el
+- [`.github/workflows/projects.yml`](../../../.github/workflows/ai-os-projects.yml) — el
   nightly que corre la evidencia de los dos proyectos. **[read]**: el archivo de
   workflow todavía no corrió en GitHub, pero cada comando de adentro se corrió
   acá primero.

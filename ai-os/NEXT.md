@@ -26,7 +26,7 @@ Two projects run **on** the OS, and as of today both of them run **in CI**:
   0.906** against a kill threshold of 0.80, and its report reproduces **1207 of
   1207 fields bit-identical** on a machine that has never seen it.
 
-[`projects.yml`](.github/workflows/projects.yml) runs both nightly, on demand,
+[`projects.yml`](../.github/workflows/ai-os-projects.yml) runs both nightly, on demand,
 and on any PR touching `projects/`. Until 2026-08-23 there was no Python in CI at
 all, and [19 §7](doc/19-what-would-make-this-matter.md#7--what-running-p0-found-on-the-same-day)
 is what building it found — including an attested `h0.json` that could not have

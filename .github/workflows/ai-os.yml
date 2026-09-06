@@ -1,4 +1,4 @@
-name: CI
+name: ai-os
 
 on:
   push:
@@ -12,7 +12,7 @@ concurrency:
 
 defaults:
   run:
-    working-directory: ai-base
+    working-directory: ai-os/ai-base
 
 jobs:
   scope-guard:
@@ -22,9 +22,9 @@ jobs:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
         with:
-          node-version-file: ai-base/.node-version
+          node-version-file: ai-os/ai-base/.node-version
           cache: npm
-          cache-dependency-path: ai-base/package-lock.json
+          cache-dependency-path: ai-os/ai-base/package-lock.json
       - name: Install
         run: npm ci
       - name: An unhandled scope kind must deny, and the union census must hold
@@ -37,9 +37,9 @@ jobs:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
         with:
-          node-version-file: ai-base/.node-version
+          node-version-file: ai-os/ai-base/.node-version
           cache: npm
-          cache-dependency-path: ai-base/package-lock.json
+          cache-dependency-path: ai-os/ai-base/package-lock.json
       - name: Install and typecheck
         run: |
           npm ci
@@ -56,9 +56,9 @@ jobs:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
         with:
-          node-version-file: ai-base/.node-version
+          node-version-file: ai-os/ai-base/.node-version
           cache: npm
-          cache-dependency-path: ai-base/package-lock.json
+          cache-dependency-path: ai-os/ai-base/package-lock.json
       - name: Install
         run: npm ci
       - name: Verify the shard plan covers every test file exactly once
@@ -89,9 +89,9 @@ jobs:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
         with:
-          node-version-file: ai-base/.node-version
+          node-version-file: ai-os/ai-base/.node-version
           cache: npm
-          cache-dependency-path: ai-base/package-lock.json
+          cache-dependency-path: ai-os/ai-base/package-lock.json
       - name: Install
         run: npm ci
       - name: Durability, and one-running-per-session under concurrent claims
@@ -104,7 +104,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ai-flows
+        working-directory: ai-os/ai-flows
     services:
       postgres:
         image: postgres:16
@@ -122,9 +122,9 @@ jobs:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
         with:
-          node-version-file: ai-base/.node-version
+          node-version-file: ai-os/ai-base/.node-version
           cache: npm
-          cache-dependency-path: ai-flows/package-lock.json
+          cache-dependency-path: ai-os/ai-flows/package-lock.json
       - name: Install and typecheck
         run: |
           npm ci
@@ -136,7 +136,7 @@ jobs:
       - name: The published test count matches the suites
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/flows
-        working-directory: .
+        working-directory: ai-os
         run: ./scripts/check-test-count.sh
 
   ui:
@@ -144,14 +144,14 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ai-ui
+        working-directory: ai-os/ai-ui
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
         with:
-          node-version-file: ai-base/.node-version
+          node-version-file: ai-os/ai-base/.node-version
           cache: npm
-          cache-dependency-path: ai-ui/package-lock.json
+          cache-dependency-path: ai-os/ai-ui/package-lock.json
       - name: Install and typecheck
         run: |
           npm ci
@@ -168,11 +168,11 @@ jobs:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
         with:
-          node-version-file: ai-base/.node-version
+          node-version-file: ai-os/ai-base/.node-version
           cache: npm
           cache-dependency-path: |
-            ai-base/package-lock.json
-            ai-base/plugins/web-ui/package-lock.json
+            ai-os/ai-base/package-lock.json
+            ai-os/ai-base/plugins/web-ui/package-lock.json
       - name: Install
         run: |
           npm ci
@@ -191,7 +191,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: .
+        working-directory: ai-os
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
       - name: The published gate count matches the reports
@@ -203,7 +203,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: .
+        working-directory: ai-os
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
         with:
@@ -217,11 +217,11 @@ jobs:
           set -euo pipefail
           base=$(git merge-base "$BASE_SHA" "$HEAD_SHA")
           changed=$(git diff --name-only "$base" "$HEAD_SHA" -- ai-base \
-            ':!ai-base/AI-OS-PATCHES.md')
+            ':!ai-os/ai-base/AI-OS-PATCHES.md')
           [ -n "$changed" ] || exit 0
-          if git diff --quiet "$base" "$HEAD_SHA" -- ai-base/AI-OS-PATCHES.md; then
+          if git diff --quiet "$base" "$HEAD_SHA" -- ai-os/ai-base/AI-OS-PATCHES.md; then
             printf '%s\n' "$changed" >&2
-            echo "these files are vendored upstream; record the change in ai-base/AI-OS-PATCHES.md in this PR" >&2
+            echo "these files are vendored upstream; record the change in ai-os/ai-base/AI-OS-PATCHES.md in this PR" >&2
             exit 1
           fi
 
@@ -240,4 +240,4 @@ jobs:
     steps:
       - name: Checks passed
         run: echo "scope guard, typecheck, five test shards, postgres, ai-flows, ai-ui, lint and the gate count passed."
-        working-directory: .
+        working-directory: ai-os

@@ -28,7 +28,7 @@
 # The runner's own `python3` is 3.12, which is what both manifests ask for, and
 # adding a third-party action means pinning another SHA. Fewer moving parts on a
 # job whose whole purpose is to be trustworthy when nobody is watching it.
-name: Projects
+name: ai-os projects
 
 on:
   schedule:
@@ -37,18 +37,18 @@ on:
     - cron: "0 4 * * *"
   pull_request:
     paths:
-      - "projects/**"
-      - ".github/workflows/projects.yml"
+      - "ai-os/projects/**"
+      - ".github/workflows/ai-os-projects.yml"
       # The published-numbers job now builds the demo and resolves what it shows
       # back to the projects' artifacts, so the sources that decide what the demo
       # shows are inputs to this workflow as much as the artifacts are. Without
       # these, a change to the desk that broke a citation would land green: the
       # only job that checks citations would not have run.
-      - "ai-ui/**"
-      - "scripts/**"
-      - "README.md"
-      - "README.es.md"
-      - "doc/**"
+      - "ai-os/ai-ui/**"
+      - "ai-os/scripts/**"
+      - "ai-os/README.md"
+      - "ai-os/README.es.md"
+      - "ai-os/doc/**"
   workflow_dispatch:
 
 # `cancel-in-progress` is deliberately FALSE here, and `ci.yml` is right to set
@@ -82,7 +82,7 @@ jobs:
     timeout-minutes: 90
     defaults:
       run:
-        working-directory: projects/coclea-sr
+        working-directory: ai-os/projects/coclea-sr
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
       - name: Build the environment from the manifest
@@ -107,7 +107,7 @@ jobs:
         # Deliberately after `make gates` rather than in the job below: there the
         # count is checked against the committed reports, here against reports
         # produced seconds ago. The second is the one that cannot be stale.
-        working-directory: .
+        working-directory: ai-os
         run: python3 scripts/check-gate-count.py
 
   hemo-verified:
@@ -116,7 +116,7 @@ jobs:
     timeout-minutes: 20
     defaults:
       run:
-        working-directory: projects/hemo-verified
+        working-directory: ai-os/projects/hemo-verified
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
       - name: Build the environment from the manifest
@@ -145,7 +145,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: .
+        working-directory: ai-os
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
       - name: The gate count
@@ -160,7 +160,7 @@ jobs:
         run: python3 scripts/check-coclea-results.py
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
         with:
-          node-version-file: ai-base/.node-version
+          node-version-file: ai-os/ai-base/.node-version
       - name: The demo's numbers, and the addresses it cites
         # The published demo is the activity canvas. The bundle, the swimlane
         # view and the desk are still built and checked: the desk is what
@@ -208,7 +208,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
         with:
-          node-version-file: ai-base/.node-version
+          node-version-file: ai-os/ai-base/.node-version
       # The suite needs no server and no weights: what it asserts is that the
       # code refuses what it says it refuses. Everything that depends on the
       # model's own behaviour lives in bench/, is not built, and would not be
@@ -241,12 +241,12 @@ jobs:
     # than no second implementation.
     defaults:
       run:
-        working-directory: .
+        working-directory: ai-os
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
         with:
-          node-version-file: ai-base/.node-version
+          node-version-file: ai-os/ai-base/.node-version
       - name: sha256, the canonical form, and the chain agree with Python
         run: node scripts/verify-page/test.mjs
 
@@ -262,16 +262,16 @@ jobs:
     timeout-minutes: 30
     defaults:
       run:
-        working-directory: .
+        working-directory: ai-os
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
         with:
-          node-version-file: ai-base/.node-version
+          node-version-file: ai-os/ai-base/.node-version
           cache: npm
-          cache-dependency-path: ai-base/package-lock.json
+          cache-dependency-path: ai-os/ai-base/package-lock.json
       - name: Install
-        working-directory: ai-base
+        working-directory: ai-os/ai-base
         run: npm ci
       - name: The published upstream count matches the suite
         run: ./scripts/check-upstream-test-count.sh

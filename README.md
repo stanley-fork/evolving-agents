@@ -1,13 +1,12 @@
-> **FROZEN — 2026-08-01.** Not under development. This repository is kept
-> because it is still true, not because it is maintained.
+> **ACTIVE again — 2026-09-06.** This repository was frozen on 2026-08-01 and
+> closed with a pointer to `ai-os`. `ai-os` has now come home: it is a subtree
+> here, with its history intact, and this is where the organisation's active
+> work lives.
 >
-> The idea that justified it — versioning an agent's evolution so two branches
-> of work can be compared and rejoined — is carried forward in
-> **[ai-os](https://github.com/EvolvingAgentsLabs/ai-os)**, the organisation's
-> active project, as flow lineage. See
-> [`doc/03-ai-flows.md`](https://github.com/EvolvingAgentsLabs/ai-os/blob/main/doc/03-ai-flows.md).
->
-> Last verified: 2026-08-01.
+> Nothing was rewritten to make the arrival look tidy. The 2025 toolkit stays in
+> [`legacy/eat/`](legacy/eat/), the flat results stay in **Evidence** below, and
+> two more have been added — because they point the same way as the first, which
+> is the finding.
 
 # Evolving Agents
 
@@ -79,6 +78,7 @@ ever stops being true.
 
 | | |
 |---|---|
+| [`ai-os/`](ai-os/) | **The active project.** An agent-based operating system on a vendored [QM](https://github.com/yc-software/qm) base: flows, a desk you arrange, agents as markdown, memory at four levels. 851 tests, CI, a running stack |
 | [`plugin/`](plugin/) | The Agent SDK plugin: MCP server + three hooks |
 | [`packages/agentvcs/`](packages/agentvcs/) | The version control itself — 220 tests, no dependencies. **Not on PyPI**; install from source |
 | [`packages/memory/`](packages/memory/) | Structured recall above the SDK's flat `.claude/` memory files. Works; measures no better than naive matching — see [PLAN.md](PLAN.md) |
@@ -119,6 +119,24 @@ Claims here are measured, including the ones that came back flat.
 - **This organisation's "byte-identical wire format" claim was wrong.** Two of
   three opcode regexes matched; `HALT` had diverged in a way that changes what
   parses. Found by writing the test instead of repeating the sentence.
+- **Retrieving past experience buys nothing on the task.** EAT's `SmartMemory`
+  and its `ContextBuilderTool` rest on the premise that recalling similar past
+  work improves the next attempt. Measured three times in `ai-os` and the runtime
+  beside it: **−4** against a retriever handed the solved similar cases *with
+  their answers*, **+0** (p = 1.0000) against the strongest retriever
+  constructible, and **−6** against an *oracle* retriever — below doing nothing.
+  What did move was a **compact statement of a rule** induced from the same
+  trajectories: +21 over the oracle.
+- **The memory hierarchy loses to lexical search.** `ai-storage` implements the
+  four levels EAT's smart memory argued for. Its first benchmark, at the ceiling
+  with a perfect navigator: exact search 3/3 at every corpus size, hierarchical
+  navigation 1–2/3 and out of steps, the flat file refusing to fit at all.
+
+> **Three flat results, three architectures, one direction.** The dual axis in
+> 2025, the experience retrieval in 2026, the hierarchy after it. Each was the
+> obvious next structure and each was asked for a number. That is what this
+> repository is for, and it is why the toolkit is in `legacy/` rather than
+> deleted: it was right about where to look and wrong about what would be there.
 
 ## Breaking change
 

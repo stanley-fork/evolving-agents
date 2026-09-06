@@ -247,7 +247,7 @@ means and what would say the item was the wrong one.
 All three parts are built and were run **[ran]**:
 
 1. **The Python gates run on a schedule.**
-   [`.github/workflows/projects.yml`](../.github/workflows/projects.yml) — nightly,
+   [`.github/workflows/projects.yml`](../../.github/workflows/ai-os-projects.yml) — nightly,
    on demand, and on any PR that touches `projects/`, and **not cancellable by a
    later push** (§7's fifth finding). It builds both
    environments from their manifests, runs `make gates`, `check_reports.py`,
@@ -650,7 +650,7 @@ things it still does not check are named in the script rather than implied away.
 
 ### And then P0 was built, which changed the rest
 
-- [`.github/workflows/projects.yml`](../.github/workflows/projects.yml) — the
+- [`.github/workflows/projects.yml`](../../.github/workflows/ai-os-projects.yml) — the
   nightly that runs both projects' evidence. **[read]**: the workflow file has
   not run on GitHub yet, but every command in it was run here first.
 - `scripts/check-h0-table.py` **[ran]** — it failed on three cells and passes now.

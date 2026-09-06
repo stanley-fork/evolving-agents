@@ -117,7 +117,7 @@ desde la máquina que escribió esto: cada campo de [`MODEL.json`](MODEL.json) d
 `ai-storage/scripts/verify-model.ts` es lo único que puede decir otra cosa.
 
 La evidencia de los dos proyectos ahora corre **nightly** en
-[`projects.yml`](.github/workflows/projects.yml) — los gates, el ledger, la
+[`projects.yml`](../.github/workflows/ai-os-projects.yml) — los gates, el ledger, la
 higiene de reportes, la reproducción de H0, y cada número publicado chequeado
 contra el artefacto del que salió. Hasta el 2026-08-23 no había nada de Python
 en CI.

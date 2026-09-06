@@ -34,15 +34,22 @@ burden; this file is what makes that burden survivable.
 
 ```bash
 # pull upstream
-git subtree pull --prefix=ai-base https://github.com/yc-software/qm.git main --squash
+git subtree pull --prefix=ai-os/ai-base https://github.com/yc-software/qm.git main --squash
 ```
 
 ### Do not use the bundled fork skills as-is
 
 QM ships `.claude/skills/update-qm` and `.claude/skills/upstream-pr` for private
 forks. **Both assume the repository root is qm** and dispatch on `git remote -v`.
-Under our subtree, qm's root is `ai-base/` and `origin` is not a qm fork, so both
-misread the situation. Use `git subtree pull` above instead.
+Under our subtree, qm's root is `ai-os/ai-base/` and `origin` is not a qm fork,
+so both misread the situation. Use `git subtree pull` above instead.
+
+**The prefix moved on 2026-09-06** and this is the line that breaks silently if
+it is missed. `ai-os` became a subtree of `evolving-agents`, so qm is now a
+subtree inside a subtree and its prefix gained a level: `ai-base` → `ai-os/ai-base`.
+A pull run with the old prefix does not fail — it writes qm's tree into a new
+top-level `ai-base/` beside `ai-os/`, and the next CI run tests the copy nobody
+edited.
 
 Their _content_ still applies and should be read before any upstream push:
 
@@ -90,7 +97,7 @@ Run after every pull, before committing the merge:
       updated
 - [ ] Plugin chassis contract unchanged, or `ai-ui` updated
 - [ ] `ai-base/LICENSE` still present and byte-identical
-- [ ] `.github/workflows/ci.yml` **at the repository root** still runs the jobs we
+- [ ] `.github/workflows/ai-os.yml` **at the repository root** still runs the jobs we
       depend on. GitHub reads only the root `.github/workflows`, so
       `ai-base/.github/` is inert here: upstream can add, rename or fix a CI job
       and nothing about it reaches us. Ours is a deliberate subset — scope guard,
