@@ -217,9 +217,9 @@ jobs:
           set -euo pipefail
           base=$(git merge-base "$BASE_SHA" "$HEAD_SHA")
           changed=$(git diff --name-only "$base" "$HEAD_SHA" -- ai-base \
-            ':!ai-os/ai-base/AI-OS-PATCHES.md')
+            ':!ai-base/AI-OS-PATCHES.md')
           [ -n "$changed" ] || exit 0
-          if git diff --quiet "$base" "$HEAD_SHA" -- ai-os/ai-base/AI-OS-PATCHES.md; then
+          if git diff --quiet "$base" "$HEAD_SHA" -- ai-base/AI-OS-PATCHES.md; then
             printf '%s\n' "$changed" >&2
             echo "these files are vendored upstream; record the change in ai-os/ai-base/AI-OS-PATCHES.md in this PR" >&2
             exit 1
