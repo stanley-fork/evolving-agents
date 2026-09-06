@@ -240,4 +240,8 @@ jobs:
     steps:
       - name: Checks passed
         run: echo "scope guard, typecheck, five test shards, postgres, ai-flows, ai-ui, lint and the gate count passed."
-        working-directory: ai-os
+        # The workspace root, not ai-os: this job never checks out, so the only
+        # directory that exists is the one the runner made. This `.` was never a
+        # path into the repository, and re-rooting it pointed bash at a
+        # directory nothing had created.
+        working-directory: .
