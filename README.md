@@ -1,7 +1,14 @@
-> **ACTIVE again — 2026-09-06.** This repository was frozen on 2026-08-01 and
-> closed with a pointer to `ai-os`. `ai-os` has now come home: it is a subtree
-> here, with its history intact, and this is where the organisation's active
-> work lives.
+> **Where this repository stands — 2026-10-08.** This is the organisation's
+> most-starred repository and its monorepo: the Agent SDK plugin, the `ai-os`
+> subtree, the `packages/` and the 2025 toolkit. It is **not** where the lab's
+> current work happens. The flagship since 2026-09-19 is
+> **[lora-kernel](https://github.com/EvolvingAgentsLabs/lora-kernel)**, and
+> **[agentvcs](https://github.com/EvolvingAgentsLabs/agentvcs)** was revived as
+> its own repository on 2026-10-06 — `packages/agentvcs/` here is a frozen copy.
+>
+> The history, in order: frozen on 2026-08-01 with a pointer to `ai-os`; active
+> again on 2026-09-06 when `ai-os` came home as a subtree, history intact; the
+> subtree has not changed since that day.
 >
 > Nothing was rewritten to make the arrival look tidy. The 2025 toolkit stays in
 > [`legacy/eat/`](legacy/eat/), the flat results stay in **Evidence** below, and
@@ -21,6 +28,21 @@
 > the eval fails.
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
+## The organisation's public projects
+
+| | | status |
+|---|---|---|
+| [lora-kernel](https://github.com/EvolvingAgentsLabs/lora-kernel) | An operating layer for specialized local AI agents: one small resident model, many specialists (adapter + library + scoped tools), a router that abstains to a frontier model | active — the flagship |
+| [agentvcs](https://github.com/EvolvingAgentsLabs/agentvcs) | Version control for live-patched agent systems; a Rust core and a merge in which Claude Code resolves conflicts between harness manifests | revived 2026-10-06 — validation in progress |
+| **evolving-agents** (this repository) | The Agent SDK plugin, the `ai-os` subtree, `packages/`, the robot demo and the 2025 toolkit | paused |
+| [physics-verifiers](https://github.com/EvolvingAgentsLabs/physics-verifiers) | RL environments whose reward is computed by physics; what stands is a generator of tasks with exact truth | paused — last change 2026-08-16 |
+| [nightshift](https://github.com/EvolvingAgentsLabs/nightshift) | A procedural and epistemic memory engine, as a Claude Code plugin | proof of concept — last change 2026-08-31 |
+| [evolvingagentslabs.github.io](https://github.com/EvolvingAgentsLabs/evolvingagentslabs.github.io) | The website, with a nightly check of every number it publishes | active |
+| [.github](https://github.com/EvolvingAgentsLabs/.github) | The organisation's GitHub profile | paused — last change 2026-07-25 |
+
+Twenty-five more repositories are archived and read-only; each is listed, with
+where it moved, at [evolvingagentslabs.github.io/archive](https://evolvingagentslabs.github.io/archive/#all-archived).
 
 ---
 
@@ -78,7 +100,7 @@ ever stops being true.
 
 | | |
 |---|---|
-| [`ai-os/`](ai-os/) | **The active project.** An agent-based operating system on a vendored [QM](https://github.com/yc-software/qm) base: flows, a desk you arrange, agents as markdown, memory at four levels. 851 tests, CI, a running stack |
+| [`ai-os/`](ai-os/) | **Paused — last changed 2026-09-06**, the day it arrived as a subtree; the lab's work has since moved to [lora-kernel](https://github.com/EvolvingAgentsLabs/lora-kernel). An agent-based operating system on a vendored [QM](https://github.com/yc-software/qm) base: flows, a desk you arrange, agents as markdown, memory at four levels. 851 tests, CI, a running stack |
 | [`plugin/`](plugin/) | The Agent SDK plugin: MCP server + three hooks |
 | [`packages/agentvcs/`](packages/agentvcs/) | **Frozen copy.** agentvcs lives again in [EvolvingAgentsLabs/agentvcs](https://github.com/EvolvingAgentsLabs/agentvcs) (Rust runtime, revived 2026-10-06) |
 | [`packages/memory/`](packages/memory/) | Structured recall above the SDK's flat `.claude/` memory files. Works; measures no better than naive matching — see [PLAN.md](PLAN.md) |
