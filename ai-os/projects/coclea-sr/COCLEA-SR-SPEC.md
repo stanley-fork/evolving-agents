@@ -353,7 +353,7 @@ k inicial = 4 exploradores; el ratio exploradores:verificadores es un PARÁMETRO
 
 ### 6.3 Protocolo de handoff
 
-Cada transición de estado de un artefacto se registra en `ledger.jsonl` (append-only, hash-encadenado: cada entrada incluye el hash de la anterior — misma disciplina que Nebuah):
+Cada transición de estado de un artefacto se registra en `ledger.jsonl` (append-only, hash-encadenado: cada entrada incluye el hash de la anterior):
 
 ```json
 {"ts": "...", "artifact": "src/solver.py", "sha256": "...", "state": "frozen",
@@ -414,7 +414,7 @@ con μ_H la distancia al punto crítico (μ_H < 0: pasivo amortiguado; μ_H = 0:
 ## 8. Atestación y reproducibilidad
 
 1. **Manifiesto por corrida** (`runs/<id>/manifest.json`): hash del commit, hashes de los artefactos frozen usados, parámetros completos, semilla, versión de entorno (lockfile), hardware.
-2. **Ledger hash-encadenado** (§6.3) — verificable con un script independiente `verify_ledger.py` de < 100 líneas sin dependencias fuera de stdlib (el "verificador open-source" en miniatura, misma filosofía que Nebuah).
+2. **Ledger hash-encadenado** (§6.3) — verificable con un script independiente `verify_ledger.py` de < 100 líneas sin dependencias fuera de stdlib (un verificador open-source en miniatura).
 3. **Reproducción por terceros:** `make reproduce RUN=<id>` debe regenerar los resultados bit a bit (numpy con misma versión y misma semilla ⇒ determinista; documentar la excepción de BLAS multihilo y fijar `OMP_NUM_THREADS=1` en corridas atestadas).
 4. **Figuras:** cada PNG/SVG lleva en metadatos el run_id y el hash del manifiesto.
 
@@ -518,7 +518,7 @@ Estimación: H1–H5 ≈ 1 semana de sesiones con Claude Code; H6–H9 ≈ 1 sem
 - Duke & Jülicher (2003), *PRL* 90:158101 — onda viajera crítica.
 - Hudspeth (2014), *Nat. Rev. Neurosci.* 15:600 — amplificador coclear, revisión.
 - Rice (1944) — tasa de cruces de procesos gaussianos.
-- Documentación interna: harness_eval (estadística de interacciones), agentvcs (eval-gated freeze), Nebuah (ledger atestado).
+- Documentación interna: harness_eval (estadística de interacciones), agentvcs (eval-gated freeze).
 
 ---
 
