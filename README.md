@@ -80,7 +80,7 @@ ever stops being true.
 |---|---|
 | [`ai-os/`](ai-os/) | **The active project.** An agent-based operating system on a vendored [QM](https://github.com/yc-software/qm) base: flows, a desk you arrange, agents as markdown, memory at four levels. 851 tests, CI, a running stack |
 | [`plugin/`](plugin/) | The Agent SDK plugin: MCP server + three hooks |
-| [`packages/agentvcs/`](packages/agentvcs/) | The version control itself — 220 tests, no dependencies. **Not on PyPI**; install from source |
+| [`packages/agentvcs/`](packages/agentvcs/) | **Frozen copy.** agentvcs lives again in [EvolvingAgentsLabs/agentvcs](https://github.com/EvolvingAgentsLabs/agentvcs) (Rust runtime, revived 2026-10-06) |
 | [`packages/memory/`](packages/memory/) | Structured recall above the SDK's flat `.claude/` memory files. Works; measures no better than naive matching — see [PLAN.md](PLAN.md) |
 | [`demos/robot/`](demos/robot/) | A 2D robot that evolves its own skills, versioned with agentvcs |
 | [`legacy/eat/`](legacy/eat/) | The Evolving Agents Toolkit, 2025. Kept readable; see below |
@@ -146,11 +146,14 @@ want by name:
 
 `agentvcs` was never published to PyPI — the release workflow exists but its
 Trusted Publisher was never registered, so `pip install agentvcs` returns 404.
-Install from source:
+Install the frozen copy from source:
 
 ```bash
 pip install "git+https://github.com/EvolvingAgentsLabs/evolving-agents#subdirectory=packages/agentvcs"
 ```
+
+The maintained agentvcs is [EvolvingAgentsLabs/agentvcs](https://github.com/EvolvingAgentsLabs/agentvcs)
+(Rust runtime and its Python SDK; build instructions in its README).
 
 The 2025 package sits at `legacy/eat/` with its original `setup.py`, unchanged.
 
