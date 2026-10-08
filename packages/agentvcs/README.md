@@ -1,5 +1,10 @@
 # agentvcs
 
+> **This copy is frozen.** Since 2026-10-06 agentvcs lives again in its own repository,
+> [EvolvingAgentsLabs/agentvcs](https://github.com/EvolvingAgentsLabs/agentvcs): a Rust runtime
+> (protocol v0.1, manifest merge v0.2, `agentvcs merge resolve` with Claude Code as its only LLM).
+> This directory keeps the last Python version that lived in the monorepo; it receives no changes.
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/EvolvingAgentsLabs/evolving-agents/main/packages/agentvcs/docs/img/agentvcs.jpg" alt="Two branches diverge and merge, sealed once the eval passes" width="100%">
 </p>
