@@ -1,19 +1,9 @@
-> **Where this repository stands — 2026-10-08.** This is the organisation's
-> most-starred repository and its monorepo: the Agent SDK plugin, the `ai-os`
-> subtree, the `packages/` and the 2025 toolkit. It is **not** where the lab's
-> current work happens. The flagship since 2026-09-19 is
-> **[lora-kernel](https://github.com/EvolvingAgentsLabs/lora-kernel)**, and
-> **[agentvcs](https://github.com/EvolvingAgentsLabs/agentvcs)** was revived as
-> its own repository on 2026-10-06 — `packages/agentvcs/` here is a frozen copy.
->
-> The history, in order: frozen on 2026-08-01 with a pointer to `ai-os`; active
-> again on 2026-09-06 when `ai-os` came home as a subtree, history intact; the
-> subtree has not changed since that day.
->
-> Nothing was rewritten to make the arrival look tidy. The 2025 toolkit stays in
-> [`legacy/eat/`](legacy/eat/), the flat results stay in **Evidence** below, and
-> two more have been added — because they point the same way as the first, which
-> is the finding.
+> **Start here (2026-10).** This repository holds the 2025 **Evolving Agents Toolkit** — agents that create, route to and evolve other agents — with the Agent SDK
+> plugin and the `ai-os` subtree that followed it. It is paused; the lab's current work continued each idea where it could be measured. **Evolving a harness,
+> gated and merged on evidence** → [agentvcs](https://github.com/EvolvingAgentsLabs/agentvcs) (`packages/agentvcs/` here is a frozen copy). **Routing to
+> specialists on one small local model** → [lora-kernel](https://github.com/EvolvingAgentsLabs/lora-kernel). **Every claim pinned to what could contradict it** —
+> the lesson of the toolkit's three test functions, below — → [gene-evidence](https://github.com/EvolvingAgentsLabs/gene-evidence). All projects, with status:
+> [evolvingagentslabs.github.io](https://evolvingagentslabs.github.io).
 
 # Evolving Agents
 
