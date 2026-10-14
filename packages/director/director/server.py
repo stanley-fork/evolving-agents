@@ -5,10 +5,15 @@
     GET  /            the page (ui.html)
     GET  /state       capabilities (pages, statements, situations), the current plan, lane status
     GET  /events?since=N   events with seq ≥ N (the page polls this)
-    POST /request     {"text": "..."} — the director plans and delegates; refused with 409 while busy
+    POST /request     {"text": "..."} — the director plans (walking the memory); the plan then waits
+    POST /move        {"task": "t2", "lane": "local"} — D3: move a queued task to the other lane, logged
+    POST /run         run the waiting plan (or set "auto_run": true in the config)
+    POST /reflect     {"correction": "..."} — D2b: after a task, the director proposes memory edits
+    POST /proposal    {"id": "p1", "accept": true|false} — accept: lint, agentvcs patch, live memory
 
 The config (private, JSON): {"memory_dir", "workdir", "log", "local_base_url", "local_model", "director_model",
-"frontier_model", "frontier_tools", "plan_budget_usd", "task_budget_usd"}. It binds to 127.0.0.1 only.
+"frontier_model", "frontier_tools", "plan_budget_usd", "task_budget_usd", "auto_run", "reflect_model",
+"reflect_budget_usd", "agentvcs" (the executable)}. It binds to 127.0.0.1 only.
 """
 
 from __future__ import annotations
@@ -48,17 +53,36 @@ def make_handler(d: Director):
             self._send(404, {"error": "no route"})
 
         def do_POST(self):
-            if urlparse(self.path).path != "/request":
-                return self._send(404, {"error": "no route"})
+            path = urlparse(self.path).path
             body = json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0)) or b"{}")
-            text = (body.get("text") or "").strip()
-            if not text:
-                return self._send(400, {"error": "empty request"})
-            if d.busy:
-                return self._send(409, {"error": "the director is still working on the previous request"})
-            d.busy = True                       # claimed here, so two quick posts cannot both start
-            threading.Thread(target=d.handle, args=(text,), daemon=True).start()
-            self._send(202, {"ok": True})
+            try:
+                if path == "/request":
+                    text = (body.get("text") or "").strip()
+                    if not text:
+                        return self._send(400, {"error": "empty request"})
+                    if not d.claim("planning", ("idle", "awaiting_run")):
+                        return self._send(409, {"error": f"the director is {d.phase}"})
+                    threading.Thread(target=d.handle, args=(text,), daemon=True).start()
+                    return self._send(202, {"ok": True})
+                if path == "/run":
+                    if not d.claim("running", ("awaiting_run",)):
+                        return self._send(409, {"error": f"no plan waiting to run (the director is {d.phase})"})
+                    threading.Thread(target=d.execute, daemon=True).start()
+                    return self._send(202, {"ok": True})
+                if path == "/move":
+                    return self._send(200, {"ok": True, "task": d.move(body.get("task"), body.get("lane"))})
+                if path == "/reflect":
+                    if d.last is None:
+                        return self._send(409, {"error": "no finished task to reflect on"})
+                    if not d.claim("reflecting", ("idle",)):
+                        return self._send(409, {"error": f"the director is {d.phase}"})
+                    threading.Thread(target=d.reflect, args=(body.get("correction") or "",), daemon=True).start()
+                    return self._send(202, {"ok": True})
+                if path == "/proposal":
+                    return self._send(200, {"ok": True, **d.decide(body.get("id"), bool(body.get("accept")))})
+            except ValueError as e:
+                return self._send(409, {"error": str(e)})
+            self._send(404, {"error": "no route"})
 
         def log_message(self, *a):
             pass
