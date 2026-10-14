@@ -62,3 +62,26 @@ def test_memory_manifest_has_one_lowercase_prompt_dimension_per_page_and_skips_t
     assert sorted(man["dimensions"]) == ["memory.docs", "memory.index"]      # agentvcs: names are lowercase
     assert man["dimensions"]["memory.docs"]["kind"] == "prompt"
     assert man["dimensions"]["memory.docs"]["content"]["template"].startswith("# Docs")
+
+
+def test_compile_copies_only_what_it_is_given_and_lints_the_result(tmp_path, monkeypatch):
+    import os
+    from director import compile as C
+    fake = tmp_path / "claude"
+    fake.write_text("""#!/usr/bin/env python3
+import json, os
+os.makedirs("out", exist_ok=True)
+assert sorted(os.listdir("sources")) == ["00-CLAUDE.md", "01-memory"], os.listdir("sources")
+open("out/Index.md", "w").write("# Index\\n- about to commit → [[Git#always_pr]]\\n")
+open("out/Git.md", "w").write("# Git\\nGit.\\n\\n## #always_pr\\n**When:** a\\n**Do:** b\\n**Because:** c\\n**Links:** \\n")
+print(json.dumps({"type": "result", "result": "1 page, 1 statement", "total_cost_usd": 0.01, "num_turns": 3}))
+""")
+    fake.chmod(0o755)
+    monkeypatch.setenv("DIRECTOR_CLAUDE", str(fake))
+    (tmp_path / "CLAUDE.md").write_text("Always open a PR.")
+    (tmp_path / "memory").mkdir(); (tmp_path / "memory" / "MEMORY.md").write_text("- x")
+    res = C.compile_memory([tmp_path / "CLAUDE.md", tmp_path / "memory"], tmp_path / "out" / "memory")
+    assert res["pages"] == 1 and res["statements"] == 1 and res["lint"] == []
+    assert (tmp_path / "out" / "memory" / "README.md").exists()
+    assert C.write_config(tmp_path / "cfg.json", tmp_path / "out" / "memory", tmp_path) is True
+    assert C.write_config(tmp_path / "cfg.json", tmp_path / "out" / "memory", tmp_path) is False   # never overwrites

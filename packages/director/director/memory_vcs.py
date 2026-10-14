@@ -68,7 +68,7 @@ class LiveStore:
         f.write_text(json.dumps(manifest(memory, name)))
         return self._avcs("snapshot", str(f))["manifest_id"]
 
-    def commit(self, candidate: Path, rationale: str, applied: list[str]) -> dict:
+    def commit(self, candidate: Path, rationale: str, applied: list[str], guard: dict | None = None) -> dict:
         before = json.loads((self.root / ".agentvcs" / "manifests" / (self.head.split(":", 1)[1] + ".json")).read_text())["dimensions"]
         new = self._snapshot(candidate, "director memory (live)")
         pid = self._avcs("patch", "propose", "director-live", "--from", self.head, "--to", new,
@@ -76,8 +76,12 @@ class LiveStore:
                          "--author", "human:director-ui")["patch_id"]
         suite = self.root / "accept-suite.yaml"
         # absolute paths: the gate runs its command in the store's own working directory
-        suite.write_text(f"command: |-\n  {self.python} {GATE}\nthresholds:\n"
-                         "  lint_problems: {op: \"<=\", value: 0}\n  human_accepted: {op: \">=\", value: 1}\n")
+        # with a D0 guard result, the gate also requires it: the command re-reads it from the candidate's guard.json
+        gfile = Path(candidate).parent / "guard.json"
+        cmd = f"{self.python} {GATE}" + (f" {gfile}" if guard is not None else "")
+        extra = f"  guard: {{op: \">=\", value: {guard['min']}}}\n" if guard is not None else ""
+        suite.write_text(f"command: |-\n  {cmd}\nthresholds:\n"
+                         "  lint_problems: {op: \"<=\", value: 0}\n  human_accepted: {op: \">=\", value: 1}\n" + extra)
         gate = self._avcs("gate", "run", pid, "--suite", str(suite))["gate_result"]
         if not gate["passed"]:
             raise ValueError(f"the accept gate did not pass: {gate['metrics']}")

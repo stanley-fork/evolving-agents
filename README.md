@@ -11,7 +11,39 @@
 > every task — each lesson a gated, versioned patch that can be blamed or bisected. Every number below was
 > measured, including the ones that came back flat.
 
+[![GitHub stars](https://img.shields.io/github/stars/EvolvingAgentsLabs/evolving-agents?style=social)](https://github.com/EvolvingAgentsLabs/evolving-agents/stargazers)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Roadmap](https://img.shields.io/badge/roadmap-D0%E2%80%93D3%20measured-8A9A6B)](ROADMAP.md)
+
+## Your CLAUDE.md, actually followed
+
+You wrote the rules down. Your agent still breaks them under pressure — **on 14 real situations, a Claude Code
+session with the rules loaded planned by them 0.589 of the time; the director, walking the same rules compiled
+into linked statements, 0.929.** If you keep a `CLAUDE.md`, an `AGENTS.md` or Claude Code's memory, this is for you:
+
+- **it recalls the rule at the moment it applies** — and cites the statement it followed in every step of its plan;
+- **it learns from your corrections** — each lesson proposed, checked against what it already knew, and kept only
+  if you accept it, as a reversible, versioned patch;
+- **it learns where you want work done** — move a task from the frontier to your local model once, and it plans the
+  next one like it there.
+
+### Try it on your own instructions
+
+<p align="center">
+  <img src="packages/director/docs/img/compile.jpg" alt="Long paper scrolls and notebooks feed a brass binding press; out of it come index cards, filed in a small card-catalogue drawer, a few of them linked by ink lines, a brass gauge on the drawer's edge." width="80%">
+</p>
+
+```bash
+git clone https://github.com/EvolvingAgentsLabs/evolving-agents && cd evolving-agents/packages/director
+# compile your instructions into a memory (Claude Code with Opus; one compile of ~60 files: about US$5)
+python3 -m director.compile --claude-md ~/your-project/CLAUDE.md \
+    --memory-dir ~/.claude/projects/<your-project>/memory --workdir ~/your-project
+python3 -m director.server --config ~/.config/director/director.json      # open http://127.0.0.1:8740
+```
+
+Needs Python 3.10+ and [Claude Code](https://code.claude.com) (`claude` on your PATH). Standard library only. The
+memory stays on your machine. What it costs, what it does not do yet, and every measurement:
+[`packages/director/`](packages/director/) · the plan ahead: [**ROADMAP.md**](ROADMAP.md).
 
 ## The system
 
