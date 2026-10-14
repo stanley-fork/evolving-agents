@@ -143,3 +143,52 @@ the left; a lever below is thrown; the card beside its empty slot stays put."
   `docs/BRIEF-D0.md`, `BRIEF-D2.md` and `BRIEF-D3.md`. Three panels: D0 (A 0.589 · A+ 0.768 · T 0.929), D2
   (control 0.0 · after learning 0.781 · guard on D0 0.964), D3 (public-facing to the frontier 0 → 1.0; internal
   kept local 1.0 → 1.0).
+
+---
+
+## 6. `docs/img/social-preview.jpg` — the repository's social card (GitHub → Settings → Social preview)
+
+- 1280 × 640 (2:1), JPEG. The plate is generated **without text**; the title and the measured line are overlaid
+  afterwards by `docs/img/social_card.py` (an image model would misspell or invent them).
+
+```
+A 2:1 plate in the style of a 19th-century engineering engraving: fine sepia ink linework with a muted transparent
+watercolour wash on warm parchment (#F3EBDD), soft even daylight. The right two thirds of the frame: a chart table
+seen from slightly above, on it a web of small cream index cards joined by thin ink lines with a route traced
+across six of them in red pencil, ending at a small plan sheet; from the table two brass dispatch tubes leave, one
+toward a distant domed building on a hill seen through an arched window, one toward a small compact brass machine
+with one dial. The left third of the frame is calm, nearly empty parchment with only a faint ruled margin, left free
+for a title. Palette: sepia, slate blue (#5B7186), sage green (#8A9A6B), rust (#B5603A), ochre (#C9A54A). Strictly no
+legible text, letters or numbers, no logos, no people or hands, no robots, no glow, no gradients, no 3D render.
+```
+
+## 7. `packages/director/docs/img/compile.jpg` — your own instructions, compiled into a memory (the quickstart)
+
+- 1600 × 900 (16:9), JPEG ~80. README: "Try it on your own instructions"; website `#try`.
+
+```
+A 16:9 plate in the style of a 19th-century engineering engraving: fine sepia ink linework with a muted transparent
+watercolour wash on warm parchment (#F3EBDD), soft even daylight, generous margins. Left: a loose stack of long
+paper scrolls and a few small notebooks, their lines in grey strokes, one scroll unrolling into the mouth of a
+compact brass binding press in the centre. The press has a hand wheel and a few gears. Right: out of the press come
+neat cream index cards, and they stand filed in a small card-catalogue drawer, each card with one stroke highlighted
+in slate blue (#5B7186); thin ink lines link a few of the cards to each other; a small brass checking gauge rests on
+the drawer's edge. Calm, orderly. Strictly no legible text, letters or numbers, no logos, no people or hands, no
+robots, no glow, no gradients, no 3D render, no photographic look.
+```
+
+## 8. `docs/img/roadmap.jpg` — the roadmap as a line of stations
+
+- 1800 × 720 (5:2), JPEG ~80. `ROADMAP.md`; website `#roadmap`.
+
+```
+A wide 5:2 plate in the style of a 19th-century railway survey map, drawn in fine sepia ink with a muted transparent
+watercolour wash on warm parchment (#F3EBDD). A single railway line runs from the left edge to the right edge across
+gentle hills. Along it, seven small station buildings. The first three stations on the left are fully drawn and
+washed in colour, the track between them a solid double line in sage green (#8A9A6B), a small round wax seal in
+slate blue (#5B7186) beside each. The next four stations to the right are drawn only in light pencil outline, the
+track between them a dashed ochre (#C9A54A) line, as if surveyed but not yet built; the last one stands on a hill
+near a small distant town. A small brass surveyor's level on a tripod stands at the boundary between the built and
+the surveyed track. Strictly no legible text, letters or numbers, no logos, no people, no trains with faces, no
+glow, no gradients, no 3D render.
+```

@@ -57,13 +57,24 @@ Images: [`docs/img/`](docs/img/) — the plates' prompts are in the repository's
 
 ## Running it (D1)
 
+**Your own memory first.** `director.compile` reads only what you name — your `CLAUDE.md` / `AGENTS.md`, Claude Code's
+auto-memory directory, any folder of agents or skills — compiles it with Claude Code (Opus by default; one compile
+of ~60 files cost about US$5) into pages of atomic statements and an index of situations, lints them, and writes a
+config if you have none:
+
+![Long paper scrolls and notebooks feed a brass binding press; out of it come index cards, filed in a small card-catalogue drawer, a few of them linked by ink lines.](docs/img/compile.jpg)
+
 ```bash
+python -m director.compile --claude-md ~/your-project/CLAUDE.md \
+    --memory-dir ~/.claude/projects/<your-project>/memory --workdir ~/your-project
 python -m director.server --config ~/.config/director/director.json      # http://127.0.0.1:8740
 ```
 
 The config is private JSON: `memory_dir` (the compiled pages, `Index.md` among them), `workdir` (where frontier
 tasks run), `log` (the event log), `local_base_url`/`local_model` (an OpenAI-compatible server), `director_model`,
-`frontier_model`, `frontier_tools`, `plan_budget_usd`, `task_budget_usd`.
+`frontier_model`, `frontier_tools`, `plan_budget_usd`, `task_budget_usd`; optionally `guard` (D0 behind Accept, below),
+`local_kind: "lora-kernel"` with `lora_kernel` (the local lane through lora-kernel's specialists, below) and
+`agentvcs` (the executable that versions the memory).
 
 - **Top:** the director — its capabilities (pages, statements, the situations it knows how to enter), the
   memory's current agentvcs version, its plan (each task with its lane and the statements it follows), the
@@ -85,7 +96,18 @@ draft a changelog note"): the director walked 6 pages, planned 2 tasks citing 6 
 frontier because the local lane was offline, and the frontier verified 117 = 117 = the cases on disk.
 Tests: `python -m pytest tests -q` (a fake `claude` and a fake local server; in CI).
 
-Not yet: any write access by default; reflection that runs D0's guard before an Accept (today the accept gate is lint + the person); the accept path is tested in CI only where the agentvcs CLI is installed.
+**Accept is guarded by D0** (`"guard": {"enabled": true, "k": 1, "min": 0.86, "config": "<private d0 config>"}`):
+before an edit is kept, the candidate memory re-plans D0's 14 cases with the blind judge (k = 1: about US$6.5 and ten
+minutes, shown live in the conversation); below `min`, or with a case missing, the memory is left as it was. The
+guard's mean is part of the agentvcs patch's gate, next to the lint and the person's acceptance.
+
+**The local lane through lora-kernel** (`"local_kind": "lora-kernel"`, `"local_base_url"` = lora-kernel's gateway,
+`"lora_kernel": {"path", "user", "role", "org", "domains"}`): the planner is told which domains the specialists
+cover; each local task carries a role token and opens a session of its own (a specialist's abstention was measured
+as a session's first turn); the specialist's tool calls stream into the right lane; when it abstains, the task
+goes to the frontier by itself. Tested against a gateway double; the live run on lora-kernel's tracker member is next.
+
+Not yet: any write access by default; the accept path is tested in CI only where the agentvcs CLI is installed.
 
 ## Privacy
 
