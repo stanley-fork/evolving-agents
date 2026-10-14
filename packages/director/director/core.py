@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import subprocess
 import threading
 import time
@@ -169,23 +170,48 @@ def parse_plan(text: str) -> dict | None:
 
 
 class Director:
+    """The loop. States: idle → planning → awaiting_run (the user may move tasks between lanes, D3) → running →
+    idle. After a task, `reflect` proposes memory edits (D2b) that the user accepts or rejects; an accepted edit
+    is linted, versioned in agentvcs and becomes the live memory."""
+
     def __init__(self, cfg: dict):
         self.cfg = cfg
         self.memory = Path(cfg["memory_dir"]).expanduser()
         self.workdir = Path(cfg.get("workdir", ".")).expanduser()
+        self.home = Path(cfg["log"]).expanduser().parent
         self.log = Log(Path(cfg["log"]).expanduser())
         self.system = (HERE / "DIRECTOR.md").read_text()
         self.plan: dict | None = None
-        self.busy = False
+        self.phase = "idle"
+        self.last: dict | None = None            # the last finished task, for reflection
+        self.proposals: dict[str, dict] = {}
+        self.lock = threading.Lock()
+        self.store = None                        # agentvcs live store, opened on the first accepted edit
+
+    @property
+    def busy(self) -> bool:
+        return self.phase in ("planning", "running", "reflecting")
+
+    def claim(self, phase: str, allowed: tuple[str, ...]) -> bool:
+        with self.lock:
+            if self.phase not in allowed:
+                return False
+            self.phase = phase
+            return True
 
     def state(self) -> dict:
         return {"capabilities": capabilities(self.memory), "plan": self.plan, "busy": self.busy,
-                "local_online": local_online(self.cfg.get("local_base_url")),
-                "frontier_tools": self.cfg.get("frontier_tools", "Read,Grep,Glob")}
+                "phase": self.phase, "local_online": local_online(self.cfg.get("local_base_url")),
+                "frontier_tools": self.cfg.get("frontier_tools", "Read,Grep,Glob"),
+                "can_reflect": self.phase == "idle" and self.last is not None,
+                "proposals": {k: {x: v[x] for x in ("edits", "applied", "rejected", "lint", "status")}
+                              for k, v in self.proposals.items()},
+                "memory_version": self.store.head if self.store else None}
+
+    # ------------------------------------------------------------------ plan, move, run
 
     def handle(self, request: str) -> None:
-        """One request: plan (walking the memory), then run each lane's tasks in order, lanes in parallel."""
-        self.busy = True
+        """Plan by walking the memory; then wait for the user to run it (or run at once with `auto_run`)."""
         try:
             self.log.emit("director", "request", text=request)
             online = local_online(self.cfg.get("local_base_url"))
@@ -196,27 +222,69 @@ class Director:
             plan = parse_plan(r.get("result") or "")
             if plan is None:
                 self.log.emit("director", "error", text="no plan could be read from the director's reply")
+                self.phase = "idle"
                 return
-            self.plan = {**plan, "request": request, "cost": r.get("cost")}
+            for t in plan["tasks"]:
+                t["planned_lane"], t["status"] = t["lane"], "queued"
+            self.plan = {**plan, "request": request, "cost": r.get("cost"), "moves": []}
             self.log.emit("director", "plan", plan=self.plan)
-            lanes = {"frontier": [t for t in plan["tasks"] if t["lane"] == "frontier"],
-                     "local": [t for t in plan["tasks"] if t["lane"] == "local"]}
-            threads = [threading.Thread(target=self._run_lane, args=(lane, ts)) for lane, ts in lanes.items() if ts]
+            self.phase = "awaiting_run"
+        except Exception as e:
+            self.log.emit("director", "error", text=repr(e)[:400])
+            self.phase = "idle"
+            return
+        if self.cfg.get("auto_run"):
+            self.phase = "running"
+            self.execute()
+
+    def move(self, task_id: str, lane: str) -> dict:
+        """D3: the user moves a queued task to the other lane before the plan runs. Logged, and kept for the
+        reflection that follows the task — that is how the director learns where the user wants work done."""
+        if lane not in ("frontier", "local"):
+            raise ValueError("lane must be frontier or local")
+        with self.lock:
+            if self.phase != "awaiting_run" or not self.plan:
+                raise ValueError("tasks can be moved only while the plan waits to run")
+            t = next((t for t in self.plan["tasks"] if t["id"] == task_id), None)
+            if t is None:
+                raise ValueError(f"no task {task_id}")
+            if t["lane"] == lane:
+                return t
+            mv = {"task": task_id, "title": t.get("title"), "prompt": t.get("prompt"), "from": t["lane"], "to": lane,
+                  "request": self.plan["request"], "at": time.strftime("%Y-%m-%dT%H:%M:%S")}
+            t["lane"] = lane
+            self.plan["moves"].append(mv)
+        with (self.home / "lane-moves.jsonl").open("a") as f:
+            f.write(json.dumps(mv, ensure_ascii=False) + "\n")
+        self.log.emit("director", "lane_moved", task=task_id, text=f"{mv['from']} → {lane}", plan=self.plan)
+        return t
+
+    def execute(self) -> None:
+        """Run each lane's tasks in order, lanes in parallel; keep the outputs for reflection."""
+        try:
+            outputs: dict[str, list[str]] = {}
+            lanes = {"frontier": [t for t in self.plan["tasks"] if t["lane"] == "frontier"],
+                     "local": [t for t in self.plan["tasks"] if t["lane"] == "local"]}
+            threads = [threading.Thread(target=self._run_lane, args=(lane, ts, outputs))
+                       for lane, ts in lanes.items() if ts]
             for th in threads:
                 th.start()
             for th in threads:
                 th.join()
-            self.log.emit("director", "done", text=plan.get("summary", ""))
+            self.last = {"plan": self.plan, "outputs": outputs}
+            self.log.emit("director", "done", text=self.plan.get("summary", ""))
         finally:
-            self.busy = False
+            self.phase = "idle"
 
-    def _run_lane(self, lane: str, tasks: list[dict]) -> None:
+    def _run_lane(self, lane: str, tasks: list[dict], outputs: dict) -> None:
         for t in tasks:
+            t["status"] = "running"
             self.log.emit(lane, "task_start", task=t["id"], text=t.get("title", ""))
             try:
                 if lane == "local":
                     base = self.cfg.get("local_base_url")
                     if not local_online(base):
+                        t["status"] = "offline"
                         self.log.emit("local", "offline", task=t["id"],
                                       text="local lane offline: no server answers; the director does not start one")
                         continue
@@ -229,5 +297,69 @@ class Director:
                                       budget=self.cfg.get("task_budget_usd", 1.0))
                     self.log.emit("frontier", "task_end", task=t["id"], cost=r.get("cost"), turns=r.get("turns"),
                                   error=bool(r.get("error")))
+                t["status"] = "done"
+                outputs[t["id"]] = [lane, (r.get("result") or "")[:1500]]
             except Exception as e:                       # a lane's failure is an event, never a silent stop
+                t["status"] = "error"
                 self.log.emit(lane, "error", task=t["id"], text=repr(e)[:400])
+
+    # ------------------------------------------------------------------ D2b: reflect, propose, accept
+
+    def episode(self, correction: str) -> str:
+        p, out = self.last["plan"], self.last["outputs"]
+        lines = [f"Request: {p['request']}", f"Plan: {p.get('summary', '')}"]
+        for t in p["tasks"]:
+            lines.append(f"- {t['id']} [{t['lane']}] {t.get('title', '')} — follows {', '.join(t.get('cites') or []) or 'nothing'}")
+            if t["id"] in out:
+                lines.append(f"  result: {out[t['id']][1][:600]}")
+        for m in p.get("moves") or []:
+            lines.append(f"The user moved task {m['task']} ('{m['title']}') from the {m['from']} lane to the {m['to']} "
+                         f"lane before it ran.")
+        lines.append(f"Correction from the user: {correction.strip() or '(none)'}")
+        return "\n".join(lines)
+
+    def reflect(self, correction: str) -> None:
+        from .learn import apply_edits, new_problems, reflect
+        try:
+            pid = f"p{len(self.proposals) + 1}"
+            sb = self.home / "reflect-sandbox"
+            if sb.exists():
+                shutil.rmtree(sb)
+            shutil.copytree(self.memory, sb / "memory")
+            r = reflect(self.episode(correction), sb / "memory", self.log,
+                        model=self.cfg.get("reflect_model", "opus"), budget=self.cfg.get("reflect_budget_usd", 2.0))
+            cand = self.home / "candidates" / pid / "memory"
+            res = apply_edits(self.memory, r["edits"] or [], cand)
+            lint = new_problems(self.memory, cand)
+            self.proposals[pid] = {"edits": r["edits"] or [], "applied": res["applied"], "rejected": res["rejected"],
+                                   "lint": lint, "status": "proposed", "candidate": str(cand),
+                                   "rationale": correction.strip() or self.last["plan"]["request"],
+                                   "cost": r.get("cost")}
+            self.log.emit("director", "proposal", task=pid, proposal=self.state()["proposals"][pid])
+        except Exception as e:
+            self.log.emit("director", "error", text=repr(e)[:400])
+        finally:
+            self.phase = "idle"
+
+    def decide(self, pid: str, accept: bool) -> dict:
+        """Accept: lint must be clean; the candidate becomes a gated agentvcs patch and the live memory. Reject:
+        recorded, nothing changes."""
+        p = self.proposals.get(pid)
+        if p is None or p["status"] != "proposed":
+            raise ValueError(f"no open proposal {pid}")
+        if not accept:
+            p["status"] = "rejected"
+            self.log.emit("director", "proposal_rejected", task=pid)
+            return {"status": "rejected"}
+        if p["lint"] or not p["applied"]:
+            raise ValueError("this proposal has lint problems or no edit applied; it cannot be accepted")
+        from .memory_vcs import LiveStore
+        if self.store is None:
+            self.store = LiveStore(self.home / "vcs", self.memory, self.cfg.get("agentvcs"))
+        patch = self.store.commit(Path(p["candidate"]), p["rationale"], p["applied"])
+        shutil.rmtree(self.memory)
+        shutil.copytree(p["candidate"], self.memory)
+        p.update(status="accepted", patch=patch)
+        self.log.emit("director", "memory_updated", task=pid, text=f"patch {patch['patch_id'][:15]}… applied · "
+                      f"{', '.join(patch['dimensions'])}", patch=patch)
+        return {"status": "accepted", **patch}

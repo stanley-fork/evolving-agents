@@ -56,6 +56,14 @@ button:disabled { opacity: .4; cursor: default; }
 .block { border-top: 1px dashed var(--sep); padding-top: 6px; margin-top: 8px; }
 .block .hd { font-weight: 600; font-size: 13px; }
 .empty { color: var(--dim); font-style: italic; }
+.mv { float: right; margin-left: 8px; font-size: 11px; padding: 1px 8px; }
+.runbar { margin: 4px 0 10px; }
+.runbar button { padding: 4px 14px; border-color: var(--frontier); color: var(--frontier); }
+.prop { border: 1px solid var(--director); border-radius: 6px; padding: 6px 10px; margin: 8px 0; background: var(--panel); }
+.prop .e { font-size: 12px; margin: 4px 0; } .prop .e b { font-family: var(--mono); }
+.prop button { margin-right: 6px; padding: 2px 10px; }
+.prop .ok { border-color: var(--local); color: var(--local); } .prop .no { border-color: var(--err); color: var(--err); }
+#reflect { display: none; } #reflect textarea { min-height: 32px; }
 @media (max-width: 860px) {
   body { grid-template-rows: auto auto 1fr; height: auto; }
   .top, .lanes { grid-template-columns: 1fr; }
@@ -68,6 +76,7 @@ button:disabled { opacity: .4; cursor: default; }
 <header>
   <h1>director</h1>
   <span id="status" class="chip">idle</span>
+  <span id="mver" class="chip" title="the memory's current agentvcs manifest">memory: compiled</span>
   <span id="local" class="chip">local lane: …</span>
   <span id="tools" class="chip"></span>
 </header>
@@ -90,6 +99,10 @@ button:disabled { opacity: .4; cursor: default; }
       <textarea id="text" placeholder="What should be done?"></textarea>
       <button id="send">Send</button>
     </form>
+    <form id="reflect">
+      <textarea id="correction" placeholder="Correction for the director (optional) — what should it have done differently?"></textarea>
+      <button id="reflect-btn">Reflect</button>
+    </form>
   </div>
 </section>
 
@@ -100,7 +113,7 @@ button:disabled { opacity: .4; cursor: default; }
 
 <script>
 const $ = (id) => document.getElementById(id);
-let since = 0, tasks = {};
+let since = 0, tasks = {}, phase = "idle", proposals = {}, lastPlan = null;
 const esc = (s) => String(s ?? "").replace(/[&<>]/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;"}[c]));
 
 async function state() {
@@ -111,9 +124,13 @@ async function state() {
     $("nsit").textContent = cap.situations.length;
     $("pages").innerHTML = Object.entries(cap.pages)
       .map(([n, p]) => `<div title="${esc(p.about)}"><span>${esc(n.replace(/_/g, " "))}</span><span>${p.statements}</span></div>`).join("");
-    $("status").textContent = s.busy ? "working" : "idle";
+    phase = s.phase;
+    $("status").textContent = s.phase.replace("_", " ");
+    $("mver").textContent = "memory: " + (s.memory_version ? s.memory_version.slice(0, 15) + "…" : "compiled");
+    $("reflect").style.display = s.can_reflect ? "flex" : "none";
     $("status").className = "chip" + (s.busy ? " busy" : "");
     $("send").disabled = s.busy;
+    proposals = s.proposals || {};
     $("local").textContent = "local lane: " + (s.local_online ? "online" : "offline");
     $("local").className = "chip" + (s.local_online ? " on" : "");
     $("tools").textContent = "frontier tools: " + s.frontier_tools;
@@ -122,10 +139,15 @@ async function state() {
 }
 
 function renderPlan(plan) {
-  $("plan").innerHTML = `<p style="margin:0 0 8px">${esc(plan.summary)}</p>` + plan.tasks.map((t) =>
-    `<div class="task ${t.lane}"><span class="state" id="st-${esc(t.id)}">${esc(tasks[t.id] || "queued")}</span>
+  lastPlan = plan;
+  const waiting = phase === "awaiting_run";
+  $("plan").innerHTML = `<p style="margin:0 0 8px">${esc(plan.summary)}</p>` +
+    (waiting ? `<div class="runbar"><button onclick="runPlan()">Run plan</button>
+       <span style="color:var(--dim);font-size:12px">&nbsp;move a task to the other lane first if you want it done elsewhere</span></div>` : "") +
+    plan.tasks.map((t) =>
+    `<div class="task ${t.lane}">${waiting ? `<button class="mv" onclick="moveTask('${esc(t.id)}','${t.lane === "local" ? "frontier" : "local"}')">→ ${t.lane === "local" ? "frontier" : "local"}</button>` : ""}<span class="state" id="st-${esc(t.id)}">${esc(tasks[t.id] || "queued")}</span>
      <div class="t">${esc(t.id)} · ${esc(t.title)}</div>
-     <div class="w">${t.lane} — ${esc(t.why_lane)}</div>
+     <div class="w">${t.lane}${t.planned_lane && t.planned_lane !== t.lane ? ` (moved by you from ${t.planned_lane})` : ""} — ${esc(t.why_lane)}</div>
      ${t.cites && t.cites.length ? `<div class="c">follows ${t.cites.map(esc).join(" · ")}</div>` : ""}</div>`).join("");
 }
 
@@ -155,7 +177,11 @@ function apply(ev) {
     if (ev.kind === "request") line(f, "req", "› " + ev.text);
     else if (ev.kind === "tool") line(f, "tool", "walk: " + ev.text.replace(/^.*\/memory\//, ""));
     else if (ev.kind === "text") line(f, "", ev.text.replace(/```json[\s\S]*```/, "[plan]"));
-    else if (ev.kind === "plan") renderPlan(ev.plan);
+    else if (ev.kind === "plan") { phase = "awaiting_run"; renderPlan(ev.plan); }
+    else if (ev.kind === "lane_moved") { line(f, "tool", `moved ${ev.task}: ${ev.text}`); renderPlan(ev.plan); }
+    else if (ev.kind === "proposal") renderProposal(f, ev.task, ev.proposal);
+    else if (ev.kind === "proposal_rejected") line(f, "tool", `${ev.task} rejected — the memory is unchanged`);
+    else if (ev.kind === "memory_updated") line(f, "tool", `${ev.task} accepted — ${ev.text}`);
     else if (ev.kind === "done") line(f, "tool", "done — " + ev.text);
     else if (ev.kind === "error") line(f, "error", ev.text);
     f.scrollTop = f.scrollHeight;
@@ -176,6 +202,31 @@ function apply(ev) {
   if (st) st.textContent = tasks[ev.task] || "queued";
 }
 
+function renderProposal(f, id, p) {
+  const d = document.createElement("div");
+  d.className = "prop"; d.id = "prop-" + id;
+  const edits = (p.edits || []).map((e) =>
+    `<div class="e"><b>${esc(e.op)} ${esc(e.page)}#${esc(e.id)}</b><br>when: ${esc(e.when || "(unchanged)")}<br>do: ${esc(e.do || "(unchanged)")}</div>`).join("");
+  const bad = (p.lint || []).length || !(p.applied || []).length;
+  d.innerHTML = `<div class="hd"><b>${esc(id)}</b> — the director proposes ${(p.edits || []).length} edit(s) to its memory</div>${edits}` +
+    ((p.rejected || []).length ? `<div class="e" style="color:var(--err)">not applicable: ${p.rejected.map((r) => esc(r.edit + " (" + r.why + ")")).join("; ")}</div>` : "") +
+    ((p.lint || []).length ? `<div class="e" style="color:var(--err)">lint: ${p.lint.map(esc).join("; ")}</div>` : "") +
+    `<div class="btns">${bad ? "" : `<button class="ok" onclick="decide('${id}', true)">Accept</button>`}<button class="no" onclick="decide('${id}', false)">Reject</button></div>`;
+  f.appendChild(d); f.scrollTop = f.scrollHeight;
+}
+
+async function post(path, body) {
+  const r = await fetch(path, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body || {})});
+  if (!r.ok) line($("feed"), "error", (await r.json()).error);
+  state();
+  return r.ok;
+}
+async function runPlan() { if (await post("/run")) { phase = "running"; if (lastPlan) renderPlan(lastPlan); } }
+async function moveTask(task, lane) { await post("/move", {task, lane}); }
+async function decide(id, accept) {
+  if (await post("/proposal", {id, accept})) { const b = document.querySelector(`#prop-${id} .btns`); if (b) b.innerHTML = accept ? "accepted" : "rejected"; }
+}
+
 async function poll() {
   try {
     const evs = await (await fetch("/events?since=" + since)).json();
@@ -191,6 +242,11 @@ $("ask").addEventListener("submit", async (e) => {
                                      body: JSON.stringify({text})});
   if (r.ok) { $("text").value = ""; tasks = {}; } else { line($("feed"), "error", (await r.json()).error); }
   state();
+});
+
+$("reflect").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (await post("/reflect", {correction: $("correction").value})) { $("correction").value = ""; line($("feed"), "tool", "reflecting…"); }
 });
 
 state(); poll();

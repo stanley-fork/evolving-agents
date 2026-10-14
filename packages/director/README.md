@@ -5,13 +5,12 @@ improve.** It walks the memory as a trajectory (page → atomic statement → li
 delegates each step to Claude Code (frontier) or to local models, and proposes edits to the memory after
 each task, gated and versioned, so the way of working is learned, recalled, refined and reproduced.
 
-> **Status — 2026-10-14: D0 passed, D1 built, D2 learns [ran].** On 14 real situations a session that walks the
-> compiled operational memory planned the lab's way **0.929**, against **0.589** for today's session and
-> **0.768** for today's session told to walk its own files ([`docs/BRIEF-D0.md`](docs/BRIEF-D0.md)). D2: after
-> reflecting on five real incidents, the director's own edits took held-out probes of lab-specific lessons from
-> **0.0 to 0.781** without breaking D0 (0.964), and the edit is a gated, applied patch in agentvcs that `blame`
-> credits with the gain ([`docs/BRIEF-D2.md`](docs/BRIEF-D2.md)). D1 — the loop and the interface — runs
-> locally (below). Not built: reflection inside the interface, moving tasks between lanes (D3).
+> **Status — 2026-10-14: D0–D3 built and measured [ran].** Planning by walking the compiled operational memory:
+> **0.929** against **0.589** for today's session ([D0](docs/BRIEF-D0.md)). Learning from tasks: held-out
+> lab-specific probes **0.0 → 0.781**, D0 kept at 0.964, the edit a gated agentvcs patch ([D2](docs/BRIEF-D2.md)).
+> Learning where work runs: after one lane move and one reflection, public-facing drafts went **0 → 6 / 6** to the
+> frontier while internal text stayed local ([D3](docs/BRIEF-D3.md)). The interface runs locally (below); the local
+> lane ran live on llama.cpp.
 
 ## Where it sits
 
@@ -29,7 +28,7 @@ each task, gated and versioned, so the way of working is learned, recalled, refi
 | **D0** | today's session vs a session that walks the compiled memory, on real situations | baseline below 0.85 (headroom), then treatment ≥ +0.15 — [brief](docs/BRIEF-D0.md) |
 | D1 | the director's loop and its interface: the director on top (capabilities, plan, conversation), below it the frontier lane (left) and the local lane (right), from one event log | **built** — below |
 | D2 | learning: memory edits proposed after each task, gated on D0's suite, versioned in agentvcs | **learns** — [brief](docs/BRIEF-D2.md) |
-| D3 | the user moves a task between lanes; the move becomes a routing statement the director learns | |
+| D3 | the user moves a task between lanes; the move becomes a routing statement the director learns | **learns the lane** — [brief](docs/BRIEF-D3.md) |
 
 ## Running it (D1)
 
@@ -41,8 +40,15 @@ The config is private JSON: `memory_dir` (the compiled pages, `Index.md` among t
 tasks run), `log` (the event log), `local_base_url`/`local_model` (an OpenAI-compatible server), `director_model`,
 `frontier_model`, `frontier_tools`, `plan_budget_usd`, `task_budget_usd`.
 
-- **Top:** the director — its capabilities (pages, statements, the situations it knows how to enter), its plan
-  (each task with its lane and the statements it follows), the conversation and its walk through the memory.
+- **Top:** the director — its capabilities (pages, statements, the situations it knows how to enter), the
+  memory's current agentvcs version, its plan (each task with its lane and the statements it follows), the
+  conversation and its walk through the memory.
+- **The plan waits** for **Run plan**. Before that, any task can be moved to the other lane (**→ local** /
+  **→ frontier**); the move is logged (`lane-moves.jsonl`) and becomes part of what the director reflects on.
+- **After a task, Reflect** — with an optional correction. The director proposes memory edits; each proposal
+  shows its edits and lint result, with **Accept** / **Reject**. Accept runs the accept gate (the candidate lints
+  clean and a person accepted it), records the edit as an applied agentvcs patch (`<log dir>/vcs`) and makes it
+  the live memory. Reject leaves the memory as it was.
 - **Bottom left:** what it delegated to Claude Code, streamed (`claude -p --output-format stream-json`).
   Read-only tools (`Read, Grep, Glob`) unless the config grants more.
 - **Bottom right:** what it delegated to local models. **The director never starts a local model**: running one
@@ -54,7 +60,7 @@ draft a changelog note"): the director walked 6 pages, planned 2 tasks citing 6 
 frontier because the local lane was offline, and the frontier verified 117 = 117 = the cases on disk.
 Tests: `python -m pytest tests -q` (a fake `claude` and a fake local server; in CI).
 
-Not yet: moving a task between lanes (D3), memory edits after a task (D2), any write access by default.
+Not yet: any write access by default; reflection that runs D0's guard before an Accept (today the accept gate is lint + the person); the accept path is tested in CI only where the agentvcs CLI is installed.
 
 ## Privacy
 
