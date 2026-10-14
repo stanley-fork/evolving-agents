@@ -5,11 +5,13 @@ improve.** It walks the memory as a trajectory (page → atomic statement → li
 delegates each step to Claude Code (frontier) or to local models, and proposes edits to the memory after
 each task, gated and versioned, so the way of working is learned, recalled, refined and reproduced.
 
-> **Status — 2026-10-14: D0 passed, D1 built [ran].** On 14 real situations a session that walks the compiled
-> operational memory planned the lab's way **0.929**, against **0.589** for today's session and **0.768** for
-> today's session told to walk its own files — so the organisation, not only the reading, carries the gain
-> ([`docs/BRIEF-D0.md`](docs/BRIEF-D0.md)). It costs ~11× per plan. D1 — the director's loop and its
-> interface — runs locally (below). Learning (D2) and moving tasks between lanes (D3) are not built.
+> **Status — 2026-10-14: D0 passed, D1 built, D2 learns [ran].** On 14 real situations a session that walks the
+> compiled operational memory planned the lab's way **0.929**, against **0.589** for today's session and
+> **0.768** for today's session told to walk its own files ([`docs/BRIEF-D0.md`](docs/BRIEF-D0.md)). D2: after
+> reflecting on five real incidents, the director's own edits took held-out probes of lab-specific lessons from
+> **0.0 to 0.781** without breaking D0 (0.964), and the edit is a gated, applied patch in agentvcs that `blame`
+> credits with the gain ([`docs/BRIEF-D2.md`](docs/BRIEF-D2.md)). D1 — the loop and the interface — runs
+> locally (below). Not built: reflection inside the interface, moving tasks between lanes (D3).
 
 ## Where it sits
 
@@ -26,7 +28,7 @@ each task, gated and versioned, so the way of working is learned, recalled, refi
 |---|---|---|
 | **D0** | today's session vs a session that walks the compiled memory, on real situations | baseline below 0.85 (headroom), then treatment ≥ +0.15 — [brief](docs/BRIEF-D0.md) |
 | D1 | the director's loop and its interface: the director on top (capabilities, plan, conversation), below it the frontier lane (left) and the local lane (right), from one event log | **built** — below |
-| D2 | learning: memory edits proposed after each task, gated on D0's suite, versioned in agentvcs | |
+| D2 | learning: memory edits proposed after each task, gated on D0's suite, versioned in agentvcs | **learns** — [brief](docs/BRIEF-D2.md) |
 | D3 | the user moves a task between lanes; the move becomes a routing statement the director learns | |
 
 ## Running it (D1)
