@@ -12,6 +12,31 @@ each task, gated and versioned, so the way of working is learned, recalled, refi
 > frontier while internal text stayed local ([D3](docs/BRIEF-D3.md)). The interface runs locally (below); the local
 > lane ran live on llama.cpp.
 
+<p align="center">
+  <img src="docs/img/results.png" alt="Three bar charts. D0, planning the team's way on 14 situations: today's session 0.589, today's session told to walk its files 0.768, the director 0.929. D2, learning from tasks on 8 held-out probes: before 0.0, after learning 0.781, and D0 re-checked afterwards 0.964. D3, learning the lane: public-facing drafts sent to the frontier before 0.0, after one move 1.0, and the internal control kept local 1.0." width="100%">
+</p>
+
+## How it works, in three pictures
+
+**It plans by walking the memory.** The index names the situations a task is in; each entry statement links,
+inside its own line, to the next one that applies; the plan's every step cites the statement it follows.
+
+![An open index book with one line underlined; a red-pencil route leaves it and steps across five index cards, leaving each from its highlighted line, to a plan of three items, each tagged back to the card it came from.](docs/img/walk.jpg)
+
+**It learns from a task without breaking what it knew.** After a task, the correction it received becomes a
+drafted statement; the statement passes a gate (it lints clean, and a person accepts it); the edit is sealed in
+agentvcs's ledger as a patch; the statement is filed where the next walk will find it (D2, D2b).
+
+![A finished work order with a correction pinned to it; a new index card drafted at a desk; the card checked at a small brass gate; a ledger line closed with a fresh seal; the card filed in a cabinet drawer; a dashed arc back to the start.](docs/img/learning.jpg)
+
+**It learns where work runs.** A plan waits; the user can move any task between the frontier and the local lane;
+the move goes into the next reflection, and the director plans the next similar task in that lane (D3).
+
+![A dispatch board with two columns of card slots: the left bordered in rust under a window with a distant domed building, the right in green under a small local machine. One card moves mid-air from the right column to the left; a lever below is thrown; the card beside its empty slot stays put.](docs/img/lanes.jpg)
+
+Images: [`docs/img/`](docs/img/) — the plates' prompts are in the repository's [`docs/img/IMAGES.md`](../../docs/img/IMAGES.md);
+`results.png` is drawn by [`docs/img/results.py`](docs/img/results.py) from the briefs' numbers.
+
 ## Where it sits
 
 | piece | reuses |
