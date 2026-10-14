@@ -38,9 +38,14 @@ Walk your memory first, as your instructions say. Then end your reply with the p
              "prompt": "<the full instruction for whoever runs it>", "cites": ["Page#id", ...]}}]}}
 ```
 
-Lanes: `local` only for a task that needs no tools, no files and no repository — drafting, summarising,
-classifying text given in its prompt — and only if the local lane is online ({local_state}). Everything else is
-`frontier`. Keep the plan to the tasks that are needed; order is execution order within a lane."""
+Lanes: {lane_rule} Everything else is `frontier`. Keep the plan to the tasks that are needed; order is execution
+order within a lane."""
+
+BARE_RULE = ("`local` only for a task that needs no tools, no files and no repository — drafting, summarising, "
+             "classifying text given in its prompt — and only if the local lane is online ({state}).")
+LK_RULE = ("`local` is lora-kernel: small local specialists, each trained on one domain with its own tools — {domains}. "
+           "Use it for tasks in those domains, and only if it is online ({state}). A specialist abstains on anything "
+           "outside its domain; such a task comes back to the frontier by itself.")
 
 
 class Log:
@@ -140,16 +145,39 @@ def local_online(base_url: str | None) -> bool:
         return False
 
 
-def run_local(prompt: str, base_url: str, model: str, log: Log, task: str) -> dict:
+def lk_token(lk: dict) -> str:
+    """A lora-kernel gateway token for the configured user and role (the demo issuer: lora-kernel's own
+    examples/common/tokens.py, imported from the configured checkout)."""
+    import sys
+    root = str(Path(lk["path"]).expanduser())
+    if root not in sys.path:
+        sys.path.insert(0, root)
+    from examples.common import tokens          # lora-kernel's, not ours
+    return tokens.issue(lk["user"], lk["role"], lk["org"])
+
+
+def run_local(prompt: str, base_url: str, model: str, log: Log, task: str, lk: dict | None = None) -> dict:
+    """One local call. With `lk` (lora-kernel's gateway) the request carries a role token and opens a session of
+    its own — a specialist's abstention was measured as a session's first turn, never mid-session — and the
+    gateway's route is read: anything but `local` means the specialist abstained."""
     t0 = time.time()
+    headers = {"Content-Type": "application/json"}
+    if lk:
+        headers["Authorization"] = f"Bearer {lk_token(lk)}"
+        headers["X-Session-Id"] = f"director-{task}-{int(t0)}"
+        model = "auto"
     body = json.dumps({"model": model, "messages": [{"role": "user", "content": prompt}], "max_tokens": 800}).encode()
-    req = urllib.request.Request(base_url.rstrip("/") + "/chat/completions", data=body,
-                                 headers={"Content-Type": "application/json"})
+    req = urllib.request.Request(base_url.rstrip("/") + "/chat/completions", data=body, headers=headers)
     out = json.loads(urllib.request.urlopen(req, timeout=600).read())
     text = out["choices"][0]["message"]["content"]
     u = out.get("usage") or {}
-    log.emit("local", "text", task=task, text=text)
-    return {"result": text, "tokens": [u.get("prompt_tokens"), u.get("completion_tokens")],
+    route = out.get("x_route", "local")
+    for c in out.get("x_calls") or []:
+        log.emit("local", "tool", task=task, tool=c.get("tool"),
+                 text=f"{json.dumps(c.get('args'), ensure_ascii=False)[:100]} → {str(c.get('result', c.get('error', '')))[:120]}")
+    if route == "local":
+        log.emit("local", "text", task=task, text=text)
+    return {"result": text, "route": route, "tokens": [u.get("prompt_tokens"), u.get("completion_tokens")],
             "seconds": round(time.time() - t0, 1)}
 
 
@@ -190,7 +218,7 @@ class Director:
 
     @property
     def busy(self) -> bool:
-        return self.phase in ("planning", "running", "reflecting")
+        return self.phase in ("planning", "running", "reflecting", "guarding")
 
     def claim(self, phase: str, allowed: tuple[str, ...]) -> bool:
         with self.lock:
@@ -215,7 +243,7 @@ class Director:
         try:
             self.log.emit("director", "request", text=request)
             online = local_online(self.cfg.get("local_base_url"))
-            r = stream_claude(PLAN_ASK.format(request=request, local_state="online" if online else "OFFLINE"),
+            r = stream_claude(PLAN_ASK.format(request=request, lane_rule=self.lane_rule(online)),
                               self.memory.parent, self.log, "director", None, system=self.system,
                               model=self.cfg.get("director_model", "sonnet"), max_turns=16,
                               budget=self.cfg.get("plan_budget_usd", 1.0))
@@ -236,6 +264,13 @@ class Director:
         if self.cfg.get("auto_run"):
             self.phase = "running"
             self.execute()
+
+    def lane_rule(self, online: bool) -> str:
+        state = "online" if online else "OFFLINE"
+        lk = self.cfg.get("lora_kernel")
+        if lk and self.cfg.get("local_kind") == "lora-kernel":
+            return LK_RULE.format(domains=lk.get("domains", "its configured domains"), state=state)
+        return BARE_RULE.format(state=state)
 
     def move(self, task_id: str, lane: str) -> dict:
         """D3: the user moves a queued task to the other lane before the plan runs. Logged, and kept for the
@@ -288,8 +323,24 @@ class Director:
                         self.log.emit("local", "offline", task=t["id"],
                                       text="local lane offline: no server answers; the director does not start one")
                         continue
-                    r = run_local(t["prompt"], base, self.cfg.get("local_model", "local"), self.log, t["id"])
-                    self.log.emit("local", "task_end", task=t["id"], seconds=r["seconds"], tokens=r["tokens"])
+                    lk = self.cfg.get("lora_kernel") if self.cfg.get("local_kind") == "lora-kernel" else None
+                    r = run_local(t["prompt"], base, self.cfg.get("local_model", "local"), self.log, t["id"], lk)
+                    self.log.emit("local", "task_end", task=t["id"], seconds=r["seconds"], tokens=r["tokens"],
+                                  route=r["route"])
+                    if r["route"] != "local":
+                        # the specialist abstained: lora-kernel's router decided this is not local work
+                        t["lane"], t["abstained"] = "frontier", True
+                        self.log.emit("local", "abstained", task=t["id"],
+                                      text=f"lora-kernel abstained (route {r['route']}); the task goes to the frontier")
+                        self.log.emit("director", "lane_moved", task=t["id"], text="local → frontier (abstained)",
+                                      plan=self.plan)
+                        self.log.emit("frontier", "task_start", task=t["id"], text=t.get("title", "") + " (abstained locally)")
+                        r = stream_claude(t["prompt"], self.workdir, self.log, "frontier", t["id"],
+                                          tools=self.cfg.get("frontier_tools", "Read,Grep,Glob"),
+                                          model=self.cfg.get("frontier_model", "sonnet"),
+                                          budget=self.cfg.get("task_budget_usd", 1.0))
+                        self.log.emit("frontier", "task_end", task=t["id"], cost=r.get("cost"), turns=r.get("turns"),
+                                      error=bool(r.get("error")))
                 else:
                     r = stream_claude(t["prompt"], self.workdir, self.log, "frontier", t["id"],
                                       tools=self.cfg.get("frontier_tools", "Read,Grep,Glob"),
@@ -353,10 +404,47 @@ class Director:
             return {"status": "rejected"}
         if p["lint"] or not p["applied"]:
             raise ValueError("this proposal has lint problems or no edit applied; it cannot be accepted")
+        g = self.cfg.get("guard")
+        if g and g.get("enabled", True):
+            # D0's guard before the edit is kept: the candidate memory re-plans D0's cases (k samples, blind judge)
+            # and must hold `min`. Minutes and a few dollars, so it runs in the background.
+            if not self.claim("guarding", ("idle",)):
+                raise ValueError(f"the director is {self.phase}")
+            p["status"] = "guarding"
+            threading.Thread(target=self._guard_then_commit, args=(pid,), daemon=True).start()
+            return {"status": "guarding"}
+        return self._commit(pid, None)
+
+    def _guard_then_commit(self, pid: str) -> None:
+        from .guard import run_guard
+        p, g = self.proposals[pid], self.cfg["guard"]
+        try:
+            self.log.emit("director", "guard_start", task=pid,
+                          text=f"D0 guard: {g.get('k', 1)} sample(s) of D0's cases on the candidate memory, must hold "
+                               f"{g.get('min', 0.86)}")
+            res = run_guard(Path(p["candidate"]), self.home / "guards" / pid, g,
+                            lambda line: self.log.emit("director", "guard_progress", task=pid, text=line))
+            (Path(p["candidate"]).parent / "guard.json").write_text(json.dumps(res))
+            self.log.emit("director", "guard_done", task=pid, guard=res,
+                          text=f"guard {res['mean']} (min {res['min']}) · ${res['cost_usd']}")
+            if not res["passed"]:
+                p["status"] = "guard_failed"
+                self.log.emit("director", "proposal_rejected", task=pid,
+                              text=f"the D0 guard did not hold ({res['mean']} < {res['min']}); the memory is unchanged")
+                return
+            self._commit(pid, res)
+        except Exception as e:
+            p["status"] = "proposed"
+            self.log.emit("director", "error", task=pid, text=f"guard: {e!r}"[:400])
+        finally:
+            self.phase = "idle"
+
+    def _commit(self, pid: str, guard: dict | None) -> dict:
         from .memory_vcs import LiveStore
+        p = self.proposals[pid]
         if self.store is None:
             self.store = LiveStore(self.home / "vcs", self.memory, self.cfg.get("agentvcs"))
-        patch = self.store.commit(Path(p["candidate"]), p["rationale"], p["applied"])
+        patch = self.store.commit(Path(p["candidate"]), p["rationale"], p["applied"], guard)
         shutil.rmtree(self.memory)
         shutil.copytree(p["candidate"], self.memory)
         p.update(status="accepted", patch=patch)

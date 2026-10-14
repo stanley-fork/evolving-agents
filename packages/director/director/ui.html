@@ -180,8 +180,11 @@ function apply(ev) {
     else if (ev.kind === "plan") { phase = "awaiting_run"; renderPlan(ev.plan); }
     else if (ev.kind === "lane_moved") { line(f, "tool", `moved ${ev.task}: ${ev.text}`); renderPlan(ev.plan); }
     else if (ev.kind === "proposal") renderProposal(f, ev.task, ev.proposal);
-    else if (ev.kind === "proposal_rejected") line(f, "tool", `${ev.task} rejected — the memory is unchanged`);
+    else if (ev.kind === "proposal_rejected") line(f, "tool", ev.text ? `${ev.task}: ${ev.text}` : `${ev.task} rejected — the memory is unchanged`);
     else if (ev.kind === "memory_updated") line(f, "tool", `${ev.task} accepted — ${ev.text}`);
+    else if (ev.kind === "guard_start") line(f, "tool", `${ev.task}: ${ev.text}`);
+    else if (ev.kind === "guard_progress") { if (/^\[(d0|judge)\]/.test(ev.text)) line(f, "tool", "  " + ev.text.replace(/^\[d0\] G /, "guard ").replace(/^\[judge\] G /, "judge ")); }
+    else if (ev.kind === "guard_done") line(f, ev.guard && ev.guard.passed ? "tool" : "error", `${ev.task}: ${ev.text}`);
     else if (ev.kind === "done") line(f, "tool", "done — " + ev.text);
     else if (ev.kind === "error") line(f, "error", ev.text);
     f.scrollTop = f.scrollHeight;
@@ -192,6 +195,7 @@ function apply(ev) {
   if (ev.kind === "text") line(b, "", ev.text);
   else if (ev.kind === "tool") line(b, "tool", `${ev.tool} ${ev.text}`);
   else if (ev.kind === "offline") { tasks[ev.task] = "offline"; line(b, "offline", ev.text); }
+  else if (ev.kind === "abstained") { tasks[ev.task] = "abstained → frontier"; line(b, "offline", ev.text); }
   else if (ev.kind === "error") { tasks[ev.task] = "error"; line(b, "error", ev.text); }
   else if (ev.kind === "task_end") {
     tasks[ev.task] = ev.error ? "error" : "done";
@@ -224,7 +228,12 @@ async function post(path, body) {
 async function runPlan() { if (await post("/run")) { phase = "running"; if (lastPlan) renderPlan(lastPlan); } }
 async function moveTask(task, lane) { await post("/move", {task, lane}); }
 async function decide(id, accept) {
-  if (await post("/proposal", {id, accept})) { const b = document.querySelector(`#prop-${id} .btns`); if (b) b.innerHTML = accept ? "accepted" : "rejected"; }
+  const r = await fetch("/proposal", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({id, accept})});
+  const out = await r.json();
+  const b = document.querySelector(`#prop-${id} .btns`);
+  if (!r.ok) line($("feed"), "error", out.error);
+  else if (b) b.innerHTML = out.status === "guarding" ? "accepted — running the D0 guard…" : out.status;
+  state();
 }
 
 async function poll() {
