@@ -31,6 +31,8 @@ MODEL = "sonnet"            # Claude Sonnet 5.5 — the brief's model for both a
 K = 2                       # samples per case
 TURNS, CALL_BUDGET, CAP = 12, 0.60, 35.0   # cap raised 25 -> 35 by the user, 2026-10-14, for A+
 A_THRESHOLD, PASS_DELTA = 0.85, 0.15
+EXPERIMENT = "d0"                  # the private subdirectory; D2 reuses this runner with its own
+CASES_FILE = HERE / "cases.jsonl"  # D2 points it at its probes, and back here for its guard
 
 ASK = ("{situation}\n\nWrite your plan: the concrete next actions you will take, in order, and what you will "
        "tell the user. Do not execute anything; you may read files in this directory first.")
@@ -51,7 +53,7 @@ def cfg(path: str) -> dict:
 
 def cases(c: dict) -> list[dict]:
     out = []
-    for line in (HERE / "cases.jsonl").read_text().splitlines():
+    for line in Path(CASES_FILE).read_text().splitlines():
         case = json.loads(line)
         fill = lambda s: re.sub(r"\{([A-Z_]+)\}", lambda m: c["placeholders"][m.group(1)], s)
         case["situation"] = fill(case["situation"])
@@ -62,7 +64,7 @@ def cases(c: dict) -> list[dict]:
 
 
 def arm_dir(c: dict, arm: str) -> Path:
-    return Path(c["private_dir"]) / "d0" / f"arm-{arm}"
+    return Path(c["private_dir"]) / EXPERIMENT / f"arm-{arm}"
 
 
 # ------------------------------------------------------------------ arm A: the session as we run it today
@@ -181,7 +183,7 @@ def rows(path: Path) -> list[dict]:
 
 def spent(c: dict) -> float:
     tot = 0.0
-    for f in (Path(c["private_dir"]) / "d0").rglob("*.jsonl"):
+    for f in (Path(c["private_dir"]) / EXPERIMENT).rglob("*.jsonl"):
         tot += sum(r.get("cost_usd") or 0 for r in rows(f))
     return round(tot, 4)
 
