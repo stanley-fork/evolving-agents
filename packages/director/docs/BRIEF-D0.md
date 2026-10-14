@@ -122,3 +122,35 @@ T − A = **+0.339**; case-level wins/losses **8 : 0** (6 ties at 1.0), exact on
 
 **Next, by the sequence written before T ran: A+**, the attribution arm. It needs ≈ US$8–12, past the
 D0 cap — the user's call.
+
+## A+ — the attribution arm, written before it runs
+
+**The user's decision, 2026-10-14: the D0 cap rises to US$35 for A+**; after it, D1. A+ = A's sandbox byte for
+byte, A's system prompt plus `DIRECTOR.md`'s five steps pointed at `MEMORY.md` and the `CLAUDE.md` files
+instead of `Index.md` (`run_d0.APLUS_WALK`). Same model, tools, turns, budget, k, judge.
+
+| reading (fixed here) | condition |
+|---|---|
+| **the organisation carries it** | T − A+ ≥ +0.10 and T wins more cases than A+ |
+| **the instruction carries it** | A+ ≥ T − 0.05 — the director can walk today's files; compiling is not needed for D1 |
+| **in between** | otherwise — both matter; D1 keeps the compiled memory, and the gap is reported |
+
+## A+ [ran] 2026-10-14 — 0.768: **the organisation carries it**
+
+28/28 plans, 0 errors, US$8.48, 6.0 turns per plan; **10 of 28 plans took one turn**, i.e. ignored the walk
+instruction and planned from the prompt. D0's total: US$28.13 of the US$35 cap.
+
+| | A | A+ (A + the walk instruction) | T (compiled memory, walked) |
+|---|---|---|---|
+| mean | 0.589 | 0.768 | **0.929** |
+| c13 subtree · c10 grid | 0 · 0 | 0 · 0 | 1.0 · 0.5 |
+| c09 mirror · c07 goldens | 0 · 0.5 | 1.0 · 1.0 | 1.0 · 1.0 |
+
+T − A+ = **+0.161**, T wins 4 cases, A+ wins 0 (10 ties) → by the reading fixed above, **the organisation
+carries it**: the instruction alone buys about half the gain (+0.18 of +0.34), and the compiled, indexed
+pages buy the rest. With 4 discordant cases the sign test is p = 0.0625 — the reading was fixed on the
+gap and the wins, not on p, and it is reported beside them. c13 is the clearest case: the subtree rule sits in
+the very `CLAUDE.md` A and A+ had loaded, and both planned the edit; T found it from the index's situation
+"working in ai-os / evolving-agents".
+
+**For D1:** the director keeps the compiled memory and walks it from `Index.md`.

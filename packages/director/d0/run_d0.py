@@ -29,7 +29,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 MODEL = "sonnet"            # Claude Sonnet 5.5 — the brief's model for both arms and the judge
 K = 2                       # samples per case
-TURNS, CALL_BUDGET, CAP = 12, 0.60, 25.0
+TURNS, CALL_BUDGET, CAP = 12, 0.60, 35.0   # cap raised 25 -> 35 by the user, 2026-10-14, for A+
 A_THRESHOLD, PASS_DELTA = 0.85, 0.15
 
 ASK = ("{situation}\n\nWrite your plan: the concrete next actions you will take, in order, and what you will "
@@ -87,6 +87,36 @@ def prepare_a(c: dict) -> dict:
     rec = {"arm": "A", "sandbox": str(d), "files": files, "prepared": time.strftime("%Y-%m-%dT%H:%M:%S")}
     (arm_dir(c, "A") / "sources.json").write_text(json.dumps(rec, indent=1))
     return {"files": len(files), "sandbox": str(d)}
+
+
+# ------------------------------------------------------------------ arm A+: today's sources, the same walk instruction
+
+# DIRECTOR.md's procedure, pointed at today's memory (MEMORY.md and the files it indexes, the CLAUDE.md files)
+# instead of the compiled pages. A+ ≈ T: the instruction carried T's gain; T > A+: the organisation did.
+APLUS_WALK = """
+
+# Before you plan
+
+You plan every task by walking your memory before you act:
+
+1. Open `memory/MEMORY.md` (above) and the instruction files (`CLAUDE.md`, `lora-kernel/CLAUDE.md`) and find
+   every rule and memory that matches the situation the task is in. A task is usually in more than one.
+2. Open the memory files those entries point to. Keep the ones that apply.
+3. Follow what they reference while it applies; stop where nothing does.
+4. Plan. Each action that follows a rule or memory cites the file it came from. If a rule conflicts with
+   what the user asked, say so to the user instead of silently choosing.
+5. If nothing applies, say that the memory has nothing for this situation, and plan anyway.
+"""
+
+
+def prepare_aplus(c: dict) -> dict:
+    """A's sandbox, byte for byte, with the walk instruction appended to A's system prompt."""
+    src, d = arm_dir(c, "A"), arm_dir(c, "Aplus")
+    if d.exists():
+        shutil.rmtree(d)
+    shutil.copytree(src / "sandbox", d / "sandbox")
+    (d / "system.md").write_text((src / "system.md").read_text() + APLUS_WALK)
+    return {"files": sum(1 for p in (d / "sandbox").rglob("*") if p.is_file())}
 
 
 # ------------------------------------------------------------------ arm T: the same sources, compiled and walked
@@ -232,6 +262,13 @@ def report(c: dict, arm: str) -> dict:
     s["errors"] = sum(1 for r in plans if r.get("error") or not r.get("plan"))
     if arm == "A" and s["mean"] is not None:
         s["verdict"] = "STOP — no headroom" if s["mean"] >= A_THRESHOLD else "GO to T"
+    if arm == "Aplus" and s["mean"] is not None:
+        t = score(c, "T")
+        common = sorted(set(t["cases"]) & set(s["cases"]))
+        s.update({"T_mean": t["mean"], "A_mean": score(c, "A")["mean"],
+                  "T_minus_Aplus": round(t["mean"] - s["mean"], 4),
+                  "T_wins": sum(t["cases"][k] > s["cases"][k] for k in common),
+                  "Aplus_wins": sum(t["cases"][k] < s["cases"][k] for k in common)})
     if arm == "T" and s["mean"] is not None:
         a = score(c, "A")
         common = sorted(set(a["cases"]) & set(s["cases"]))
@@ -250,13 +287,15 @@ def report(c: dict, arm: str) -> dict:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["prepare-a", "prepare-t", "run", "judge", "report"])
-    ap.add_argument("--arm", default="A", choices=["A", "T"])
+    ap.add_argument("cmd", choices=["prepare-a", "prepare-aplus", "prepare-t", "run", "judge", "report"])
+    ap.add_argument("--arm", default="A", choices=["A", "Aplus", "T"])
     ap.add_argument("--config", required=True)
     a = ap.parse_args()
     c = cfg(a.config)
     if a.cmd == "prepare-a":
         print(json.dumps(prepare_a(c)))
+    elif a.cmd == "prepare-aplus":
+        print(json.dumps(prepare_aplus(c)))
     elif a.cmd == "prepare-t":
         print(json.dumps(prepare_t(c)))
     elif a.cmd == "run":

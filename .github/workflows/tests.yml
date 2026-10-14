@@ -43,6 +43,19 @@ jobs:
       - run: pip install pytest
       - run: python -m pytest plugin/tests -q
 
+  director:
+    # packages/director: the director's loop and interface (D1), stdlib only; a fake `claude` and a fake local
+    # server stand in for the real ones. Oldest supported Python, like the plugin.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: pip install pytest
+      - run: python -m pytest tests -q
+        working-directory: packages/director
+
   memory:
     runs-on: ubuntu-latest
     steps:

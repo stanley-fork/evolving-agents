@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>director</title>
+<style>
+:root {
+  --bg: #f6f3ec; --panel: #fffdf8; --ink: #1f1b16; --dim: #6b6358; --sep: #ddd4c3;
+  --frontier: #6a4c93; --local: #2d7a5f; --director: #8a5a1c; --warn: #b5651d; --err: #a33;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #16140f; --panel: #1f1c16; --ink: #ece6da; --dim: #a39a8b; --sep: #3a352c;
+          --frontier: #b39ddb; --local: #7cc4a5; --director: #d9a35b; --warn: #e0a060; --err: #f08080; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+body { display: grid; grid-template-rows: auto minmax(260px, 46%) 1fr; height: 100vh; }
+header { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--sep); }
+header h1 { font-size: 16px; margin: 0; letter-spacing: .02em; }
+.chip { font: 12px var(--mono); padding: 2px 8px; border-radius: 10px; border: 1px solid var(--sep); color: var(--dim); }
+.chip.on { color: var(--local); border-color: var(--local); }
+.chip.busy { color: var(--director); border-color: var(--director); }
+section { min-height: 0; }
+.top { display: grid; grid-template-columns: 260px 1fr 1fr; gap: 0; border-bottom: 2px solid var(--sep); }
+.col { min-height: 0; overflow: auto; padding: 10px 14px; border-right: 1px solid var(--sep); }
+.col:last-child { border-right: 0; }
+h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); margin: 4px 0 8px; }
+.big { font-size: 22px; font-weight: 600; }
+.pages div { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; padding: 1px 0; }
+.pages span:last-child { color: var(--dim); font-family: var(--mono); }
+.task { border: 1px solid var(--sep); border-left: 4px solid var(--frontier); background: var(--panel);
+  border-radius: 6px; padding: 6px 10px; margin-bottom: 8px; }
+.task.local { border-left-color: var(--local); }
+.task .t { font-weight: 600; } .task .w, .task .c { font-size: 12px; color: var(--dim); }
+.task .state { float: right; font: 11px var(--mono); color: var(--dim); }
+.chat { display: flex; flex-direction: column; }
+.feed { flex: 1; min-height: 0; overflow: auto; }
+.ev { font-size: 13px; margin: 2px 0; white-space: pre-wrap; word-break: break-word; }
+.ev.req { font-weight: 600; margin-top: 10px; }
+.ev.tool { font: 12px var(--mono); color: var(--dim); }
+.ev.error { color: var(--err); } .ev.offline { color: var(--warn); }
+form { display: flex; gap: 8px; margin-top: 8px; }
+textarea { flex: 1; resize: vertical; min-height: 40px; font: inherit; color: var(--ink); background: var(--panel);
+  border: 1px solid var(--sep); border-radius: 6px; padding: 6px 8px; }
+button { font: inherit; border: 1px solid var(--director); color: var(--director); background: transparent;
+  border-radius: 6px; padding: 0 14px; cursor: pointer; }
+button:disabled { opacity: .4; cursor: default; }
+.lanes { display: grid; grid-template-columns: 1fr 1fr; min-height: 0; }
+.lane { min-height: 0; overflow: auto; padding: 10px 14px; }
+.lane + .lane { border-left: 1px solid var(--sep); }
+.lane h2 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 4px; margin-right: 6px; }
+.lane.frontier h2 .dot { background: var(--frontier); } .lane.local h2 .dot { background: var(--local); }
+.block { border-top: 1px dashed var(--sep); padding-top: 6px; margin-top: 8px; }
+.block .hd { font-weight: 600; font-size: 13px; }
+.empty { color: var(--dim); font-style: italic; }
+@media (max-width: 860px) {
+  body { grid-template-rows: auto auto 1fr; height: auto; }
+  .top, .lanes { grid-template-columns: 1fr; }
+  .col { border-right: 0; border-bottom: 1px solid var(--sep); max-height: 50vh; }
+  .lane + .lane { border-left: 0; border-top: 1px solid var(--sep); }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>director</h1>
+  <span id="status" class="chip">idle</span>
+  <span id="local" class="chip">local lane: …</span>
+  <span id="tools" class="chip"></span>
+</header>
+
+<section class="top">
+  <div class="col">
+    <h2>Capabilities — operational memory</h2>
+    <div><span id="nstat" class="big">–</span> statements</div>
+    <div style="color:var(--dim);font-size:13px;margin-bottom:8px"><span id="nsit">–</span> situations it knows how to enter</div>
+    <div id="pages" class="pages"></div>
+  </div>
+  <div class="col">
+    <h2>Plan</h2>
+    <div id="plan"><p class="empty">No plan yet. Ask the director below.</p></div>
+  </div>
+  <div class="col chat">
+    <h2>Director — conversation and walk</h2>
+    <div id="feed" class="feed"></div>
+    <form id="ask">
+      <textarea id="text" placeholder="What should be done?"></textarea>
+      <button id="send">Send</button>
+    </form>
+  </div>
+</section>
+
+<section class="lanes">
+  <div class="lane frontier"><h2><span class="dot"></span>Frontier — Claude Code</h2><div id="frontier"><p class="empty">Nothing delegated yet.</p></div></div>
+  <div class="lane local"><h2><span class="dot"></span>Local models</h2><div id="local-lane"><p class="empty">Nothing delegated yet.</p></div></div>
+</section>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let since = 0, tasks = {};
+const esc = (s) => String(s ?? "").replace(/[&<>]/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;"}[c]));
+
+async function state() {
+  try {
+    const s = await (await fetch("/state")).json();
+    const cap = s.capabilities;
+    $("nstat").textContent = cap.statements;
+    $("nsit").textContent = cap.situations.length;
+    $("pages").innerHTML = Object.entries(cap.pages)
+      .map(([n, p]) => `<div title="${esc(p.about)}"><span>${esc(n.replace(/_/g, " "))}</span><span>${p.statements}</span></div>`).join("");
+    $("status").textContent = s.busy ? "working" : "idle";
+    $("status").className = "chip" + (s.busy ? " busy" : "");
+    $("send").disabled = s.busy;
+    $("local").textContent = "local lane: " + (s.local_online ? "online" : "offline");
+    $("local").className = "chip" + (s.local_online ? " on" : "");
+    $("tools").textContent = "frontier tools: " + s.frontier_tools;
+    if (s.plan) renderPlan(s.plan);
+  } catch (e) { $("status").textContent = "server unreachable"; }
+}
+
+function renderPlan(plan) {
+  $("plan").innerHTML = `<p style="margin:0 0 8px">${esc(plan.summary)}</p>` + plan.tasks.map((t) =>
+    `<div class="task ${t.lane}"><span class="state" id="st-${esc(t.id)}">${esc(tasks[t.id] || "queued")}</span>
+     <div class="t">${esc(t.id)} · ${esc(t.title)}</div>
+     <div class="w">${t.lane} — ${esc(t.why_lane)}</div>
+     ${t.cites && t.cites.length ? `<div class="c">follows ${t.cites.map(esc).join(" · ")}</div>` : ""}</div>`).join("");
+}
+
+function laneBox(lane, task, title) {
+  const host = lane === "frontier" ? $("frontier") : $("local-lane");
+  if (host.querySelector(".empty")) host.innerHTML = "";
+  let b = document.getElementById(`b-${lane}-${task}`);
+  if (!b) {
+    b = document.createElement("div");
+    b.className = "block"; b.id = `b-${lane}-${task}`;
+    b.innerHTML = `<div class="hd">${esc(task)} · ${esc(title || "")}</div>`;
+    host.appendChild(b);
+  }
+  return b;
+}
+
+function line(host, cls, text) {
+  const d = document.createElement("div");
+  d.className = "ev " + cls; d.textContent = text;
+  host.appendChild(d);
+  host.parentElement.scrollTop = host.parentElement.scrollHeight;
+}
+
+function apply(ev) {
+  if (ev.lane === "director") {
+    const f = $("feed");
+    if (ev.kind === "request") line(f, "req", "› " + ev.text);
+    else if (ev.kind === "tool") line(f, "tool", "walk: " + ev.text.replace(/^.*\/memory\//, ""));
+    else if (ev.kind === "text") line(f, "", ev.text.replace(/```json[\s\S]*```/, "[plan]"));
+    else if (ev.kind === "plan") renderPlan(ev.plan);
+    else if (ev.kind === "done") line(f, "tool", "done — " + ev.text);
+    else if (ev.kind === "error") line(f, "error", ev.text);
+    f.scrollTop = f.scrollHeight;
+    return;
+  }
+  if (ev.kind === "task_start") { tasks[ev.task] = "running"; laneBox(ev.lane, ev.task, ev.text); }
+  const b = laneBox(ev.lane, ev.task);
+  if (ev.kind === "text") line(b, "", ev.text);
+  else if (ev.kind === "tool") line(b, "tool", `${ev.tool} ${ev.text}`);
+  else if (ev.kind === "offline") { tasks[ev.task] = "offline"; line(b, "offline", ev.text); }
+  else if (ev.kind === "error") { tasks[ev.task] = "error"; line(b, "error", ev.text); }
+  else if (ev.kind === "task_end") {
+    tasks[ev.task] = ev.error ? "error" : "done";
+    line(b, "tool", ev.cost != null ? `done · ${ev.turns} turns · $${(+ev.cost).toFixed(3)}` :
+                    `done · ${ev.seconds} s · ${(ev.tokens || []).join("+")} tokens`);
+  }
+  const st = document.getElementById("st-" + ev.task);
+  if (st) st.textContent = tasks[ev.task] || "queued";
+}
+
+async function poll() {
+  try {
+    const evs = await (await fetch("/events?since=" + since)).json();
+    evs.forEach((ev) => { apply(ev); since = ev.seq + 1; });
+  } catch (e) {}
+}
+
+$("ask").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const text = $("text").value.trim();
+  if (!text) return;
+  const r = await fetch("/request", {method: "POST", headers: {"Content-Type": "application/json"},
+                                     body: JSON.stringify({text})});
+  if (r.ok) { $("text").value = ""; tasks = {}; } else { line($("feed"), "error", (await r.json()).error); }
+  state();
+});
+
+state(); poll();
+setInterval(poll, 1000); setInterval(state, 4000);
+</script>
+</body>
+</html>
