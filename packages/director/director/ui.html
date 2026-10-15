@@ -215,6 +215,7 @@ function renderProposal(f, id, p) {
   d.innerHTML = `<div class="hd"><b>${esc(id)}</b> — the director proposes ${(p.edits || []).length} edit(s) to its memory</div>${edits}` +
     ((p.rejected || []).length ? `<div class="e" style="color:var(--err)">not applicable: ${p.rejected.map((r) => esc(r.edit + " (" + r.why + ")")).join("; ")}</div>` : "") +
     ((p.lint || []).length ? `<div class="e" style="color:var(--err)">lint: ${p.lint.map(esc).join("; ")}</div>` : "") +
+    ((p.probes || []).length ? `<div class="e"><b>probes</b> (run on Accept, current memory vs this edit): ${p.probes.map((q) => esc(q.situation)).join(" · ")}</div>` : "") +
     `<div class="btns">${bad ? "" : `<button class="ok" onclick="decide('${id}', true)">Accept</button>`}<button class="no" onclick="decide('${id}', false)">Reject</button></div>`;
   f.appendChild(d); f.scrollTop = f.scrollHeight;
 }

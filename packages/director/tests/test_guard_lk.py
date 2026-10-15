@@ -21,8 +21,10 @@ import director.guard  # noqa: E402
 GATE = Path(__file__).resolve().parents[1] / "director" / "learn_gate.py"
 
 
-def through_reflection(tmp, monkeypatch, guard_result, **cfg):
+def through_reflection(tmp, monkeypatch, guard_result, probe=None, **cfg):
     monkeypatch.setattr(director.guard, "run_guard", lambda cand, wd, g, progress=print, current=None: guard_result)
+    monkeypatch.setattr(director.guard, "positive_probe", lambda probes, cur, cand, wd, g, progress=print:
+                        probe or {"verdict": "TEACHES", "teaches": True, "current": 0.0, "candidate": 1.0})
     srv, base = start(tmp, "http://127.0.0.1:9/v1", guard={"enabled": True, "k": 1, "min": 0.86}, **cfg)
     post(base, "/request", {"text": "update the plan doc"}); wait_for(base, "plan")
     post(base, "/run"); wait_for(base, "done")
@@ -49,7 +51,7 @@ def test_a_passing_guard_is_part_of_the_agentvcs_gate(tmp_path, monkeypatch):
                                                                 "below_one": {}, "cost_usd": 0, "k": 1, "passed": True},
                                         agentvcs=AGENTVCS)
     ev = [e for e in wait_for(base, "memory_updated") if e["kind"] == "memory_updated"][0]
-    assert ev["patch"]["gate"] == {"lint_problems": 0, "human_accepted": 1, "guard": 0.93, "guard_passed": 1}
+    assert ev["patch"]["gate"] == {"lint_problems": 0, "human_accepted": 1, "guard": 0.93, "guard_passed": 1, "teaches": 1}
     assert (tmp_path / "sandbox" / "memory" / "Lanes.md").exists()
     srv.shutdown()
 
@@ -179,3 +181,14 @@ def test_targeted_mode_without_a_baseline_decides_nothing_and_an_add_only_edit_i
     r = G._targeted(None, None, cand, cur, {"k": 3}, seen.append)
     assert r["passed"] is True and r["relevant"] == [] and r["cost_usd"] == 0.0     # an add touches nothing relied on
     assert G.baseline_path(cand).exists()                                          # carried forward to the new version
+
+
+def test_a_redundant_lesson_is_not_kept(tmp_path, monkeypatch):
+    srv, base, pid = through_reflection(tmp_path, monkeypatch, {"mean": 0.93, "min": 0.86, "n_cases": 14, "samples": 14,
+                                                                "below_one": {}, "cost_usd": 0, "k": 1, "passed": True},
+                                        probe={"verdict": "REDUNDANT", "teaches": False, "current": 0.9, "candidate": 1.0})
+    ev = [e for e in wait_for(base, "proposal_rejected") if e["kind"] == "proposal_rejected"][0]
+    assert "REDUNDANT" in ev["text"]
+    assert not (tmp_path / "sandbox" / "memory" / "Lanes.md").exists()
+    assert json.loads(urllib.request.urlopen(base + "/state").read())["proposals"][pid]["status"] == "redundant"
+    srv.shutdown()
