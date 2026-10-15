@@ -69,6 +69,8 @@ def run_guard(candidate: Path, workdir: Path, g: dict, progress=print, current: 
     R.EXPERIMENT, R.K, R.CAP = ".", int(g.get("k", 1)), float(g.get("cap_usd", 15))
     R.CASES_FILE = HERE.parent / "d0" / "cases.jsonl"
     R.print = lambda *a, **k: progress(" ".join(str(x) for x in a))     # the runner's progress lines, as events
+    if g.get("mode") == "targeted":
+        return _targeted(R, c, Path(candidate), Path(current), g, progress)
     s = _arm(R, c, "G", candidate)
     mean, floor = s["mean"], float(g.get("min", 0.86))
     complete = s["n_cases"] == 14
@@ -94,3 +96,119 @@ def run_guard(candidate: Path, workdir: Path, g: dict, progress=print, current: 
     else:
         out["passed"] = bool(complete and mean is not None and mean >= floor)
     return out
+
+
+# ------------------------------------------------------------------ targeted guard (D6, docs/BRIEF-D6.md)
+
+CITE = __import__("re").compile(r"\[\[([A-Za-z0-9_]+)#(\w+)\]\]")
+
+
+def cited_statements(plans: list[dict]) -> dict[str, set[str]]:
+    """case -> the statements its plans cite, over every sample of a baseline."""
+    out: dict[str, set[str]] = {}
+    for r in plans:
+        if r.get("plan"):
+            out.setdefault(r["case"], set()).update(f"{p}#{i}" for p, i in CITE.findall(r["plan"]))
+    return out
+
+
+def changed_statements(current: Path, candidate: Path) -> set[str]:
+    """The statements the candidate removes or whose When, Do or Because it modifies (added ones are not here: a
+    positive probe checks those)."""
+    from .learn import statements
+    out = set()
+    for p in Path(current).glob("*.md"):
+        if p.name in ("Index.md", "README.md"):
+            continue
+        before = statements(p.read_text())
+        q = Path(candidate) / p.name
+        after = statements(q.read_text()) if q.exists() else {}
+        out |= {f"{p.stem}#{sid}" for sid, block in before.items()
+                if sid not in after or _substance(after[sid]) != _substance(block)}
+    return out
+
+
+def _substance(block: str) -> tuple[str, str, str]:
+    """When, Do and Because — what a plan follows. A change to Links alone is navigation (a dangling link is the
+    lint's business), so it does not make the statements that carried the link relevant."""
+    from .learn import field
+    return field(block, "When"), field(block, "Do"), field(block, "Because")
+
+
+def relevant_cases(changed: set[str], cites: dict[str, set[str]]) -> list[str]:
+    return sorted(case for case, cs in cites.items() if cs & changed)
+
+
+def targeted_verdict(base: dict[str, list[float]], cand: dict[str, list[float]], reliable: float = 0.75,
+                     fail: float = 1 / 3) -> dict:
+    """Refuse iff some relevant case was reliable before (baseline mean >= `reliable`) and fails now (candidate mean
+    <= `fail`). Every relevant case must have candidate samples."""
+    mean = lambda xs: sum(xs) / len(xs)
+    broke = [k for k in cand if cand[k] and mean(base[k]) >= reliable and mean(cand[k]) <= fail + 1e-9]
+    complete = all(cand.get(k) for k in cand)
+    return {"broke": broke, "passed": complete and not broke, "complete": complete,
+            "per_case": {k: [round(mean(base[k]), 3), round(mean(cand[k]), 3) if cand[k] else None] for k in cand}}
+
+
+def baseline_path(memory: Path) -> Path:
+    return Path(memory).parent / "guards" / "baseline" / f"{memory_hash(memory)}.json"
+
+
+def _targeted(R, c, candidate: Path, current: Path, g: dict, progress) -> dict:
+    """D6's guard (VALIDATED, docs/BRIEF-D6.md): re-plan only the D0 cases whose baseline plans cite a statement the
+    edit removes or changes in substance, k = 3; refuse iff one of them was reliable (>= 0.75) and now fails (<= 1/3).
+    The baseline is per memory version; an accepted edit carries it forward, the relevant cases' samples replaced."""
+    bp = baseline_path(current)
+    if not bp.exists():
+        progress(f"[guard] no baseline for this memory ({bp.name}); build one before Accept can be guarded")
+        return {"mode": "targeted", "incomplete": True, "passed": False, "reason": "no baseline"}
+    base = json.loads(bp.read_text())
+    changed = changed_statements(current, candidate)
+    rel = relevant_cases(changed, {k: set(v["cites"]) for k, v in base.items()})
+    out = {"mode": "targeted", "changed": sorted(changed), "relevant": rel, "k": int(g.get("k", 3))}
+    if not rel:
+        progress("[guard] no statement a D0 plan relied on was changed: nothing to re-plan (an added statement is "
+                 "checked by its own probe, not here)")
+        _carry(base, {}, {}, candidate)
+        return {**out, "passed": True, "incomplete": False, "per_case": {}, "broke": [], "cost_usd": 0.0,
+                "mean": None}
+    progress(f"[guard] re-planning {len(rel)} case(s) that relied on what changed: {', '.join(rel)}")
+    R.K = int(g.get("k", 3))
+    d = R.arm_dir(c, "T")
+    d.mkdir(parents=True, exist_ok=True)
+    cf = d / "cases.jsonl"
+    cf.write_text("\n".join(l for l in (HERE.parent / "d0" / "cases.jsonl").read_text().splitlines()
+                            if json.loads(l)["id"] in rel) + "\n")
+    R.CASES_FILE = cf
+    shutil.copytree(candidate, d / "sandbox" / "memory")
+    shutil.copy(HERE / "DIRECTOR.md", d / "system.md")
+    for _ in range(3):
+        R.run(c, "T")
+        R.judge(c, "T")
+        got = _samples(R.rows(d / "verdicts.jsonl"))
+        if all(len(got.get(k, [])) == R.K for k in rel):
+            break
+    cand = {k: got.get(k, []) for k in rel}
+    v = targeted_verdict({k: base[k]["samples"] for k in rel}, cand)
+    if v["complete"]:
+        _carry(base, cand, cited_statements(R.rows(d / "plans.jsonl")), candidate)
+    return {**out, **v, "incomplete": not v["complete"], "cost_usd": R.spent(c),
+            "mean": round(sum(sum(x) / len(x) for x in cand.values() if x) / len(cand), 4)}
+
+
+def _samples(rows: list[dict]) -> dict[str, list[float]]:
+    out: dict[str, list[float]] = {}
+    for r in rows:
+        if r.get("items"):
+            out.setdefault(r["case"], []).append(sum(x["met"] for x in r["items"]) / len(r["items"]))
+    return out
+
+
+def _carry(base: dict, cand: dict, cites: dict, candidate: Path) -> None:
+    """The candidate memory's baseline: the current one, with the re-planned cases' samples and citations replaced."""
+    new = {k: dict(v) for k, v in base.items()}
+    for k, xs in cand.items():
+        new[k] = {"samples": xs, "cites": sorted(cites.get(k, set()))}
+    bp = baseline_path(candidate)
+    bp.parent.mkdir(parents=True, exist_ok=True)
+    bp.write_text(json.dumps(new, indent=1))

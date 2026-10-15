@@ -29,8 +29,9 @@ REMOVE = ["Workspace_Rules#ai_base_byte_identical", "Documentation#mirror_same_c
 FALSE_MAX, DETECT_MIN, NET = 1, 3, 4
 
 
-def broken_copy(src: Path, dst: Path) -> list[str]:
-    """`src` with the REMOVE statements deleted and every link or index entry to them dropped."""
+def broken_copy(src: Path, dst: Path, remove: list[str] | None = None) -> list[str]:
+    """`src` with the `remove` statements (default: REMOVE) deleted and every link or index entry to them dropped."""
+    REMOVE = remove or globals()["REMOVE"]
     if dst.exists():
         shutil.rmtree(dst)
     shutil.copytree(src, dst)
