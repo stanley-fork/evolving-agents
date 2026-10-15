@@ -25,4 +25,6 @@ if len(sys.argv) > 1:
     if g.get("mode") != "targeted":          # targeted re-plans a subset: its verdict, not a suite mean, is what counts
         metrics["guard"] = g["mean"] if g.get("n_cases") == 14 else 0.0
     metrics["guard_passed"] = 1 if g.get("passed") and not g.get("incomplete") else 0
+    if "probe" in g:                         # D7: the lesson changes the plans its own probes test
+        metrics["teaches"] = 1 if g["probe"].get("teaches") else 0
 print(json.dumps({"metrics": metrics}))

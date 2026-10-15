@@ -85,3 +85,21 @@ print(json.dumps({"type": "result", "result": "1 page, 1 statement", "total_cost
     assert (tmp_path / "out" / "memory" / "README.md").exists()
     assert C.write_config(tmp_path / "cfg.json", tmp_path / "out" / "memory", tmp_path) is True
     assert C.write_config(tmp_path / "cfg.json", tmp_path / "out" / "memory", tmp_path) is False   # never overwrites
+
+
+def test_a_probe_that_repeats_the_episode_is_a_leak():
+    from director.learn import leak
+    ep = "The clone's checked-out branch was an old feature branch that had already been merged, so the first branch"
+    assert leak(ep, "You see that the clone's checked-out branch was an old feature branch that had already been merged.")
+    assert not leak(ep, "You are about to branch in a repository whose local copy may be stale; write the first commands.")
+
+
+def test_reflect_returns_at_most_two_well_formed_probes(tmp_path, monkeypatch):
+    import json as J
+    from director import learn
+    reply = "x\n```json\n" + J.dumps({"edits": [], "probes": [
+        {"situation": "s1", "checklist": ["a"]}, {"situation": "", "checklist": ["b"]},
+        {"situation": "s3", "checklist": ["c"]}, {"situation": "s4", "checklist": ["d"]}]}) + "\n```"
+    monkeypatch.setattr(learn, "stream_claude", lambda *a, **k: {"result": reply, "cost": 0.1, "turns": 2})
+    r = learn.reflect("ep", tmp_path / "memory", None)
+    assert [p["situation"] for p in r["probes"]] == ["s1", "s3"] and r["edits"] == []

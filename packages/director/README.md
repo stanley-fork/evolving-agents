@@ -101,8 +101,11 @@ config>"}`, [D6](docs/BRIEF-D6.md)): the guard re-plans only the D0 cases whose 
 removes or changes in substance (read from the current memory's baseline, which records what each case's plans cite),
 k = 3, and refuses if one of them was reliable and now fails. Validated [ran]: it refused both planted breaks (the
 subtree rule, the mirror rule) and no unchanged memory, at US$1–4 per Accept instead of US$13. Thin margins (two breaks,
-two unchanged arms), a refusal on a noisy case in the control, and **an added statement is not checked by it** — that
-needs the edit's own positive probe, not built yet. The baseline is per memory version and is carried forward on each
+two unchanged arms), a refusal on a noisy case in the control, and an added statement is not checked by it — **the
+positive probe is ([D7](docs/BRIEF-D7.md)):** the reflection writes two probes with each edit; on Accept they run on the
+current memory and the candidate, and the lesson is kept only if it TEACHES (candidate ≥ 0.67, +0.33 over current) —
+REDUNDANT and NO EFFECT are refused. Validated on D2's lessons (3 that taught, 1 the model knew: all four read right);
+the probes are the lesson's own exam, so a wrong lesson can still pass — that stays the person's Accept. The baseline is per memory version and is carried forward on each
 accepted edit. Its predecessors are on record: an absolute floor refused on noise; the paired guard over all 14 cases
 was blind to a four-rule break ([D4](docs/BRIEF-D4.md), [D5](docs/BRIEF-D5.md)).
 

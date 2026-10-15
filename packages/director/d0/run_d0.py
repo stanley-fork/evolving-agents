@@ -200,6 +200,9 @@ def run(c: dict, arm: str) -> None:
             return
         r = claude(ASK.format(situation=cs["situation"]), d / "sandbox", d / "system.md", "Read,Grep,Glob",
                    TURNS, CALL_BUDGET)
+        if r.get("is_error") and re.search(r"hit your (session|usage) limit|rate limit", str(r.get("result") or ""), re.I):
+            # an account limit is not a plan that failed: stop, so the arm resumes later instead of scoring errors
+            raise SystemExit(f"[d0] stopped: {r.get('result')}")
         rec = {"arm": arm, "case": cs["id"], "sample": s, "plan": r.get("result"), "error": r.get("is_error"),
                "cost_usd": r.get("total_cost_usd"), "turns": r.get("num_turns"), "wall_s": r["wall_s"],
                "at": time.strftime("%Y-%m-%dT%H:%M:%S")}

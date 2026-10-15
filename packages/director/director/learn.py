@@ -37,6 +37,12 @@ other tools and files; **Do** as a concrete, checkable action; **Because** with 
 Link it to the statements it applies with, and name the Index situations that should reach it (reuse an
 existing situation line's text exactly when one fits).
 
+Then write **two probes** that will test whether your edit changes what an agent does: each a short situation — a
+task in flight, in the second person ("You are about to…", "The user asks…") — where the lesson should change the
+plan, **set apart from this incident** (another file, another tool, another goal; do not reuse its sentences), with
+one to three checklist items that each name an **action** the plan must take or refuse (never wording). Do not say in
+the situation what the right action is.
+
 ## The task report
 
 {episode}
@@ -46,7 +52,8 @@ End your reply with one fenced JSON block and nothing after it:
 ```json
 {{"edits": [{{"op": "add" or "modify", "page": "<Page_Name>", "id": "<snake_case>", "about": "<only for a new page>",
              "when": "...", "do": "...", "because": "...", "links": ["Page#id"],
-             "situations": ["<situation text>"]}}]}}
+             "situations": ["<situation text>"]}}],
+  "probes": [{{"situation": "...", "checklist": ["<an action the plan must take or refuse>", "..."]}}]}}
 ```"""
 
 STMT = re.compile(r"^## #(\w+)\s*$", re.M)
@@ -56,12 +63,25 @@ LINK = re.compile(r"\[\[([A-Za-z0-9_]+)#(\w+)\]\]")
 def reflect(episode: str, memory_dir: Path, log: Log, model: str = "opus", budget: float = 2.0) -> dict:
     r = stream_claude(REFLECT.format(episode=episode), Path(memory_dir).parent, log, "director", "reflect",
                       model=model, max_turns=30, budget=budget)
+    if re.search(r"hit your (session|usage) limit|rate limit", str(r.get("result") or ""), re.I):
+        raise RuntimeError(f"reflection stopped by an account limit: {r.get('result')}")
     m = re.findall(r"```json\s*(\{.*?\})\s*```", r.get("result") or "", re.S)
     try:
-        edits = json.loads(m[-1])["edits"] if m else None
-    except (ValueError, KeyError):
-        edits = None
-    return {"edits": edits, "cost": r.get("cost"), "turns": r.get("turns"), "reply": r.get("result")}
+        block = json.loads(m[-1]) if m else {}
+        edits, probes = block.get("edits"), block.get("probes") or []
+    except (ValueError, AttributeError):
+        edits, probes = None, []
+    probes = [p for p in probes if isinstance(p, dict) and p.get("situation") and p.get("checklist")][:2]
+    return {"edits": edits, "probes": probes, "cost": r.get("cost"), "turns": r.get("turns"), "reply": r.get("result")}
+
+
+def leak(episode: str, situation: str, n: int = 8) -> bool:
+    """A probe whose situation shares an n-word run with the episode it came from tests recall of the incident, not
+    the lesson."""
+    w = lambda t: re.findall(r"[a-z0-9']+", t.lower())
+    e, s = w(episode), w(situation)
+    runs = {tuple(e[i:i + n]) for i in range(len(e) - n + 1)}
+    return any(tuple(s[i:i + n]) in runs for i in range(len(s) - n + 1))
 
 
 # ------------------------------------------------------------------ pages as data

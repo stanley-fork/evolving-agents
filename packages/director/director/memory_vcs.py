@@ -82,6 +82,8 @@ class LiveStore:
         # paired: the guard's own verdict (candidate vs current memory on the same cases); absolute: the floor
         extra = ("" if guard is None else "  guard_passed: {op: \">=\", value: 1}\n" if guard.get("mode") in ("paired", "targeted")
                  else f"  guard: {{op: \">=\", value: {guard['min']}}}\n")
+        if guard is not None and "probe" in guard:
+            extra += "  teaches: {op: \">=\", value: 1}\n"
         suite.write_text(f"command: |-\n  {cmd}\nthresholds:\n"
                          "  lint_problems: {op: \"<=\", value: 0}\n  human_accepted: {op: \">=\", value: 1}\n" + extra)
         gate = self._avcs("gate", "run", pid, "--suite", str(suite))["gate_result"]

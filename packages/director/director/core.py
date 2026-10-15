@@ -238,7 +238,7 @@ class Director:
                 "phase": self.phase, "local_online": local_online(self.cfg.get("local_base_url")),
                 "frontier_tools": self.cfg.get("frontier_tools", "Read,Grep,Glob"),
                 "can_reflect": self.phase == "idle" and self.last is not None,
-                "proposals": {k: {x: v[x] for x in ("edits", "applied", "rejected", "lint", "status")}
+                "proposals": {k: {x: v.get(x) for x in ("edits", "applied", "rejected", "lint", "status", "probes")}
                               for k, v in self.proposals.items()},
                 "memory_version": self.store.head if self.store else None}
 
@@ -390,6 +390,7 @@ class Director:
             lint = new_problems(self.memory, cand)
             self.proposals[pid] = {"edits": r["edits"] or [], "applied": res["applied"], "rejected": res["rejected"],
                                    "lint": lint, "status": "proposed", "candidate": str(cand),
+                                   "probes": r.get("probes") or [],
                                    "rationale": correction.strip() or self.last["plan"]["request"],
                                    "cost": r.get("cost")}
             self.log.emit("director", "proposal", task=pid, proposal=self.state()["proposals"][pid])
@@ -451,8 +452,28 @@ class Director:
             if not res["passed"]:
                 p["status"] = "guard_failed"
                 self.log.emit("director", "proposal_rejected", task=pid,
-                              text=f"the D0 guard did not hold ({res['mean']}); the memory is unchanged")
+                              text=f"the D0 guard did not hold ({res.get('broke') or res.get('mean')}); the memory is unchanged")
                 return
+            if g.get("positive", True):
+                # D7: the edit's own probes, current memory vs candidate — keep only a lesson that changes the plan
+                from .guard import positive_probe
+                self.log.emit("director", "guard_progress", task=pid,
+                              text=f"[guard] positive probe: {len(p['probes'])} probe(s), current memory vs candidate")
+                pr = positive_probe(p["probes"], self.memory, Path(p["candidate"]), self.home / "guards" / f"{pid}-probe-{time.strftime('%Y%m%d-%H%M%S')}", g,
+                                    lambda line: self.log.emit("director", "guard_progress", task=pid, text=line))
+                res["probe"] = pr
+                (Path(p["candidate"]).parent / "guard.json").write_text(json.dumps(res))
+                self.log.emit("director", "guard_done", task=pid, guard=res,
+                              text=f"positive probe: {pr['verdict']} (current {pr.get('current')} → candidate {pr.get('candidate')})")
+                if not pr["teaches"]:
+                    p["status"] = pr["verdict"].lower().replace(" ", "_")
+                    why = {"REDUNDANT": "the memory (or the model) already does this",
+                           "NO EFFECT": "the edit did not change the plans its probes test",
+                           "NO PROBE": "the reflection wrote no probe to test it",
+                           "INCOMPLETE": "the probes could not be measured"}.get(pr["verdict"], pr["verdict"])
+                    self.log.emit("director", "proposal_rejected", task=pid,
+                                  text=f"not kept — {pr['verdict']}: {why}; the memory is unchanged")
+                    return
             self._commit(pid, res)
         except Exception as e:
             p["status"] = "proposed"

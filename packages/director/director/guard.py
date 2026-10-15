@@ -212,3 +212,50 @@ def _carry(base: dict, cand: dict, cites: dict, candidate: Path) -> None:
     bp = baseline_path(candidate)
     bp.parent.mkdir(parents=True, exist_ok=True)
     bp.write_text(json.dumps(new, indent=1))
+
+
+# ------------------------------------------------------------------ positive probe (D7, docs/BRIEF-D7.md)
+
+def positive_probe(probes: list[dict], current: Path, candidate: Path, workdir: Path, g: dict, progress=print) -> dict:
+    """Run the edit's own probes on the current memory and the candidate (D0's runner and blind judge, k = 2).
+    TEACHES: candidate >= 0.67 and candidate - current >= 0.33; REDUNDANT: current already >= 0.67; else NO EFFECT."""
+    sys.path.insert(0, str(HERE.parent / "d0"))
+    import run_d0 as R
+    if not probes:
+        return {"verdict": "NO PROBE", "teaches": False}
+    c = R.cfg(g["config"])
+    c["private_dir"] = str(workdir)
+    R.EXPERIMENT, R.K, R.CAP = ".", int(g.get("probe_k", 2)), float(g.get("cap_usd", 15))
+    R.print = lambda *a, **k: progress(" ".join(str(x) for x in a))
+    root = Path(workdir)
+    root.mkdir(parents=True, exist_ok=True)
+    cf = root / "probes.jsonl"
+    cf.write_text("".join(json.dumps({"id": f"probe-{i}", "situation": p["situation"],
+                                      "checklist": [{"id": f"probe-{i}/{j}", "text": t}
+                                                    for j, t in enumerate(p["checklist"], 1)]}) + "\n"
+                          for i, p in enumerate(probes, 1)))
+    R.CASES_FILE = cf
+    means = {}
+    for arm, mem in (("PC", current), ("PN", candidate)):
+        d = R.arm_dir(c, arm)
+        if not (d / "sandbox").exists():
+            shutil.copytree(mem, d / "sandbox" / "memory")
+            shutil.copy(HERE / "DIRECTOR.md", d / "system.md")
+        for _ in range(3):
+            R.run(c, arm)
+            R.judge(c, arm)
+            got = _samples(R.rows(d / "verdicts.jsonl"))
+            if all(len(got.get(f"probe-{i}", [])) == R.K for i in range(1, len(probes) + 1)):
+                break
+        xs = [x for v in got.values() for x in v]
+        means[arm] = round(sum(xs) / len(xs), 4) if xs else None
+    cur, cand = means["PC"], means["PN"]
+    if cur is None or cand is None:
+        v = "INCOMPLETE"
+    elif cur >= 0.67:
+        v = "REDUNDANT"
+    elif cand >= 0.67 and cand - cur >= 0.33:
+        v = "TEACHES"
+    else:
+        v = "NO EFFECT"
+    return {"verdict": v, "teaches": v == "TEACHES", "current": cur, "candidate": cand, "cost_usd": R.spent(c)}
