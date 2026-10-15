@@ -96,16 +96,20 @@ draft a changelog note"): the director walked 6 pages, planned 2 tasks citing 6 
 frontier because the local lane was offline, and the frontier verified 117 = 117 = the cases on disk.
 Tests: `python -m pytest tests -q` (a fake `claude` and a fake local server; in CI).
 
-**Accept is guarded by D0** (`"guard": {"enabled": true, "k": 1, "min": 0.86, "config": "<private d0 config>"}`):
-before an edit is kept, the candidate memory re-plans D0's 14 cases with the blind judge (k = 1: about US$6.5 and ten
-minutes, shown live in the conversation); below `min`, or with a case missing, the memory is left as it was. The
-guard's mean is part of the agentvcs patch's gate, next to the lint and the person's acceptance.
+**Accept is guarded by D0, paired** (`"guard": {"enabled": true, "mode": "paired", "k": 1, "max_net_losses": 4,
+"config": "<private d0 config>"}`): before an edit is kept, the candidate memory **and the current one** re-plan D0's 14
+cases with the blind judge; the edit is refused if the candidate loses 4 or more cases more than it wins — above the
+three cases D0 measured splitting between samples of one memory. The current memory's run is cached by its content
+hash; a missing plan or verdict is retried, and an incomplete guard decides nothing. The guard's verdict is part of
+the agentvcs patch's gate, next to the lint and the person's acceptance. Why paired, not an absolute floor: an absolute
+guard at k = 1 refused an edit on cases it never touched, and the unchanged memory itself scored 0.893 ([D4](docs/BRIEF-D4.md)).
+Live [ran]: the lane preference taught from the interface was kept — candidate 0.929 vs current 0.893, 2 cases won, 1 lost.
 
 **The local lane through lora-kernel** (`"local_kind": "lora-kernel"`, `"local_base_url"` = lora-kernel's gateway,
 `"lora_kernel": {"path", "user", "role", "org", "domains"}`): the planner is told which domains the specialists
 cover; each local task carries a role token and opens a session of its own (a specialist's abstention was measured
 as a session's first turn); the specialist's tool calls stream into the right lane; when it abstains, the task
-goes to the frontier by itself. Tested against a gateway double; the live run on lora-kernel's tracker member is next.
+goes to the frontier by itself. Ran live on lora-kernel's tracker member ([D4](docs/BRIEF-D4.md)): a domain read was served locally with its tools and an abstention went to the frontier; the specialist's abstention was not reliable outside the phrasing it was measured on.
 
 Not yet: any write access by default; the accept path is tested in CI only where the agentvcs CLI is installed.
 
