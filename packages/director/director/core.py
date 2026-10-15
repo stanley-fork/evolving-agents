@@ -433,10 +433,15 @@ class Director:
                             lambda line: self.log.emit("director", "guard_progress", task=pid, text=line),
                             current=self.memory)
             (Path(p["candidate"]).parent / "guard.json").write_text(json.dumps(res))
-            vs = (f"vs current {res['current_mean']} (wins {res['wins']}, losses {res['losses']})"
-                  if res.get("mode") == "paired" else f"(min {res['min']})")
-            self.log.emit("director", "guard_done", task=pid, guard=res,
-                          text=f"guard {res['mean']} {vs} · ${res['cost_usd']}")
+            if res.get("mode") == "targeted":
+                text = (f"targeted guard: {len(res.get('relevant', []))} relevant case(s)"
+                        + (f" · broke {', '.join(res['broke'])}" if res.get("broke") else " · none broke")
+                        + f" · ${res.get('cost_usd', 0)}")
+            else:
+                vs = (f"vs current {res['current_mean']} (wins {res['wins']}, losses {res['losses']})"
+                      if res.get("mode") == "paired" else f"(min {res['min']})")
+                text = f"guard {res['mean']} {vs} · ${res['cost_usd']}"
+            self.log.emit("director", "guard_done", task=pid, guard=res, text=text)
             if res.get("incomplete"):
                 p["status"] = "proposed"            # not a verdict: the guard could not measure every case
                 self.log.emit("director", "error", task=pid,

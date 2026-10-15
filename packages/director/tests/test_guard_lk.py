@@ -143,3 +143,39 @@ def test_the_paired_guard_refuses_only_a_candidate_worse_than_the_current_memory
     assert paired_verdict(worse, base)["passed"] is False
     assert paired_verdict(dict(base), base)["passed"] is True
     assert paired_verdict({k: v for k, v in base.items() if k != "c00"}, base)["passed"] is False   # a case missing
+
+
+def test_the_targeted_guard_reruns_only_cases_that_cited_what_changed(tmp_path):
+    from director.guard import changed_statements, cited_statements, relevant_cases, targeted_verdict
+    cur, cand = tmp_path / "cur", tmp_path / "cand"
+    for d, keep_mirror in ((cur, True), (cand, False)):
+        d.mkdir()
+        body = "# Docs\nx\n\n## #mirror\n**When:** a\n**Do:** b\n**Because:** c\n**Links:** \n" if keep_mirror else "# Docs\nx\n"
+        (d / "Docs.md").write_text(body + "\n## #other\n**When:** a\n**Do:** b\n**Because:** c\n**Links:** \n")
+        (d / "Index.md").write_text("# Index\n")
+    changed = changed_statements(cur, cand)
+    assert changed == {"Docs#mirror"}
+    cites = cited_statements([{"case": "c09", "plan": "follow [[Docs#mirror]]"}, {"case": "c01", "plan": "[[Docs#other]]"}])
+    assert relevant_cases(changed, cites) == ["c09"]
+    assert targeted_verdict({"c09": [1, 1, 1, 1]}, {"c09": [0, 0, 0.5]})["passed"] is False          # it broke
+    assert targeted_verdict({"c09": [1, 1, 1, 1]}, {"c09": [1, 0.5, 1]})["passed"] is True
+    assert targeted_verdict({"c10": [1, 1, 0, 0]}, {"c10": [0, 0, 0]})["passed"] is True             # never reliable
+
+
+def test_targeted_mode_without_a_baseline_decides_nothing_and_an_add_only_edit_is_free(tmp_path):
+    from director import guard as G
+    cur, cand = tmp_path / "live" / "memory", tmp_path / "cand" / "memory"
+    for d in (cur, cand):
+        d.mkdir(parents=True)
+        (d / "Index.md").write_text("# Index\n")
+        (d / "Docs.md").write_text("# Docs\nx\n\n## #mirror\n**When:** a\n**Do:** b\n**Because:** c\n**Links:** \n")
+    (cand / "Lanes.md").write_text("# Lanes\nx\n\n## #public\n**When:** a\n**Do:** b\n**Because:** c\n**Links:** \n")
+    seen = []
+    r = G._targeted(None, None, cand, cur, {"k": 3}, seen.append)
+    assert r["incomplete"] is True and r["passed"] is False          # no baseline: nothing is decided
+    bp = G.baseline_path(cur)
+    bp.parent.mkdir(parents=True)
+    bp.write_text(json.dumps({"c09": {"samples": [1, 1, 1, 1], "cites": ["Docs#mirror"]}}))
+    r = G._targeted(None, None, cand, cur, {"k": 3}, seen.append)
+    assert r["passed"] is True and r["relevant"] == [] and r["cost_usd"] == 0.0     # an add touches nothing relied on
+    assert G.baseline_path(cand).exists()                                          # carried forward to the new version

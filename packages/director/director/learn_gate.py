@@ -22,6 +22,7 @@ with tempfile.TemporaryDirectory() as d:
 metrics = {"lint_problems": len(problems), "human_accepted": 1}
 if len(sys.argv) > 1:
     g = json.loads(Path(sys.argv[1]).read_text())
-    metrics["guard"] = g["mean"] if g.get("n_cases") == 14 else 0.0
-    metrics["guard_passed"] = 1 if g.get("passed") else 0
+    if g.get("mode") != "targeted":          # targeted re-plans a subset: its verdict, not a suite mean, is what counts
+        metrics["guard"] = g["mean"] if g.get("n_cases") == 14 else 0.0
+    metrics["guard_passed"] = 1 if g.get("passed") and not g.get("incomplete") else 0
 print(json.dumps({"metrics": metrics}))
