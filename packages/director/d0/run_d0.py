@@ -235,11 +235,14 @@ def judge(c: dict, arm: str) -> None:
 
 
 def parse_items(text: str, ids: list[str]):
+    """The judge's verdicts. Its JSON can be invalid only in the free-text `evidence` (an unescaped quote in a quoted
+    plan line, D5 [ran]); `id` and `met` — the only fields scored — are then read item by item."""
     m = re.search(r"\{.*\}", text, re.S)
     try:
         items = json.loads(m.group(0))["items"] if m else None
     except (ValueError, KeyError):
-        return None
+        items = [{"id": i, "met": v == "true", "evidence": "(unparsed JSON; id and met read directly)"}
+                 for i, v in re.findall(r'"id"\s*:\s*"([^"]+)"\s*,\s*"met"\s*:\s*(true|false)', text)] or None
     if not items or sorted(x.get("id") for x in items) != sorted(ids):
         return None
     return [{"id": x["id"], "met": bool(x["met"]), "evidence": x.get("evidence")} for x in items]

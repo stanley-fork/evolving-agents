@@ -16,7 +16,7 @@ published as flat. Built steps link to their brief. Dates are not promised; orde
 | ✔ | **D1 · the loop and its interface** | the director on top, the frontier lane (Claude Code) and the local lane side by side, one event log — [README](packages/director/README.md#running-it-d1) |
 | ✔ | **D2 · learn from a task without breaking what it knew** | held-out lab-specific probes 0.0 → 0.781, the first suite re-checked at 0.964, the lesson an applied agentvcs patch — [brief](packages/director/docs/BRIEF-D2.md) |
 | ✔ | **D3 · learn where work runs** | after one lane move and one reflection, public-facing drafts 0 / 6 → 6 / 6 to the frontier, internal text still local — [brief](packages/director/docs/BRIEF-D3.md) |
-| ✔ | **Guarded Accept** | an edit is kept only if, on D0's cases, the memory it produces does not lose to the current one (paired, above the measured spread); the verdict is part of the patch's gate. Live: a lesson taught from the interface was kept, 0.929 vs 0.893 — [D4](packages/director/docs/BRIEF-D4.md) |
+| ✔ | **Guarded Accept** | an edit is kept only if, on D0's cases, the memory it produces does not lose to the current one (paired, above the measured spread); the verdict is part of the patch's gate. Live: a lesson taught from the interface was kept, 0.929 vs 0.893 — [D4](packages/director/docs/BRIEF-D4.md). **Validated: no false refusal (0/6), and blind to a planted four-rule break (0/4) — [D5](packages/director/docs/BRIEF-D5.md). Next: a targeted guard.** |
 
 ## Next — in this order
 

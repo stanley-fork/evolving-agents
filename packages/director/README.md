@@ -103,7 +103,7 @@ three cases D0 measured splitting between samples of one memory. The current mem
 hash; a missing plan or verdict is retried, and an incomplete guard decides nothing. The guard's verdict is part of
 the agentvcs patch's gate, next to the lint and the person's acceptance. Why paired, not an absolute floor: an absolute
 guard at k = 1 refused an edit on cases it never touched, and the unchanged memory itself scored 0.893 ([D4](docs/BRIEF-D4.md)).
-Live [ran]: the lane preference taught from the interface was kept — candidate 0.929 vs current 0.893, 2 cases won, 1 lost.
+Live [ran]: the lane preference taught from the interface was kept — candidate 0.929 vs current 0.893, 2 cases won, 1 lost. **Validated [ran] ([D5](docs/BRIEF-D5.md)): it refuses no unchanged memory (0 of 6), and it also misses a planted four-rule break (0 of 4) — at k = 1 D0's 14 cases are too noisy. Read it as a check against gross damage, not as proof an edit broke nothing; a targeted guard is next.**
 
 **The local lane through lora-kernel** (`"local_kind": "lora-kernel"`, `"local_base_url"` = lora-kernel's gateway,
 `"lora_kernel": {"path", "user", "role", "org", "domains"}`): the planner is told which domains the specialists
