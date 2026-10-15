@@ -22,7 +22,7 @@ GATE = Path(__file__).resolve().parents[1] / "director" / "learn_gate.py"
 
 
 def through_reflection(tmp, monkeypatch, guard_result, **cfg):
-    monkeypatch.setattr(director.guard, "run_guard", lambda cand, wd, g, progress=print: guard_result)
+    monkeypatch.setattr(director.guard, "run_guard", lambda cand, wd, g, progress=print, current=None: guard_result)
     srv, base = start(tmp, "http://127.0.0.1:9/v1", guard={"enabled": True, "k": 1, "min": 0.86}, **cfg)
     post(base, "/request", {"text": "update the plan doc"}); wait_for(base, "plan")
     post(base, "/run"); wait_for(base, "done")
@@ -49,7 +49,7 @@ def test_a_passing_guard_is_part_of_the_agentvcs_gate(tmp_path, monkeypatch):
                                                                 "below_one": {}, "cost_usd": 0, "k": 1, "passed": True},
                                         agentvcs=AGENTVCS)
     ev = [e for e in wait_for(base, "memory_updated") if e["kind"] == "memory_updated"][0]
-    assert ev["patch"]["gate"] == {"lint_problems": 0, "human_accepted": 1, "guard": 0.93}
+    assert ev["patch"]["gate"] == {"lint_problems": 0, "human_accepted": 1, "guard": 0.93, "guard_passed": 1}
     assert (tmp_path / "sandbox" / "memory" / "Lanes.md").exists()
     srv.shutdown()
 
@@ -131,3 +131,15 @@ def test_an_abstention_goes_to_the_frontier(tmp_path):
     assert any(e["lane"] == "frontier" and e["kind"] == "text" and e["task"] == "t1" and "mirrors are level" in e["text"]
                for e in evs)
     assert not any(e["lane"] == "local" and e["kind"] == "text" and e.get("task") == "t1" for e in evs)
+
+
+def test_the_paired_guard_refuses_only_a_candidate_worse_than_the_current_memory():
+    from director.guard import paired_verdict
+    base = {f"c{i:02d}": 1.0 for i in range(14)}
+    base.update(c10=0.5, c12=0.5)
+    noisy = dict(base, c10=0.0, c12=0.0, c06=0.5)        # attempt 1's pattern: the split cases fell, nothing else
+    assert paired_verdict(noisy, base)["passed"] is True     # attempt 1's three split cases: below the bar of 4
+    worse = dict(base, c01=0.0, c02=0.0, c03=0.0, c04=0.0)
+    assert paired_verdict(worse, base)["passed"] is False
+    assert paired_verdict(dict(base), base)["passed"] is True
+    assert paired_verdict({k: v for k, v in base.items() if k != "c00"}, base)["passed"] is False   # a case missing

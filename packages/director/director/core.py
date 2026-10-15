@@ -45,7 +45,11 @@ BARE_RULE = ("`local` only for a task that needs no tools, no files and no repos
              "classifying text given in its prompt — and only if the local lane is online ({state}).")
 LK_RULE = ("`local` is lora-kernel: small local specialists, each trained on one domain with its own tools — {domains}. "
            "Use it for tasks in those domains, and only if it is online ({state}). A specialist abstains on anything "
-           "outside its domain; such a task comes back to the frontier by itself.")
+           "outside its domain; such a task comes back to the frontier by itself. A specialist was trained on a team "
+           "member's short requests, so write each local task's prompt as ONE short request in a team member's own "
+           "words, one action and an explicit key per task (e.g. \"Details on HW-245?\", \"Move HW-245 to in "
+           "review.\") — never an instruction paragraph; split two actions into two tasks.")
+ABSTAIN = re.compile(r"\bOUT[ _-]OF[ _-]SCOPE\b", re.I)
 
 
 class Log:
@@ -172,6 +176,8 @@ def run_local(prompt: str, base_url: str, model: str, log: Log, task: str, lk: d
     text = out["choices"][0]["message"]["content"]
     u = out.get("usage") or {}
     route = out.get("x_route", "local")
+    if route == "local" and lk and ABSTAIN.search(text or ""):
+        route = "abstained"          # the member said OUT OF SCOPE in a form the gateway did not recognise
     for c in out.get("x_calls") or []:
         log.emit("local", "tool", task=task, tool=c.get("tool"),
                  text=f"{json.dumps(c.get('args'), ensure_ascii=False)[:100]} → {str(c.get('result', c.get('error', '')))[:120]}")
@@ -422,15 +428,25 @@ class Director:
             self.log.emit("director", "guard_start", task=pid,
                           text=f"D0 guard: {g.get('k', 1)} sample(s) of D0's cases on the candidate memory, must hold "
                                f"{g.get('min', 0.86)}")
-            res = run_guard(Path(p["candidate"]), self.home / "guards" / pid, g,
-                            lambda line: self.log.emit("director", "guard_progress", task=pid, text=line))
+            # a fresh directory per guard run: proposal ids restart with the server, and the runner resumes what it finds
+            res = run_guard(Path(p["candidate"]), self.home / "guards" / f"{pid}-{time.strftime('%Y%m%d-%H%M%S')}", g,
+                            lambda line: self.log.emit("director", "guard_progress", task=pid, text=line),
+                            current=self.memory)
             (Path(p["candidate"]).parent / "guard.json").write_text(json.dumps(res))
+            vs = (f"vs current {res['current_mean']} (wins {res['wins']}, losses {res['losses']})"
+                  if res.get("mode") == "paired" else f"(min {res['min']})")
             self.log.emit("director", "guard_done", task=pid, guard=res,
-                          text=f"guard {res['mean']} (min {res['min']}) · ${res['cost_usd']}")
+                          text=f"guard {res['mean']} {vs} · ${res['cost_usd']}")
+            if res.get("incomplete"):
+                p["status"] = "proposed"            # not a verdict: the guard could not measure every case
+                self.log.emit("director", "error", task=pid,
+                              text="the D0 guard could not measure every case (plans or verdicts missing after retries); "
+                                   "nothing was decided — Accept again to rerun it")
+                return
             if not res["passed"]:
                 p["status"] = "guard_failed"
                 self.log.emit("director", "proposal_rejected", task=pid,
-                              text=f"the D0 guard did not hold ({res['mean']} < {res['min']}); the memory is unchanged")
+                              text=f"the D0 guard did not hold ({res['mean']}); the memory is unchanged")
                 return
             self._commit(pid, res)
         except Exception as e:

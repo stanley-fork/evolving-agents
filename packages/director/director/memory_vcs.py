@@ -79,7 +79,9 @@ class LiveStore:
         # with a D0 guard result, the gate also requires it: the command re-reads it from the candidate's guard.json
         gfile = Path(candidate).parent / "guard.json"
         cmd = f"{self.python} {GATE}" + (f" {gfile}" if guard is not None else "")
-        extra = f"  guard: {{op: \">=\", value: {guard['min']}}}\n" if guard is not None else ""
+        # paired: the guard's own verdict (candidate vs current memory on the same cases); absolute: the floor
+        extra = ("" if guard is None else "  guard_passed: {op: \">=\", value: 1}\n" if guard.get("mode") == "paired"
+                 else f"  guard: {{op: \">=\", value: {guard['min']}}}\n")
         suite.write_text(f"command: |-\n  {cmd}\nthresholds:\n"
                          "  lint_problems: {op: \"<=\", value: 0}\n  human_accepted: {op: \">=\", value: 1}\n" + extra)
         gate = self._avcs("gate", "run", pid, "--suite", str(suite))["gate_result"]
