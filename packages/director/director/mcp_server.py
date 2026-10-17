@@ -14,6 +14,13 @@ only; newline-delimited JSON-RPC over stdio.
     plan_local      request           a plan made by following the recipes with a local model (Ollama,
                                       `DIRECTOR_LOCAL_MODEL`, default gemma4:12b-mlx): it picks recipes and answers
                                       yes/no; the plan's text is the recipes' (D15)
+    lanes_list                        the lanes (the session is `frontier`; others from the private lanes config) and
+                                      this memory's delegations
+    delegate        task, lane, id,   send a task to a lane; a confidential task (flagged, or an input under a
+                    inputs,           `confidential_paths` folder) is refused by every lane without `confidential_ok`,
+                    confidential      the frontier included — in code, not only as a learned statement
+    lane_status     id                a delegation's status, asked of its lane
+    lane_fetch      id, dest          a delegation's output, brought back by its lane
 
 The memory is found as the SessionStart hook finds it (`plugin_hook.find_memory`); the director's state (candidates,
 checks, the agentvcs store) lives beside it in `.director/`.
@@ -35,6 +42,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from director.learn import apply_edits, leak, lint, new_problems  # noqa: E402
 from director.plugin_hook import find_memory  # noqa: E402
 from director import recipes as rcp  # noqa: E402
+from director import lanes as lns  # noqa: E402
 
 SERVER_INFO = {"name": "director", "version": "0.1.0"}
 PROTOCOL_VERSION = "2025-06-18"
@@ -213,6 +221,34 @@ def tool_plan_local(args: dict) -> dict:
             "seconds": round(time.time() - t0, 1)}
 
 
+def _lanes_call(fn, *a, **kw):
+    try:
+        return fn(*a, **kw)
+    except lns.LaneError as e:
+        raise ToolError(str(e)) from None
+
+
+def tool_lanes_list(_: dict) -> dict:
+    cfg = lns.load_config()
+    return {"lanes": _lanes_call(lns.lanes, cfg), "config": str(lns.config_path()),
+            "delegations": [{k: d.get(k) for k in ("id", "lane", "status", "confidential", "at")}
+                            for d in lns.listing(state())]}
+
+
+def tool_delegate(args: dict) -> dict:
+    return _lanes_call(lns.delegate, state(), lns.load_config(), task=args.get("task") or "", lane=args.get("lane") or "",
+                       task_id=args.get("id") or "", inputs=list(args.get("inputs") or []),
+                       confidential=bool(args.get("confidential")))
+
+
+def tool_lane_status(args: dict) -> dict:
+    return _lanes_call(lns.status, state(), lns.load_config(), args.get("id") or "")
+
+
+def tool_lane_fetch(args: dict) -> dict:
+    return _lanes_call(lns.fetch, state(), lns.load_config(), args.get("id") or "", args.get("dest"))
+
+
 TOOLS = {
     "memory_lint": (tool_lint, "Lint the director's live memory: duplicate ids, links to nothing, unreachable statements.",
                     {"type": "object", "properties": {}}),
@@ -248,6 +284,21 @@ TOOLS = {
                    "each citing its statement. Free and local; `abstain` means no recipe fit.",
                    {"type": "object", "required": ["request"], "properties": {
                        "request": {"type": "string"}, "model": {"type": "string"}}}),
+    "lanes_list": (tool_lanes_list, "List the lanes a task can run in (this session is `frontier`) and the delegations "
+                   "made from this memory.", {"type": "object", "properties": {}}),
+    "delegate": (tool_delegate, "Send a task to a lane. Mark `confidential` when it involves a client's or any private "
+                 "material: confidential tasks are refused by lanes without confidential_ok, the frontier included. "
+                 "Inputs under a configured confidential folder make it confidential automatically.",
+                 {"type": "object", "required": ["task", "lane", "id"], "properties": {
+                     "task": {"type": "string", "description": "the request, as the lane should receive it"},
+                     "lane": {"type": "string"}, "id": {"type": "string", "description": "lowercase-hyphen slug"},
+                     "inputs": {"type": "array", "items": {"type": "string"}},
+                     "confidential": {"type": "boolean"}}}),
+    "lane_status": (tool_lane_status, "A delegation's status (submitted, running, done), asked of its lane.",
+                    {"type": "object", "required": ["id"], "properties": {"id": {"type": "string"}}}),
+    "lane_fetch": (tool_lane_fetch, "Bring a delegation's output back from its lane (to `dest`, or beside the memory).",
+                   {"type": "object", "required": ["id"], "properties": {"id": {"type": "string"},
+                                                                         "dest": {"type": "string"}}}),
 }
 
 
