@@ -156,10 +156,36 @@ def prepare_t(c: dict) -> dict:
     return {k: rec[k] for k in ("pages", "statements", "compile_cost_usd", "compile_turns", "error")}
 
 
+# ------------------------------------------------------------------ arm P: T's sandbox, the walk through the plugin
+
+PLUGIN = HERE.parent          # packages/director is the plugin (.claude-plugin/plugin.json)
+ARM_CAP = {"P": 20.0}         # P0's own cap (docs/BRIEF-P0.md), counted on its arm only
+P_HOLDS, P_MAX_GAP = 0.85, 0.10
+
+
+def prepare_p(c: dict) -> dict:
+    """T's sandbox, byte for byte, and no system prompt: DIRECTOR.md reaches the session only through the plugin's
+    SessionStart hook. Asserts the hook's text is the shipped DIRECTOR.md, and records its difference from T's prompt
+    (one line, docs/BRIEF-P0.md)."""
+    sys.path.insert(0, str(PLUGIN))
+    from director.plugin_hook import context
+    src, d = arm_dir(c, "T"), arm_dir(c, "P")
+    if d.exists():
+        shutil.rmtree(d)
+    shutil.copytree(src / "sandbox", d / "sandbox")
+    text = context(d / "sandbox")
+    assert text == (PLUGIN / "director" / "DIRECTOR.md").read_text(), "the hook's text is not DIRECTOR.md"
+    import difflib
+    diff = [l for l in difflib.unified_diff((src / "system.md").read_text().splitlines(), text.splitlines(), lineterm="", n=0)
+            if l[:1] in "+-" and l[:3] not in ("+++", "---")]
+    (d / "sources.json").write_text(json.dumps({"arm": "P", "plugin": str(PLUGIN), "diff_vs_T_prompt": diff}, indent=1))
+    return {"files": sum(1 for p in (d / "sandbox").rglob("*") if p.is_file()), "diff_vs_T_prompt": diff}
+
+
 # ------------------------------------------------------------------ calls
 
 def claude(prompt: str, cwd: Path, system_file: Path | None, tools: str, turns: int, budget: float,
-           model: str = MODEL) -> dict:
+           model: str = MODEL, extra: list[str] | None = None) -> dict:
     argv = ["claude", "-p", prompt, "--output-format", "json", "--restricted", "--no-session-persistence",
             "--permission-mode", "dontAsk", "--tools", tools, "--model", model,
             "--max-turns", str(turns), "--max-budget-usd", str(budget)]
@@ -167,6 +193,7 @@ def claude(prompt: str, cwd: Path, system_file: Path | None, tools: str, turns: 
         argv += ["--allowedTools", tools]
     if system_file is not None:
         argv += ["--append-system-prompt", system_file.read_text()]
+    argv += extra or []
     t0 = time.time()
     p = subprocess.run(argv, cwd=cwd, capture_output=True, text=True, timeout=900, stdin=subprocess.DEVNULL)
     try:
@@ -188,18 +215,25 @@ def spent(c: dict) -> float:
     return round(tot, 4)
 
 
+def spent_arm(d: Path) -> float:
+    return round(sum(r.get("cost_usd") or 0 for f in d.rglob("*.jsonl") for r in rows(f)), 4)
+
+
 def run(c: dict, arm: str) -> None:
     d = arm_dir(c, arm)
+    cap = ARM_CAP.get(arm, CAP)
+    used = (lambda: spent_arm(d)) if arm in ARM_CAP else (lambda: spent(c))
     out = d / "plans.jsonl"
     done = {(r["case"], r["sample"]) for r in rows(out) if r.get("plan")}
     todo = [(cs, s) for cs in cases(c) for s in range(K) if (cs["id"], s) not in done]
-    print(f"[d0] arm {arm}: {len(done)} done, {len(todo)} to go · spent ${spent(c):.2f} of ${CAP:.0f}", flush=True)
+    print(f"[d0] arm {arm}: {len(done)} done, {len(todo)} to go · spent ${used():.2f} of ${cap:.0f}", flush=True)
     for i, (cs, s) in enumerate(todo, 1):
-        if spent(c) >= CAP:
-            print(f"[d0] cap reached (${CAP:.0f}); stopping", flush=True)
+        if used() >= cap:
+            print(f"[d0] cap reached (${cap:.0f}); stopping", flush=True)
             return
-        r = claude(ASK.format(situation=cs["situation"]), d / "sandbox", d / "system.md", "Read,Grep,Glob",
-                   TURNS, CALL_BUDGET)
+        plugin = arm == "P"
+        r = claude(ASK.format(situation=cs["situation"]), d / "sandbox", None if plugin else d / "system.md",
+                   "Read,Grep,Glob", TURNS, CALL_BUDGET, extra=["--plugin-dir", str(PLUGIN)] if plugin else None)
         if r.get("is_error") and re.search(r"hit your (session|usage) limit|rate limit", str(r.get("result") or ""), re.I):
             # an account limit is not a plan that failed: stop, so the arm resumes later instead of scoring errors
             raise SystemExit(f"[d0] stopped: {r.get('result')}")
@@ -277,6 +311,16 @@ def report(c: dict, arm: str) -> dict:
                   "T_minus_Aplus": round(t["mean"] - s["mean"], 4),
                   "T_wins": sum(t["cases"][k] > s["cases"][k] for k in common),
                   "Aplus_wins": sum(t["cases"][k] < s["cases"][k] for k in common)})
+    if arm == "P" and s["mean"] is not None:
+        t = score(c, "T")
+        common = sorted(set(t["cases"]) & set(s["cases"]))
+        gap = round(t["mean"] - s["mean"], 4)
+        s.update({"T_mean": t["mean"], "A_mean": score(c, "A")["mean"], "T_minus_P": gap,
+                  "T_wins": sum(t["cases"][k] > s["cases"][k] for k in common),
+                  "P_wins": sum(t["cases"][k] < s["cases"][k] for k in common),
+                  "verdict": ("LOST" if s["mean"] < P_HOLDS else "HOLDS" if gap <= P_MAX_GAP else "WEAKER")})
+        s["plans_citing_statements"] = sum(bool(re.search(r"\[\[[^\]]+#[^\]]+\]\]", r["plan"]))
+                                           for r in plans if r.get("plan"))
     if arm == "T" and s["mean"] is not None:
         a = score(c, "A")
         common = sorted(set(a["cases"]) & set(s["cases"]))
@@ -295,8 +339,8 @@ def report(c: dict, arm: str) -> dict:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["prepare-a", "prepare-aplus", "prepare-t", "run", "judge", "report"])
-    ap.add_argument("--arm", default="A", choices=["A", "Aplus", "T"])
+    ap.add_argument("cmd", choices=["prepare-a", "prepare-aplus", "prepare-t", "prepare-p", "run", "judge", "report"])
+    ap.add_argument("--arm", default="A", choices=["A", "Aplus", "T", "P"])
     ap.add_argument("--config", required=True)
     a = ap.parse_args()
     c = cfg(a.config)
@@ -306,6 +350,8 @@ def main() -> int:
         print(json.dumps(prepare_aplus(c)))
     elif a.cmd == "prepare-t":
         print(json.dumps(prepare_t(c)))
+    elif a.cmd == "prepare-p":
+        print(json.dumps(prepare_p(c)))
     elif a.cmd == "run":
         run(c, a.arm)
     elif a.cmd == "judge":

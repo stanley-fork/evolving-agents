@@ -55,6 +55,29 @@ Images: [`docs/img/`](docs/img/) — the plates' prompts are in the repository's
 | D2 | learning: memory edits proposed after each task, gated on D0's suite, versioned in agentvcs | **learns** — [brief](docs/BRIEF-D2.md) |
 | D3 | the user moves a task between lanes; the move becomes a routing statement the director learns | **learns the lane** — [brief](docs/BRIEF-D3.md) |
 
+## As a Claude Code plugin
+
+```
+/plugin install director --marketplace EvolvingAgentsLabs/evolving-agents
+```
+
+This folder is the plugin (`.claude-plugin/plugin.json`). Claude Code keeps running the session; the plugin adds
+only what it lacks:
+
+| piece | what it does |
+|---|---|
+| `/director:compile` | compiles your `CLAUDE.md` / `AGENTS.md`, auto-memory, agents and skills into `.director/memory/` (asks first; ~US$5 for ~60 files) |
+| `SessionStart` hook | where that memory exists, puts the walk (`DIRECTOR.md`) into the session: every plan walks the memory and cites what it follows; silent elsewhere |
+| `/director:reflect` | after a task, the session drafts the lesson as edits plus two probes; nothing touches the memory until you say yes |
+| MCP server `director` | `memory_propose` (a candidate copy, linted, diffed), `memory_check` (D7's positive probe, in the background: TEACHES / REDUNDANT / NO EFFECT), `memory_accept` (your yes, a clean lint and — if checked — TEACHES; versioned as a gated agentvcs patch when agentvcs is installed), `memory_lint`, `memory_status` |
+
+**Measured [ran] 2026-10-17 ([P0](docs/BRIEF-P0.md)):** the walk through the plugin's hook plans D0's 14 situations
+at **0.929**, the same as the director driving Claude Code (T − P = 0.0; 27 of 28 plans cite the statements they
+follow), against 0.589 for a session without it.
+
+Not in the plugin: the targeted guard (its cases are this lab's; a project has none until it has run some), the
+local lane and the two-lane interface — those stay in `director.server` below. Tests: `tests/test_plugin.py`.
+
 ## Running it (D1)
 
 **Your own memory first.** `director.compile` reads only what you name — your `CLAUDE.md` / `AGENTS.md`, Claude Code's

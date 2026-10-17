@@ -33,6 +33,20 @@ into linked statements, 0.929.** If you keep a `CLAUDE.md`, an `AGENTS.md` or Cl
   <img src="packages/director/docs/img/compile.jpg" alt="Long paper scrolls and notebooks feed a brass binding press; out of it come index cards, filed in a small card-catalogue drawer, a few of them linked by ink lines, a brass gauge on the drawer's edge." width="80%">
 </p>
 
+**As a Claude Code plugin** — inside Claude Code:
+
+```
+/plugin install director --marketplace EvolvingAgentsLabs/evolving-agents
+/director:compile        # your CLAUDE.md, AGENTS.md and memory → linked statements (asks first; ~US$5 for ~60 files)
+/director:reflect        # after a task: the correction becomes a proposed edit, kept only on your yes
+```
+
+From the next session on, every plan walks your memory and cites what it follows. The plugin carries the walk
+intact: **0.929** through it, the same as the director harness, on the same 14 situations
+([P0](packages/director/docs/BRIEF-P0.md)).
+
+**Or the harness, with its two-lane interface** (frontier and local model side by side):
+
 ```bash
 git clone https://github.com/EvolvingAgentsLabs/evolving-agents && cd evolving-agents/packages/director
 # compile your instructions into a memory (Claude Code with Opus; one compile of ~60 files: about US$5)
