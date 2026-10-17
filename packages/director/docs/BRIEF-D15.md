@@ -86,3 +86,33 @@ the local arms are low, the answering is the problem.
 | **cap** | **US$30** |
 
 One design, no redesign on these data.
+
+## Outcome (2026-10-17) — **RECIPES WORK** (with the 12B; not yet with the small models)
+
+120 plans and 120 verdicts, 0 unparsed, 0 failed model answers. Cost US$13.90, nearly all of it T's plans (US$0.48
+each) and RS.
+
+| arm | plan score | vs T (wins / losses / ties) | grounds reached | wall time per plan | cost |
+|---|---|---|---|---|---|
+| **G12** `gemma4:12b-mlx` | **0.806** | 3 / 3 / 6 (p = 1.0) | 0.785 | **10 s** | US$0 |
+| Q4 `qwen3.5:4b` | 0.583 | 3 / 6 / 3 | 0.538 | 13 s | US$0 |
+| Q2 `qwen3.5:2b` | 0.264 | 0 / 10 / 2 | 0.348 | 6 s | US$0 |
+| RS (Sonnet answering the same recipes) | 0.750 | 4 / 5 / 3 | 0.792 | 31 s | ~US$0.04 |
+| T (Sonnet walking with tools) | 0.854 | — | 0.965 | ~35 s | US$0.48 |
+
+- **The 12B, following Claude's recipes, plans within 0.05 of Sonnet walking with tools.** Case by case it cannot be
+  told apart (3/3/6), at 10 s and US$0 per plan. In D11–D12, the 12B writing the plan itself reached 0.35–0.68.
+- **The answerer is not the limit for the 12B.** Sonnet answering the same recipes (RS) scores 0.75, no better. What
+  is left between G12 and T is in the recipes: what they cover (grounds reached 0.79 against 0.97), and the choice of
+  2 among 20.
+- **The small models fail at choosing the recipe**, measured as agreement with RS's choice: Q4 5/24, Q2 0/24 (G12
+  11/24). Picking 2 of 20 one-line triggers is the hard step for a 2–4B model. The yes/no answers were never the
+  problem, with 0 failed answers.
+
+**Next (to be briefed fresh, on a new bank):**
+- For the small models, take the recipe choice out of the model:
+  - choose the recipe by code (BM25 + embeddings over the triggers, as in D13);
+  - or split the choice into two short levels;
+  - the model then only answers the yes/no questions.
+- For everyone, Claude improves recipe coverage where grounds were not reached. This is the Claude ⇄ local cycle of
+  plan step 5.
