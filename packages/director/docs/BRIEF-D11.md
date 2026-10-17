@@ -70,3 +70,53 @@ Here "the walk" is the better of S9 and S10, by mean score.
 | **cap** | **US$25**, read from each call's cost |
 
 One design, no redesign on these data.
+
+## Outcome (2026-10-17) — **MEMORY HELPS, GAP REMAINS**
+
+120 plans and 120 verdicts, 0 unparsed. Cost US$13.48 (T's plans and the judge).
+
+| arm | mean plan score |
+|---|---|
+| N: 12B, no memory | 0.042 |
+| B: 12B + BM25 top 15 | 0.681 |
+| S9: 12B + D9 walk | 0.611 |
+| **S10: 12B + D10 walk** (the walk) | **0.681** |
+| T: Sonnet walking | 0.917 |
+
+| comparison | wins / losses / ties | p | Δ |
+|---|---|---|---|
+| the walk vs N | 11 / 0 / 1 | 0.001 | +0.64 |
+| the walk vs T | 0 / 8 / 4 | 0.008 | −0.24 |
+| S10 vs S9 | 5 / 3 / 4 | 0.73 | +0.07 |
+| the walk vs B | 5 / 5 / 2 | 1.0 | 0.00 |
+
+Data: `~/.config/director/d11/{cases,plans-*,verdicts}.jsonl`, `report.json` (private).
+
+**Diagnosis, computed after the verdict (not a redesign).** The diagnosis uses the bank's recorded `grounds`, the
+statements each case was written from. No arm saw them.
+
+| arm | grounds among the statements it had | statements |
+|---|---|---|
+| B | 0.72 | 15.0 |
+| S9 | 0.65 | 5.6 |
+| **S10** | **0.90** | 18.9 |
+| T (cited) | 0.95 | 19.0 |
+
+- **Retrieval is nearly closed; writing the plan is the gap.** S10 put 0.90 of the grounds in front of the 12B, close to
+  Sonnet's 0.95, with the same number of statements. Yet it plans at 0.68 against 0.92.
+- **What the misses look like.** When the 12B has a statement, it applies it partially, or it lets the user's request
+  override it. In n06 it had `Statistics#seeds_before_verdict` and wrote "because this is a single draw, I am
+  reporting the result as requested". In n09 it had the headroom rule and ran an audit, not the baseline arm.
+- **D10's low "precision" did not hurt the plan.** S10 ≥ S9 (5/3).
+- **The walk does not beat BM25 at plan level** (5/5), although it retrieves more of the grounds (0.90 vs 0.72). The
+  extra statements did not become better plans.
+- **Caveats.**
+  - The bank was written *from* the statements, so it favours memory arms (N scores 0.04) and may favour keyword
+    search.
+  - The judge is strict about details (in n06, naming the run directory).
+  - This bank is now worn too: the diagnosis above was made on it.
+
+**What this means for the design.** The bottleneck has moved from navigation to execution. A 12B that free-writes a plan
+from 19 statements under-applies them. The next step is for code to compose the plan, as it already drives the walk. Each
+kept statement's **Do** becomes a step. The 12B answers closed questions per statement: does it apply? does the user's
+request conflict with it? what fills its arguments? The step is to be briefed fresh, with a new bank.
