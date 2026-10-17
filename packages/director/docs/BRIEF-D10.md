@@ -81,8 +81,8 @@ Abort rule: more than 5 JSON failures after one retry, per arm-replicate.
 
 **Read before relying on it.**
 - **Exclusion moved the 12B along the trade-off; it did not lift it.** Recall rose by 0.17 and precision fell by 0.25.
-  The losses are where exclusion kept most of a long list: c04 (0.36), c13 (0.29), c02 (0.39). The 3 cases where S10
-  lost to S9 (c10, c12, c13) are cases where the layered entry picked different trajectories.
+  The losses are where exclusion kept most of a long list: c04 (0.36), c13 (0.29), c02 (0.39). S10 lost to S9 in 3
+  cases (c10, c12, c13); why was not logged (the runner does not record each step).
 - **Precision vs broad is a proxy.** It counts as wrong every statement Sonnet did not cite in either of its two plans,
   and Sonnet does not cite everything that applies. Whether 15 statements at 0.65 make a worse *plan* than 6 at 0.90 is
   the D0 judge's question, which this brief kept out of scope.
