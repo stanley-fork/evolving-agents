@@ -105,9 +105,9 @@ each) and RS.
 - **The answerer is not the limit for the 12B.** Sonnet answering the same recipes (RS) scores 0.75, no better. What
   is left between G12 and T is in the recipes: what they cover (grounds reached 0.79 against 0.97), and the choice of
   2 among 20.
-- **The small models fail at choosing the recipe**, measured as agreement with RS's choice: Q4 5/24, Q2 0/24 (G12
-  11/24). Picking 2 of 20 one-line triggers is the hard step for a 2–4B model. The yes/no answers were never the
-  problem, with 0 failed answers.
+- **The small models choose different recipes.** Their choice agrees with RS's in Q4 5/24 and Q2 0/24 cases (G12:
+  11/24). Picking 2 of 20 one-line triggers is the likeliest weak step for a 2–4B model. Their yes/no answers were
+  always well-formed (0 failures), but whether they were *right* was not measured, so they are not ruled out.
 
 **Next (to be briefed fresh, on a new bank):**
 - For the small models, take the recipe choice out of the model:
