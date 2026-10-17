@@ -53,3 +53,22 @@ Fixed before running: k = 20, the size of Sonnet's citation set in D11 and D12 (
 **Next, only if retrieval is READY or PARTIAL:** D14 measures the plan. Sonnet gets the situation plus the retrieved
 statements and no tools. Its plans are compared with T's (Sonnet walking with tools) on score and cost. It is briefed
 separately.
+
+## Outcome (2026-10-17) — retrieval **PARTIAL**, filter **NOT USEFUL**
+
+US$0, 0 JSON failures. Grounds recall, by bank:
+
+| | BM25@20 | EMB@20 | **HYB@20** | HYB@40 | HYB→F (12B filter on HYB@40) |
+|---|---|---|---|---|---|
+| D11 bank | 0.742 | 0.612 | **0.771** | 0.808 | 0.689 (9.0 statements) |
+| D12 bank | 0.688 | 0.569 | **0.736** | 0.799 | 0.694 (8.7 statements) |
+| for reference: S10 walk | 0.90 | | | | |
+| for reference: S10 walk | 0.47 (D12 bank) | | | | |
+| for reference: Sonnet's citations | 0.95 / 0.93 | | | | |
+
+- **Retrieval is PARTIAL:** 0.77 and 0.74, against the ≥ 0.85 that READY needs.
+- **Retrieval is stable across banks.** The fusion varies by 0.03 between banks; the 12B's walk varied by 0.43.
+- **Fusion beats each source.** Embeddings alone are the weakest source.
+- **The filter is NOT USEFUL.** It removes 78 % of the list but keeps only 0.85 of HYB@40's grounds (the floor is
+  0.90).
+- **Next:** D14 runs with **HYB@20**, as its brief fixed for a filter that is not useful.
