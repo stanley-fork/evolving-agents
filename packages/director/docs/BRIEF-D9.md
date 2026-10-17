@@ -56,3 +56,39 @@ quality measurement with D0's judge (paid, briefed separately).
 | cost | US$0 for the walk (local), plus the fresh agent's session |
 
 Abort rule: as in D8 (more than 5 JSON failures after one retry each).
+
+## Outcome (2026-10-17)
+
+**NOT NAVIGABLE** by the fixed rule. Mean core recall is **0.284**, below 0.40. Precision is 0.897, BM25 is beaten
+10/0 (4 ties, p = 0.002), there were 0 JSON failures in 39 calls, and picks average 6.1 per case. Against D8, per case,
+D9 has 4 wins and 7 losses (p = 0.55): **no detectable difference**, see the noise below.
+Data: `~/.config/director/d9/{walks.jsonl,report.json,diagnosis.jsonl}`.
+
+**Diagnosis, computed after the verdict on the same cases (not a redesign).** `d8/diagnose_walk.py` replays the walk
+and logs every closed question.
+
+| | D8 | D9 |
+|---|---|---|
+| ceiling: core reachable with the best 4 situations | 0.741 | **0.938** |
+| core statements reachable after the 12B's situation pick (of 242) | 107 | 135 |
+| statements shown at the first statement step | 222 | 545 |
+| of them picked | 63 (28 %) | 98 (18 %) |
+| core statements kept of those shown | 53 / 107 (50 %) | 71 / 135 (53 %) |
+
+1. **The trajectories did their job structurally.** The ceiling rose from 0.74 to 0.94, and the 12B used them: 27 of
+   its 52 situation picks were trajectories.
+2. **Two closed questions lose the rest, about equally.** At the situation step, the 12B reaches 135 of the 242 core
+   statements where 4 better picks would reach ~227. It sees 107 options and mixes trajectories with the old, narrow
+   situations. At the statement step, it keeps about half of the core it is shown, as in D8, and it picks a smaller
+   share of a list that is now 2.5× longer. The 12B behaves as a strict filter (precision ~0.9): it says yes to what
+   clearly applies and leaves out the rest.
+3. **The runs are not deterministic.** Replaying the same walk at temperature 0 changed the picks in 3–4 of 14 cases
+   (c03 in D9 went from 0.19 to 0.56; c10 in D8 from 0.36 to 0.08). The replay means are D8 0.297 and D9 0.316, the
+   reverse of the scored order. One run per arm cannot separate D8 from D9.
+
+**Consequences for the next brief** (to be written fresh, not run on these data as a redesign):
+- The walk strategy, not only the memory's content, has to fit a strict filter:
+  - trajectories as their own first layer (about 20 options, then the old situations only as a fallback);
+  - a statement step that asks for exclusion ("which do not apply") or uses short yes/no batches instead of one
+    selection over 50 options.
+- Every arm needs k ≥ 3 replicates per case, compared on per-case means.
