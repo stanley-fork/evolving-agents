@@ -62,9 +62,8 @@ US$0, 0 JSON failures. Grounds recall, by bank:
 |---|---|---|---|---|---|
 | D11 bank | 0.742 | 0.612 | **0.771** | 0.808 | 0.689 (9.0 statements) |
 | D12 bank | 0.688 | 0.569 | **0.736** | 0.799 | 0.694 (8.7 statements) |
-| for reference: S10 walk | 0.90 | | | | |
-| for reference: S10 walk | 0.47 (D12 bank) | | | | |
-| for reference: Sonnet's citations | 0.95 / 0.93 | | | | |
+
+For reference, on the same banks (D11 / D12): the S10 walk had 0.90 / 0.47, and Sonnet's citations 0.95 / 0.93.
 
 - **Retrieval is PARTIAL:** 0.77 and 0.74, against the ≥ 0.85 that READY needs.
 - **Retrieval is stable across banks.** The fusion varies by 0.03 between banks; the 12B's walk varied by 0.43.
