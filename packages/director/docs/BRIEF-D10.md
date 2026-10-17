@@ -63,3 +63,28 @@ confirmed on a new bank written from other material before it is trusted.
 | cost | US$0, ~1.5 h |
 
 Abort rule: more than 5 JSON failures after one retry, per arm-replicate.
+
+## Outcome (2026-10-17)
+
+**NOT NAVIGABLE** by the fixed rule. S10's core recall would put it in PARTIAL, but its precision is below the floor.
+
+| | S9 (D9's walk) | S10 |
+|---|---|---|
+| mean core recall (3 reps) | 0.286 | **0.452** |
+| mean precision vs broad | 0.902 | **0.650** (floor 0.70) |
+| picks per case | 6.1 | 14.6 |
+| vs BM25 | 10/0, p = 0.002 | 12/0, p = 0.0005 |
+| cases whose picks varied across the 3 reps | 2 | 0 |
+
+**S10 vs S9:** 10 wins, 3 losses, 1 tie (p = 0.09). Data: `~/.config/director/d10/{walks.jsonl,report.json}`, log
+`~/.config/director/d10.log`.
+
+**Read before relying on it.**
+- **Exclusion moved the 12B along the trade-off; it did not lift it.** Recall rose by 0.17 and precision fell by 0.25.
+  The losses are where exclusion kept most of a long list: c04 (0.36), c13 (0.29), c02 (0.39). The 3 cases where S10
+  lost to S9 (c10, c12, c13) are cases where the layered entry picked different trajectories.
+- **Precision vs broad is a proxy.** It counts as wrong every statement Sonnet did not cite in either of its two plans,
+  and Sonnet does not cite everything that applies. Whether 15 statements at 0.65 make a worse *plan* than 6 at 0.90 is
+  the D0 judge's question, which this brief kept out of scope.
+- **The held-out bank is now worn.** D9's diagnosis was made on it, and S10 was designed from that diagnosis. Any next
+  step should be measured on a new bank.
