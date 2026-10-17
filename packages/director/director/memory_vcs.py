@@ -80,7 +80,7 @@ class LiveStore:
         gfile = Path(candidate).parent / "guard.json"
         cmd = f"{self.python} {GATE}" + (f" {gfile}" if guard is not None else "")
         # paired: the guard's own verdict (candidate vs current memory on the same cases); absolute: the floor
-        extra = ("" if guard is None else "  guard_passed: {op: \">=\", value: 1}\n" if guard.get("mode") in ("paired", "targeted")
+        extra = ("" if guard is None else "  guard_passed: {op: \">=\", value: 1}\n" if guard.get("mode") in ("paired", "targeted", "probe")
                  else f"  guard: {{op: \">=\", value: {guard['min']}}}\n")
         if guard is not None and "probe" in guard:
             extra += "  teaches: {op: \">=\", value: 1}\n"
