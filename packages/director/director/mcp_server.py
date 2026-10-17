@@ -10,6 +10,10 @@ only; newline-delimited JSON-RPC over stdio.
     memory_accept   id                lint clean, a person's yes, and — if a check ran — TEACHES; then the candidate
                                       becomes the live memory, versioned as a gated agentvcs patch when agentvcs is
                                       installed (`AGENTVCS` or `agentvcs` on PATH)
+    recipes_lint                      the memory's meta-recipes (`recipes.json`): runnable, every cite exists, coverage
+    plan_local      request           a plan made by following the recipes with a local model (Ollama,
+                                      `DIRECTOR_LOCAL_MODEL`, default gemma4:12b-mlx): it picks recipes and answers
+                                      yes/no; the plan's text is the recipes' (D15)
 
 The memory is found as the SessionStart hook finds it (`plugin_hook.find_memory`); the director's state (candidates,
 checks, the agentvcs store) lives beside it in `.director/`.
@@ -30,6 +34,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from director.learn import apply_edits, leak, lint, new_problems  # noqa: E402
 from director.plugin_hook import find_memory  # noqa: E402
+from director import recipes as rcp  # noqa: E402
 
 SERVER_INFO = {"name": "director", "version": "0.1.0"}
 PROTOCOL_VERSION = "2025-06-18"
@@ -176,6 +181,38 @@ def tool_accept(args: dict) -> dict:
             "versioned": patch is not None, "patch": patch, "previous_memory": str(backup)}
 
 
+def tool_recipes_lint(_: dict) -> dict:
+    m = memory()
+    try:
+        rs = rcp.load(m)
+    except FileNotFoundError as e:
+        raise ToolError(str(e)) from None
+    known = rcp.statement_ids(m)
+    return {"recipes": len(rs), "problems": rcp.lint(rs, known), "statements_cited": len(rcp.cited(rs) & known),
+            "statements": len(known), "uncited": sorted(known - rcp.cited(rs))[:50]}
+
+
+def tool_plan_local(args: dict) -> dict:
+    request = (args.get("request") or "").strip()
+    if not request:
+        raise ToolError("request is empty")
+    m = memory()
+    try:
+        rs = rcp.load(m)
+    except FileNotFoundError as e:
+        raise ToolError(str(e)) from None
+    problems = rcp.lint(rs, rcp.statement_ids(m))
+    if problems:
+        raise ToolError(f"recipes do not lint clean ({len(problems)} problems); run recipes_lint")
+    who = rcp.Ollama(args.get("model") or rcp.DEFAULT_MODEL)
+    t0 = time.time()
+    out = rcp.plan(request, rs, who)
+    if who.failures and not out["recipes"]:
+        raise ToolError(f"the local model did not answer ({who.model} at {who.url}); is Ollama running?")
+    return {**out, "model": who.model, "calls": who.calls, "failures": who.failures,
+            "seconds": round(time.time() - t0, 1)}
+
+
 TOOLS = {
     "memory_lint": (tool_lint, "Lint the director's live memory: duplicate ids, links to nothing, unreachable statements.",
                     {"type": "object", "properties": {}}),
@@ -203,6 +240,14 @@ TOOLS = {
                       "if it lints dirty or its check did not TEACH.",
                       {"type": "object", "required": ["id", "user_said_yes"],
                        "properties": {"id": {"type": "string"}, "user_said_yes": {"type": "boolean"}}}),
+    "recipes_lint": (tool_recipes_lint, "Check the memory's meta-recipes (recipes.json): every step runnable, every cite "
+                     "an existing statement, branches at most 2 deep; reports how much of the memory they cover.",
+                     {"type": "object", "properties": {}}),
+    "plan_local": (tool_plan_local, "Plan a request by following the memory's meta-recipes with a local model: it "
+                   "only picks the recipes and answers their yes/no questions; the plan's steps are the recipes' own, "
+                   "each citing its statement. Free and local; `abstain` means no recipe fit.",
+                   {"type": "object", "required": ["request"], "properties": {
+                       "request": {"type": "string"}, "model": {"type": "string"}}}),
 }
 
 
