@@ -63,3 +63,31 @@ private: `~/.config/director/d12/cases.jsonl`.
 | **cap** | **US$20** |
 
 The 12B arms are local. One design, no redesign on these data.
+
+## Outcome (2026-10-17) — **NO GAIN**
+
+72 plans and 72 verdicts, 0 unparsed. Cost US$13.22 (T and the judge).
+
+| arm | mean plan score |
+|---|---|
+| F: S10 walk + free-written plan | 0.389 |
+| C: S10 walk + plan composed by code | 0.354 |
+| T: Sonnet walking | 0.868 |
+
+C vs F: 3 wins, 4 losses, 5 ties (p = 1.0). C vs T: 0 wins, 9 losses (p = 0.004). Data: `~/.config/director/d12/` (private).
+
+**Diagnosis, computed after the verdict (not a redesign).**
+- **The per-statement questions do not discriminate.** C marked `applies` on 12.0 of 12.1 statements per plan and
+  `conflicts` on 10.7. Asked one statement at a time, the 12B says yes to everything. So the composed plan is the walk's
+  list rewritten as steps, with a conflict notice on nearly every one.
+- **Navigation is not solved: D11's 0.90 did not carry over.**
+  - The walk had 0.47 of this bank's grounding statements, against T's 0.93, and F scored 0.39 here against 0.68 in
+    D11.
+  - Every ground of both banks is in some trajectory, and the best 3 trajectories cover 1.00 of the grounds in each
+    bank. The loss is the 12B's choice of trajectories.
+  - This bank excluded D11's grounds by design, so it rests on narrower statements (model gotchas, statistics, Colab
+    details). Those are the cases where choosing the trajectory from its name fails.
+- **Across D8–D12:**
+  - The 12B is useful as a strict filter over a short list (D8, precision ~0.9).
+  - It is weak at choosing where to go (D9, D12), and at turning rules into a plan (D11, D12).
+  - Sonnet, walking the same memory, plans at 0.87–0.92 on both fresh banks.
