@@ -59,3 +59,30 @@ D0).
 28 plans at T's rate (US$0.45 each) ≈ US$13, plus the judge ≈ US$0.5. **Cap US$20**, read from each call's
 `total_cost_usd`; results persist per call (`<private>/d0/arm-P/`), resumable. One design: no redesign on these data.
 An account limit stops the runner without recording a result (since D7).
+
+## Result [ran] 2026-10-17 — **HOLDS**: the walk survives the plugin channel
+
+| | T (D0, harness) | P (plugin) |
+|---|---|---|
+| mean, 14 cases × k = 2 | **0.929** | **0.929** |
+| plans citing statements | 28 / 28 | 27 / 28 |
+| turns per plan · cost per plan | 9.8 · US$0.45 | 7.8 · US$0.46 |
+| errors · unparsed verdicts | 0 · 0 | 0 · 0 |
+
+T − P = **0.0**; per case, T is higher on 2 (c06 1.0 → 0.75, c09 1.0 → 0.5) and P on 2 (c10 0.5 → 0.75, c12 0.5 →
+1.0); the other 10 tie. A (today's session) stays at 0.589. **By the table fixed above: HOLDS.** US$12.91 for the plans
++ US$0.36 for the judge, of the US$20 cap.
+
+**Read before relying on it.**
+- **The equal means are not a copy.** None of P's 28 plans is identical to any of T's; four cases moved, two each way.
+  A k = 2 suite moves by 0.25 a case on one sample — the cases that moved are within that noise, in both directions.
+- **One plan did not walk** (c11, one sample, no `[[…]]`); it still met its checklist. The hook fired in every call
+  that walked — citations are the format only the walk teaches.
+- **Two things changed at once and neither cost anything:** the channel, and the one line of text (above). P holds,
+  so the attribution arm (T re-run today) is not bought.
+- **Not measured:** a skill instead of the hook; another project's memory (the quickstart on third-party
+  `CLAUDE.md`s, NEXT item 3); Codex.
+
+**Consequence.** The plugin is the director's distribution: `/plugin install director --marketplace
+EvolvingAgentsLabs/evolving-agents`. The harness (`director.server`) stays for what a plugin cannot hold — the local
+lane as a peer and the two-lane interface.

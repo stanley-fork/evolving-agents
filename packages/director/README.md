@@ -71,7 +71,9 @@ only what it lacks:
 | `/director:reflect` | after a task, the session drafts the lesson as edits plus two probes; nothing touches the memory until you say yes |
 | MCP server `director` | `memory_propose` (a candidate copy, linted, diffed), `memory_check` (D7's positive probe, in the background: TEACHES / REDUNDANT / NO EFFECT), `memory_accept` (your yes, a clean lint and — if checked — TEACHES; versioned as a gated agentvcs patch when agentvcs is installed), `memory_lint`, `memory_status` |
 
-P0_RESULT
+**Measured [ran] 2026-10-17 ([P0](docs/BRIEF-P0.md)):** the walk through the plugin's hook plans D0's 14 situations
+at **0.929**, the same as the director driving Claude Code (T − P = 0.0; 27 of 28 plans cite the statements they
+follow), against 0.589 for a session without it.
 
 Not in the plugin: the targeted guard (its cases are this lab's; a project has none until it has run some), the
 local lane and the two-lane interface — those stay in `director.server` below. Tests: `tests/test_plugin.py`.
