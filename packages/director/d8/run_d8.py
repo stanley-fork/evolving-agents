@@ -1,6 +1,7 @@
 """D8: a local 12B walks the memory when code drives the walk. See docs/BRIEF-D8.md.
 
     python d8/run_d8.py [--model gemma4:12b-mlx] [--out ~/.config/director/d8] [--cases c01,c02]
+    python d8/run_d8.py --memory ~/.config/director/d9/memory --out ~/.config/director/d9 --precision-floor 0.70  # D9
 
 Standard library only, like the rest of the director. Ollama at OLLAMA_URL (default http://127.0.0.1:11434).
 """
@@ -159,10 +160,12 @@ def main() -> int:
     ap.add_argument("--model", default="gemma4:12b-mlx")
     ap.add_argument("--out", default=str(Path.home() / ".config" / "director" / "d8"))
     ap.add_argument("--cases", default="")
+    ap.add_argument("--memory", default=str(MEMORY), help="memory to walk (D9: a copy with trajectories)")
+    ap.add_argument("--precision-floor", type=float, default=0.0, help="D9 adds 0.70; D8 had none")
     a = ap.parse_args()
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
-    situaciones, enunciados = cargar_memoria(MEMORY)
+    situaciones, enunciados = cargar_memoria(Path(a.memory).expanduser())
     ref = referencia()
     casos = [json.loads(l) for l in CASES.read_text(encoding="utf-8").splitlines() if l.strip()]
     if a.cases:
@@ -192,12 +195,13 @@ def main() -> int:
     media = sum(r["recall_core"] for r in filas) / n
     gana = sum(r["recall_core"] > r["recall_core_bm25"] for r in filas)
     pierde = sum(r["recall_core"] < r["recall_core_bm25"] for r in filas)
-    veredicto = ("NAVIGABLE" if media >= 0.70 and gana > pierde else
-                 "NOT NAVIGABLE" if media < 0.40 or gana <= pierde else "PARTIAL")
+    precision = sum(r["precision_broad"] for r in filas) / n
+    falla = media < 0.40 or gana <= pierde or precision < a.precision_floor
+    veredicto = "NOT NAVIGABLE" if falla else "NAVIGABLE" if media >= 0.70 else "PARTIAL"
     informe = {"model": a.model, "cases": n, "mean_recall_core": round(media, 3),
                "mean_recall_core_bm25": round(sum(r["recall_core_bm25"] for r in filas) / n, 3),
                "mean_recall_broad": round(sum(r["recall_broad"] for r in filas) / n, 3),
-               "mean_precision_broad": round(sum(r["precision_broad"] for r in filas) / n, 3),
+               "mean_precision_broad": round(precision, 3), "memory": a.memory,
                "mean_picked": round(sum(len(r["picked"]) for r in filas) / n, 1),
                "vs_bm25": {"wins": gana, "losses": pierde, "ties": n - gana - pierde, "p": round(signo(gana, pierde), 4)},
                "json_failures": m.fallas, "calls": m.llamadas,
