@@ -84,9 +84,10 @@ C vs F: 3 wins, 4 losses, 5 ties (p = 1.0). C vs T: 0 wins, 9 losses (p = 0.004)
   - The walk had 0.47 of this bank's grounding statements, against T's 0.93, and F scored 0.39 here against 0.68 in
     D11.
   - Every ground of both banks is in some trajectory, and the best 3 trajectories cover 1.00 of the grounds in each
-    bank. The loss is the 12B's choice of trajectories.
+    bank. So the loss is in the walk's choices: most likely the choice of trajectories, since exclusion keeps
+    most of what it is shown, but the runner did not log each step.
   - This bank excluded D11's grounds by design, so it rests on narrower statements (model gotchas, statistics, Colab
-    details). Those are the cases where choosing the trajectory from its name fails.
+    details). A likely reading, not tested: a trajectory's name does not suggest those statements.
 - **Across D8–D12:**
   - The 12B is useful as a strict filter over a short list (D8, precision ~0.9).
   - It is weak at choosing where to go (D9, D12), and at turning rules into a plan (D11, D12).
