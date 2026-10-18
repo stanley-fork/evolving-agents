@@ -13,7 +13,7 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/EvolvingAgentsLabs/evolving-agents?style=social)](https://github.com/EvolvingAgentsLabs/evolving-agents/stargazers)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Roadmap](https://img.shields.io/badge/roadmap-D0%E2%80%93D3%20measured-8A9A6B)](ROADMAP.md)
+[![Roadmap](https://img.shields.io/badge/roadmap-D0%E2%80%93D15%20%C2%B7%20P0%20measured-8A9A6B)](ROADMAP.md)
 
 ## Your CLAUDE.md, actually followed
 
@@ -39,11 +39,21 @@ into linked statements, 0.929.** If you keep a `CLAUDE.md`, an `AGENTS.md` or Cl
 /plugin install director --marketplace EvolvingAgentsLabs/evolving-agents
 /director:compile        # your CLAUDE.md, AGENTS.md and memory → linked statements (asks first; ~US$5 for ~60 files)
 /director:reflect        # after a task: the correction becomes a proposed edit, kept only on your yes
+/director:recipes        # optional: recipes a local model follows to plan from the memory, free and in ~10 s
 ```
 
 From the next session on, every plan walks your memory and cites what it follows. The plugin carries the walk
 intact: **0.929** through it, the same as the director harness, on the same 14 situations
-([P0](packages/director/docs/BRIEF-P0.md)).
+([P0](packages/director/docs/BRIEF-P0.md)). The status line names the memory and what waits for you; a band above
+the prompt shows each proposed lesson with **Diff**, **Accept** and **Reject**, and each task delegated to another
+lane until its result is fetched. A task marked confidential never leaves for a lane not cleared for it — the
+frontier included — and that rule is enforced in code, not only learned.
+
+**Planning on your own machine.** A local model can plan from the same memory by following meta-recipes Claude
+writes from it: it only picks a recipe and answers yes/no questions; the plan's words are the recipes'. gemma4:12b
+planned at **0.806** against **0.854** for Sonnet walking the memory with tools, in ~10 s and at no cost; smaller
+models are not there yet ([D15](packages/director/docs/BRIEF-D15.md), after D8–D14's flat and partial results).
+
 
 **Or the harness, with its two-lane interface** (frontier and local model side by side):
 
@@ -171,7 +181,7 @@ ever stops being true.
 | | |
 |---|---|
 | [`ai-os/`](ai-os/) | **Paused — last changed 2026-09-06**, the day it arrived as a subtree; the lab's work has since moved to [lora-kernel](https://github.com/EvolvingAgentsLabs/lora-kernel). An agent-based operating system on a vendored [QM](https://github.com/yc-software/qm) base: flows, a desk you arrange, agents as markdown, memory at four levels. 851 tests, CI, a running stack |
-| [`packages/director/`](packages/director/) | **Active.** The director: plans by walking the operational memory, delegates to Claude Code or local models, learns from tasks — measured in D0–D3 |
+| [`packages/director/`](packages/director/) | **Active.** The director: plans by walking the operational memory, delegates to Claude Code or local models, learns from tasks — measured in D0–D15 and, as a Claude Code plugin, in P0 |
 | [`plugin/`](plugin/) | The Agent SDK plugin: MCP server + three hooks |
 | [`packages/agentvcs/`](packages/agentvcs/) | **Frozen copy.** agentvcs lives again in [EvolvingAgentsLabs/agentvcs](https://github.com/EvolvingAgentsLabs/agentvcs) (Rust runtime, revived 2026-10-06) |
 | [`packages/memory/`](packages/memory/) | Structured recall above the SDK's flat `.claude/` memory files. Works; measures no better than naive matching — see [PLAN.md](PLAN.md) |

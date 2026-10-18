@@ -29,3 +29,6 @@ A task in this session has ended. The user's correction, if they give one here: 
    Poll `memory_status` until it lands and report the verdict.
 6. Only on the user's explicit yes, call `memory_accept` with `user_said_yes: true`. Report whether it was checked and
    versioned, and where the previous memory was kept. A refusal leaves the memory as it was; say why.
+   Where Claude Code shows the director's band above the prompt, the user can also decide there (**Diff**, **Accept**,
+   **Reject**); their decision reaches you with their next message. Do not call `memory_accept` again for a proposal
+   they already accepted or rejected on the band.

@@ -11,6 +11,11 @@ each task, gated and versioned, so the way of working is learned, recalled, refi
 > Learning where work runs: after one lane move and one reflection, public-facing drafts went **0 → 6 / 6** to the
 > frontier while internal text stayed local ([D3](docs/BRIEF-D3.md)). The interface runs locally (below); the local
 > lane ran live on llama.cpp.
+>
+> **2026-10-17: the guard, the plugin and local planning [ran].** Accept is guarded (D4–D7); the plugin carries the
+> walk at the same **0.929** ([P0](docs/BRIEF-P0.md)); and a local model can plan by following recipes Claude writes
+> from the memory: gemma4:12b at **0.806** against **0.854** for Sonnet walking with tools, in ~10 s and at no cost
+> ([D15](docs/BRIEF-D15.md), after D8–D14's flat and partial results, below).
 
 <p align="center">
   <img src="docs/img/results.png" alt="Three bar charts. D0, planning the team's way on 14 situations: today's session 0.589, today's session told to walk its files 0.768, the director 0.929. D2, learning from tasks on 8 held-out probes: before 0.0, after learning 0.781, and D0 re-checked afterwards 0.964. D3, learning the lane: public-facing drafts sent to the frontier before 0.0, after one move 1.0, and the internal control kept local 1.0." width="100%">
@@ -54,6 +59,12 @@ Images: [`docs/img/`](docs/img/) — the plates' prompts are in the repository's
 | D1 | the director's loop and its interface: the director on top (capabilities, plan, conversation), below it the frontier lane (left) and the local lane (right), from one event log | **built** — below |
 | D2 | learning: memory edits proposed after each task, gated on D0's suite, versioned in agentvcs | **learns** — [brief](docs/BRIEF-D2.md) |
 | D3 | the user moves a task between lanes; the move becomes a routing statement the director learns | **learns the lane** — [brief](docs/BRIEF-D3.md) |
+| D4–D7 | Accept guarded: an edit is kept only if it breaks none of the cases that relied on what it changes, and its own probes show it changes the plan | **targeted guard + positive probe** — [D4](docs/BRIEF-D4.md), [D5](docs/BRIEF-D5.md), [D6](docs/BRIEF-D6.md), [D7](docs/BRIEF-D7.md) (below) |
+| P0 | the walk inside Claude Code, as a plugin | **0.929, the same as the director** — [brief](docs/BRIEF-P0.md) |
+| D8–D10 | can a local 12B walk the memory itself? | **not navigable**: core recall 0.32 → 0.45, precise (~0.9), but it reaches too little of what each case needs — [D8](docs/BRIEF-D8.md), [D9](docs/BRIEF-D9.md), [D10](docs/BRIEF-D10.md) |
+| D11–D12 | do the 12B's plans hold up, on a bank no strategy was designed on? | **memory helps, gap remains**: 0.68 against Sonnet's 0.92; a plan composed by code did not close it — [D11](docs/BRIEF-D11.md), [D12](docs/BRIEF-D12.md) |
+| D13–D14 | retrieval in code (lexical + local embeddings), the plan written by Claude | retrieval **partial** (0.77 / 0.74); the split planned **0.837 vs 0.892** at 17× less per plan, short of its gate by 0.005 — [D13](docs/BRIEF-D13.md), [D14](docs/BRIEF-D14.md) |
+| D15 | Claude writes meta-recipes from the memory; code runs them; the local model only picks a recipe and answers yes/no | **recipes work** with the 12B: 0.806 vs 0.854, 3 / 3 / 6 per case; not yet with 4B (0.58) or 2B (0.26) — [brief](docs/BRIEF-D15.md) |
 
 ## As a Claude Code plugin
 
@@ -69,15 +80,25 @@ only what it lacks:
 | `/director:compile` | compiles your `CLAUDE.md` / `AGENTS.md`, auto-memory, agents and skills into `.director/memory/` (asks first; ~US$5 for ~60 files) |
 | `SessionStart` hook | where that memory exists, puts the walk (`DIRECTOR.md`) into the session: every plan walks the memory and cites what it follows; silent elsewhere |
 | `/director:reflect` | after a task, the session drafts the lesson as edits plus two probes; nothing touches the memory until you say yes |
-| MCP server `director` | `memory_propose` (a candidate copy, linted, diffed), `memory_check` (D7's positive probe, in the background: TEACHES / REDUNDANT / NO EFFECT), `memory_accept` (your yes, a clean lint and — if checked — TEACHES; versioned as a gated agentvcs patch when agentvcs is installed), `memory_lint`, `memory_status` |
+| `/director:recipes` | writes (or rewrites) the meta-recipes a local model follows to plan from this memory (`recipes.json` beside the pages), then lints them and reports how much of the memory they cite (D15) |
+| MCP server `director` | `memory_propose` (a candidate copy, linted, diffed), `memory_check` (D7's positive probe, in the background: TEACHES / REDUNDANT / NO EFFECT), `memory_accept` (your yes, a clean lint and — if checked — TEACHES; versioned as a gated agentvcs patch when agentvcs is installed), `memory_lint`, `memory_status`; `recipes_lint` and `plan_local` (a plan made by following the recipes with a local model on Ollama, `DIRECTOR_LOCAL_MODEL`, default `gemma4:12b-mlx`; free, and `abstain` when no recipe fits); `lanes_list`, `delegate`, `lane_status`, `lane_fetch` (lanes, below) |
 | status line and band (`hooks/ui.tsx`) | where that memory exists, the status line reads `director · 286 statements · 3 learned · 1 to decide`; when a lesson waits for a decision, a band above the prompt shows its edits and its check with **Diff**, **Accept** and **Reject** (Accept is your yes, through the same gate as `memory_accept`; it is offered only when the proposal lints clean and its check, if one ran, says TEACHES), and each delegation not yet brought back with **Status** and **Fetch**. What you press reaches the session with your next prompt. Needs a Claude Code with plugin UI modules; on older versions everything else works as before |
 
 **Measured [ran] 2026-10-17 ([P0](docs/BRIEF-P0.md)):** the walk through the plugin's hook plans D0's 14 situations
 at **0.929**, the same as the director driving Claude Code (T − P = 0.0; 27 of 28 plans cite the statements they
 follow), against 0.589 for a session without it.
 
-Not in the plugin: the targeted guard (its cases are this lab's; a project has none until it has run some), the
-local lane and the two-lane interface — those stay in `director.server` below. Tests: `tests/test_plugin.py`, `tests/test_ui_state.py`; the band: `claude plugin test .`.
+**Lanes.** The session is the `frontier` lane. Other lanes are commands named in a private config
+(`$DIRECTOR_LANES`, default `~/.config/director/lanes.json`: `submit`, `status` and `fetch` per lane), so the public
+code knows nothing about what they run. `delegate` sends a task to one; `lane_status` and `lane_fetch` follow it, and
+the band shows each delegation until it is fetched. **A confidential task — flagged, or with an input under a
+`confidential_paths` folder — is refused by every lane without `"confidential_ok": true`, the frontier included**:
+enforced in code (`director/lanes.py`), not only as a learned statement.
+
+Not in the plugin: the targeted guard (its cases are this lab's; a project has none until it has run some),
+lora-kernel's local lane and the two-lane web interface — those stay in `director.server` below; the band carries
+the interface's Accept / Reject into the session. Tests: `tests/test_plugin.py`, `tests/test_ui_state.py`,
+`tests/test_recipes.py`, `tests/test_lanes.py`; the band: `claude plugin test .`.
 
 ## Running it (D1)
 
@@ -145,5 +166,6 @@ Not yet: any write access by default; the accept path is tested in CI only where
 
 The memory is the lab's own way of working and names private work. **Code here is public; the memory, the
 sandboxes built from it, the plans and the transcripts live in a private directory outside this
-repository** (`~/.config/director/` by default). Case files use placeholders for private names, filled at
+repository** (`~/.config/director/` by default; the plugin's memory in the project's `.director/`, which
+`/director:compile` keeps out of git unless you say it should be shared). The lanes config is private too. Case files use placeholders for private names, filled at
 run time from the private config. What is published from a run is its scores.
