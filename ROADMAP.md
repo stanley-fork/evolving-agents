@@ -23,6 +23,8 @@ published as flat. Built steps link to their brief. Dates are not promised; orde
 
 ## Next — in this order
 
+The longer view (memory, the directory, and managed-agent harnesses from Anthropic and Google), with its own order of steps: [docs/EVOLUTION.md](docs/EVOLUTION.md).
+
 | | step | how we will know |
 |---|---|---|
 | 1 | **Your own director in ten minutes.** `python -m director.compile` turns your `CLAUDE.md` and Claude Code's memory into pages; `python -m director.server` opens the interface. *Ran from a clean clone [ran] 2026-10-14: agentvcs's public 36-line `AGENTS.md` → 2 pages, 17 statements, lint clean, a first plan citing 9 of them — clone 5 s, compile 44 s, plan 24 s, US$1.18 ([D4](packages/director/docs/BRIEF-D4.md)). Not yet: a stranger's own `CLAUDE.md` on their machine.* | a first user's instructions compile lint-clean and the director plans with them; time and cost from a clean clone, published |
