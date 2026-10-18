@@ -43,6 +43,18 @@ def test_a_dot_director_memory_wins_and_the_paths_follow_it(tmp_path):
         (tmp_path / d / "Index.md").write_text("# Index\n")
     text = context(tmp_path)
     assert "`.director/memory/Index.md`" in text and "`./memory/`" not in text
+    assert "in `.director/memory/`, as pages" in text and "`.director/memory/README.md`" in text
+    assert ".director/.director" not in text
+
+
+def test_an_absolute_memory_path_is_named_once(tmp_path):
+    m = tmp_path / "elsewhere" / "memory"
+    m.mkdir(parents=True)
+    (m / "Index.md").write_text("# Index\n")
+    proj = tmp_path / "proj"
+    proj.mkdir()
+    text = json.loads(hook(proj, {"DIRECTOR_MEMORY": str(m)}))["hookSpecificOutput"]["additionalContext"]
+    assert f"in `{m}/`, as pages" in text and f"`{m}/Index.md`" in text and f"{m}/{m}" not in text
 
 
 def test_director_memory_env_points_anywhere(tmp_path):

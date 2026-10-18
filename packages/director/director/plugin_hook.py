@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -34,7 +35,8 @@ def context(project: Path) -> str | None:
     except ValueError:
         rel = str(mem)
     text = DIRECTOR_MD.read_text()
-    return text if rel == "memory" else text.replace("`./memory/`", f"`{rel}/`").replace("memory/", f"{rel}/")
+    # One pass over every quoted path (`./memory/`, `memory/…`), so a replaced path is never replaced again.
+    return text if rel == "memory" else re.sub(r"`(?:\./)?memory/", lambda _: f"`{rel}/", text)
 
 
 def main() -> int:
