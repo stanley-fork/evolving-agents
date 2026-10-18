@@ -3,9 +3,19 @@
   "displayName": "Director",
   "version": "0.1.0",
   "description": "Your CLAUDE.md, actually followed: compile your instructions into linked atomic statements, plan every task by walking them, and learn from corrections through gated, versioned edits.",
-  "author": {"name": "EvolvingAgentsLabs", "url": "https://github.com/EvolvingAgentsLabs"},
+  "author": {
+    "name": "EvolvingAgentsLabs",
+    "url": "https://github.com/EvolvingAgentsLabs"
+  },
   "homepage": "https://github.com/EvolvingAgentsLabs/evolving-agents/tree/main/packages/director",
   "repository": "https://github.com/EvolvingAgentsLabs/evolving-agents",
   "license": "Apache-2.0",
-  "keywords": ["memory", "planning", "claude-md", "learning", "agents"]
+  "keywords": [
+    "memory",
+    "planning",
+    "claude-md",
+    "learning",
+    "agents"
+  ],
+  "types": "./types/index.d.ts"
 }

@@ -1,9 +1,15 @@
 {
+  "modules": [
+    "./ui.tsx"
+  ],
   "hooks": {
     "SessionStart": [
       {
         "hooks": [
-          {"type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}\"/director/plugin_hook.py"}
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}\"/director/plugin_hook.py"
+          }
         ]
       }
     ]
