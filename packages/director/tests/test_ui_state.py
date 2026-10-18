@@ -45,7 +45,6 @@ def test_accept_from_the_band_goes_through_the_gate(tmp_path):
     assert "REDUNDANT" in ui(proj, "accept", prop["id"])["error"]
     assert "scrub_paths" not in (proj / ".director" / "memory" / "Docs.md").read_text()
 
-    proj = project_with_memory(tmp_path / "second")     # proposal ids are per second: a fresh project, not a clash
     [prop] = mcp(proj, ("memory_propose", {"edits": [EDIT], "rationale": "r"}))
     assert ui(proj, "accept", prop["id"])["status"] == "accepted"
     assert "## #scrub_paths" in (proj / ".director" / "memory" / "Docs.md").read_text()

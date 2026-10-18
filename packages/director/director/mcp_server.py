@@ -78,6 +78,21 @@ def proposal_dir(pid: str) -> Path:
     return d
 
 
+def new_proposal(root: Path) -> tuple[str, Path]:
+    """A fresh proposal id and its directory, reserved atomically: two proposals in the same second get `-2`, `-3`, …
+    rather than one overwriting the other's candidate."""
+    root.mkdir(parents=True, exist_ok=True)
+    base = time.strftime("p%Y%m%d-%H%M%S")
+    for n in range(1, 1000):
+        pid = base if n == 1 else f"{base}-{n}"
+        try:
+            (root / pid).mkdir()
+        except FileExistsError:
+            continue
+        return pid, root / pid
+    raise ToolError("could not reserve a proposal id")
+
+
 def diff(before: Path, after: Path, limit: int = 12000) -> str:
     out = []
     for p in sorted({x.name for x in before.glob("*.md")} | {x.name for x in after.glob("*.md")}):
@@ -100,8 +115,7 @@ def tool_propose(args: dict) -> dict:
     if not isinstance(edits, list) or not edits:
         raise ToolError("edits: a non-empty list of edits (see the tool's schema)")
     probes = [p for p in args.get("probes") or [] if isinstance(p, dict) and p.get("situation") and p.get("checklist")][:2]
-    pid = time.strftime("p%Y%m%d-%H%M%S")
-    d = state() / "candidates" / pid
+    pid, d = new_proposal(state() / "candidates")
     res = apply_edits(m, edits, d / "memory")
     problems = new_problems(m, d / "memory")
     episode = args.get("episode") or ""
