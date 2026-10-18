@@ -43,6 +43,18 @@ def test_a_dot_director_memory_wins_and_the_paths_follow_it(tmp_path):
         (tmp_path / d / "Index.md").write_text("# Index\n")
     text = context(tmp_path)
     assert "`.director/memory/Index.md`" in text and "`./memory/`" not in text
+    assert "in `.director/memory/`, as pages" in text and "`.director/memory/README.md`" in text
+    assert ".director/.director" not in text
+
+
+def test_an_absolute_memory_path_is_named_once(tmp_path):
+    m = tmp_path / "elsewhere" / "memory"
+    m.mkdir(parents=True)
+    (m / "Index.md").write_text("# Index\n")
+    proj = tmp_path / "proj"
+    proj.mkdir()
+    text = json.loads(hook(proj, {"DIRECTOR_MEMORY": str(m)}))["hookSpecificOutput"]["additionalContext"]
+    assert f"in `{m}/`, as pages" in text and f"`{m}/Index.md`" in text and f"{m}/{m}" not in text
 
 
 def test_director_memory_env_points_anywhere(tmp_path):
@@ -160,3 +172,23 @@ def test_with_agentvcs_an_accept_is_a_gated_applied_patch(tmp_path):
     assert acc["ok"] and acc["versioned"], acc
     assert acc["patch"]["dimensions"] == ["memory.docs", "memory.index"]
     assert acc["patch"]["gate"]["lint_problems"] == 0 and acc["patch"]["gate"]["human_accepted"] == 1
+
+
+def test_two_proposals_in_the_same_second_keep_both(tmp_path):
+    proj = project_with_memory(tmp_path)
+    other = {**EDIT, "id": "second_lesson"}
+    a, b = mcp(proj, ("memory_propose", {"edits": [EDIT], "rationale": "one"}),
+               ("memory_propose", {"edits": [other], "rationale": "two"}))
+    assert a["id"] != b["id"]
+    cands = proj / ".director" / "candidates"
+    assert json.loads((cands / a["id"] / "proposal.json").read_text())["rationale"] == "one"
+    assert json.loads((cands / b["id"] / "proposal.json").read_text())["rationale"] == "two"
+    assert "## #scrub_paths" in (cands / a["id"] / "memory" / "Docs.md").read_text()
+    assert "## #second_lesson" in (cands / b["id"] / "memory" / "Docs.md").read_text()
+
+
+def test_new_proposal_ids_skip_a_taken_one(tmp_path, monkeypatch):
+    from director import mcp_server
+    monkeypatch.setattr(mcp_server.time, "strftime", lambda fmt: "p20261018-120000")
+    ids = [mcp_server.new_proposal(tmp_path)[0] for _ in range(3)]
+    assert ids == ["p20261018-120000", "p20261018-120000-2", "p20261018-120000-3"]

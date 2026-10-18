@@ -27,4 +27,6 @@ SessionStart hook has every plan walk it.
 
 5. Report what it printed: pages, statements, cost, and the lint problems (if any, show them; they are the compile's,
    and `memory_lint` re-checks them). Tell the user the walk starts with their next session, and that
-   `/director:reflect` after a task turns a correction into a gated edit of this memory.
+   `/director:reflect` after a task turns a correction into a gated edit of this memory. Where Claude Code supports
+   plugin UI, the status line names the memory from then on, and a band above the prompt shows each proposed lesson
+   for them to accept or reject. `/director:recipes` writes the recipes a local model follows to plan from it.
