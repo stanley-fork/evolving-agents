@@ -20,7 +20,7 @@ every step proposed names how it will be judged before it is built, as [ROADMAP.
   read skills as `SKILL.md`, both take remote MCP servers, both run in a sandbox and in the background. **The
   same memory and the same gate can therefore run on three harnesses**, and a lane is the place to plug them in.
 - **The next step is ordering, then one harness at a time.** The memory model and a module boundary first, the
-  directory as data second, and then a managed-agent lane, each harness held to the plugin's own bar: plan D0's 14
+  directory as data second, component evolution third (the promise of the name, still open), and then a managed-agent lane, each harness held to the plugin's own bar: plan D0's 14
   situations at 0.929 through it, or say by how much it fails.
 
 ## 1. Where we came from
@@ -211,19 +211,94 @@ The plan above orders what exists. These go further; each is a hypothesis with i
 **What not to rebuild:** a database as the memory, similarity search as the map, a memory agent in the read path,
 rules as instructions to the model, our own loop or sandbox. Each was tried in 2025 or measured since.
 
-## 7. The order
+## 7. Promises still open
+
+EAT promised more than the director does today. Read again two years later, three of its promises are not covered,
+and each makes more sense now than it did then. Every answer below has to work in the three ways the director runs:
+**personal** (inside Claude Code), **enterprise** (on Managed Agents or Antigravity) and **unmanaged** (the Agent SDK,
+local models, command lanes on the team's own machines).
+
+| EAT promise | today |
+|---|---|
+| give the SystemAgent a goal; it orchestrates | ✔ the director plans and delegates by lane |
+| task-specific context (SmartContext) | ✔ the walk; better than similarity (D0, D13) |
+| learn from experience (Smart Memory) | ✔ lessons through the gate (D2, D7) |
+| a bus to discover and request capabilities | ✔ lanes and MCP |
+| a library found by *what a component is* and *when it applies* | ◐ "when it applies" survived as each statement's **When**; the directory is proposed (§8, step 2) |
+| interoperate across frameworks | ◐ lanes, `SKILL.md` and MCP are the shared ground; managed lanes are proposed |
+| **evolve agents and tools** | ✘ only the memory evolves |
+| **create an agent or tool when none fits** | ✘ |
+| **human review of design, components and intent** | ◐ the web interface's plan waits for Run; the plugin reviews lessons, not plans |
+| a resilient bus (circuit breakers) | ◐ only lora-kernel's abstention to the frontier |
+| a scalable, multi-user backend | ◐ files and agentvcs; no roles, no record of who may accept for a team |
+| LLM cache, Firmware, MongoDB | not to revive: the harness caches, hooks govern, files and agentvcs persist |
+
+### Component evolution
+
+The promise the name "Evolving Agents" makes, and the one not kept: the director evolves its memory, not the agents
+and tools it delegates to. The new form treats a component the way the memory treats a statement. A skill
+(`SKILL.md`), a subagent definition, a recipe or a lane adapter changes only through a proposed patch that lints, shows
+on its own probes that it does better than the version it replaces, does not break the D0 cases that rely on it, and
+is accepted by a person. agentvcs already versions harness changes as gated patches; the base exists.
+
+- *Personal:* the project's `.claude/skills/` and `.claude/agents/`, versioned by agentvcs.
+- *Enterprise:* a Managed Agents agent is already a stored, versioned config, and a session pins a version. A new
+  version can run beside the old one on the same cases and be rolled back without touching sessions in flight.
+  Antigravity's named agents serve the same way.
+- *Unmanaged:* the same files, in the Agent SDK's plugin directory or a command lane's working copy.
+
+*How we will know (**D17**, brief first):* an evolved skill beats its parent on held-out probes it was not written
+from, and D0 holds at 0.929.
+
+### Component creation
+
+When the directory has no lane, skill or agent for a kind of task, the director drafts one (a `SKILL.md`, a subagent
+definition) and proposes it; it never installs one by itself. A component that carries code runs only in a sandbox:
+Managed Agents' or Antigravity's, or a container the team owns. This is what LLM OS called crystallising tools, with
+the gate added; without the gate it ends as tool sprawl nobody reviewed.
+
+*How we will know:* on tasks the directory has no entry for, a drafted and accepted component lets the next similar
+task plan and run without a person writing it, and its first uses are recorded in the journal as evidence.
+
+### Review of intent before execution
+
+The plugin's band shows lessons; it should also show a plan before it is delegated: each task with its lane, and
+**Run**, **Move lane** and **Cancel**. That is what the web interface already does, and D3 showed that a move made there
+becomes a lesson. In enterprise it maps onto Managed Agents' permission policies (`always_ask`, or `auto` with a
+pause when the evaluation is indeterminate) on the `delegate` tool. The confidentiality rule stays in code as the
+last line, whatever the review says.
+
+*How we will know:* D3's lane-learning result reproduced with moves made on the band instead of the web interface.
+
+### Half kept
+
+- **Resilience.** Each directory entry carries its health, a fallback lane and a spending cap (Managed Agents enforces
+  dollar budgets per session), so a lane that is down or abstains does not lose the task. ROADMAP step 2 already asks
+  for it: no abstained task is lost.
+- **A team's governance.** Who may accept a lesson or a component for a team's memory, recorded in agentvcs's signed
+  commits, with each team's memory mounted read-only on its harnesses. It is ROADMAP step 4 with identity added.
+
+### Not to revive
+
+MongoDB and vector search as the map (D13 measured it); a memory agent; governance written as instructions to the
+model; adapters per framework, now that skills and MCP are the shared ground; an LLM cache, which the harness provides;
+ArchitectZero as a separate agent, now that harnesses decompose work with their own multiagent sessions.
+
+## 8. The order
 
 | | step | how we will know |
 |---|---|---|
 | 1 | **The memory model in code.** This document's §4 as the reference; a `director/memory/` module (format, lint, walk, gate, versioning) apart from the agent that plans and delegates. Kept in this package until a second repository needs it. | existing tests pass unchanged; no measurement needed |
 | 2 | **The directory as data.** `lanes.json`, lora-kernel's domains and the routing statements become one directory: domains, `confidential_ok`, region, cost, reliability with its evidence. Statements cite entries instead of describing them. | **D16** (brief first): the directory routes D3's cases at least as well as the prose did, and D0 holds at 0.929 |
-| 3 | **The episodic journal.** One append-only file; `/director:reflect` reads it. | a lesson drafted from the journal passes D2's probes as one drafted from the session did |
-| 4 | **Views stamped with their memory version.** Recipes and baseline record it; lint flags a stale one. | a test: edit the memory, lint reports the recipes stale |
-| 5 | **An `anthropic-managed` lane.** An adapter behind `submit / status / fetch`; the memory mounted read-only; the walk as a skill; the gate over MCP. | **P1**: D0 through it within 0.03 of 0.929; cost per plan published |
-| 6 | **An `antigravity` lane.** The same artifact on Google's harness. | **P2**: the same bar; and D0's plans judged by the other provider, to measure self-preference |
-| 7 | **The memory package.** One export that installs on every harness above. | P0, P1 and P2 re-run from the same artifact |
+| 3 | **Component evolution.** Skills, subagents, recipes and lane adapters change through the same gate as statements (§7). | **D17** (brief first): an evolved skill beats its parent on held-out probes; D0 holds at 0.929 |
+| 4 | **Plans on the band.** Each delegation shown with its lane before it runs: Run, Move lane, Cancel. | D3's result reproduced with moves made on the band |
+| 5 | **The episodic journal.** One append-only file; `/director:reflect` reads it. | a lesson drafted from the journal passes D2's probes as one drafted from the session did |
+| 6 | **Views stamped with their memory version.** Recipes and baseline record it; lint flags a stale one. | a test: edit the memory, lint reports the recipes stale |
+| 7 | **An `anthropic-managed` lane.** An adapter behind `submit / status / fetch`; the memory mounted read-only; the walk as a skill; the gate over MCP. | **P1**: D0 through it within 0.03 of 0.929; cost per plan published |
+| 8 | **An `antigravity` lane.** The same artifact on Google's harness. | **P2**: the same bar; and D0's plans judged by the other provider, to measure self-preference |
+| 9 | **The memory package.** One export that installs on every harness above. | P0, P1 and P2 re-run from the same artifact |
 
-Steps 1–4 order what exists and need no new provider. Steps 5–7 are where the director stops being a Claude Code
+Steps 1–6 order what exists and keep EAT's open promises, and need no new provider. Steps 7–9 are where the director stops being a Claude Code
 plugin and becomes what the SystemAgent meant to be: one orchestrator with one memory, over whichever agents do the
 work.
 
