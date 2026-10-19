@@ -28,6 +28,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from director import mcp_server as srv  # noqa: E402
 from director import lanes as lns  # noqa: E402
 from director import plans  # noqa: E402
+from director import recipes as rcp  # noqa: E402
 from director.memory import gate  # noqa: E402
 from director.memory.format import find as find_memory, statement_ids  # noqa: E402
 
@@ -48,8 +49,10 @@ def status() -> dict:
                   "tasks": [{"id": t["id"], "task": t["task"][:160], "lane": t["lane"], "confidential": t["confidential"],
                              "movable": len(plans.allowed(cfg, t["confidential"])) > 1} for t in p["tasks"]]}
                  for p in plans.waiting(st)]
+    fresh = rcp.freshness(mem) if rcp.path_for(mem).is_file() else None
     return {"memory": str(mem), "statements": len(statement_ids(mem)), "accepted": accepted,
-            "proposals": waiting, "delegations": out, "plans": plans_out}
+            "proposals": waiting, "delegations": out, "plans": plans_out,
+            "recipes_stale": bool(fresh and fresh["stale"])}
 
 
 def fetch(task_id: str) -> dict:

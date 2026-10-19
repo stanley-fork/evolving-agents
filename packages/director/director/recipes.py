@@ -10,6 +10,7 @@ where a step is either
     {"ask": "<yes/no about a fact in the request>", "yes": [...], "no": [...]}  a branch the model answers
 
     python -m director.recipes lint <memory_dir>
+    python -m director.recipes stamp <memory_dir>      record the memory version the recipes were written from
     python -m director.recipes plan <memory_dir> "<request>" [--model gemma4:12b-mlx]
 """
 
@@ -18,11 +19,12 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 import urllib.request
 from pathlib import Path
 from typing import Protocol
 
-from .memory.format import statement_ids
+from .memory.format import statement_ids, version
 
 MAX_RECIPES_PICKED = 2
 MAX_DEPTH = 2
@@ -78,6 +80,29 @@ class Ollama:
 
 def path_for(memory: Path) -> Path:
     return Path(memory) / "recipes.json"
+
+
+def stamp_path(memory: Path) -> Path:
+    return Path(memory) / "recipes.stamp.json"
+
+
+def stamp(memory: Path) -> dict:
+    """Record that the recipes were written from the memory as it is now."""
+    rec = {"memory_version": version(memory), "stamped": time.strftime("%Y-%m-%dT%H:%M:%S")}
+    stamp_path(memory).write_text(json.dumps(rec, indent=1), encoding="utf-8")
+    return rec
+
+
+def freshness(memory: Path) -> dict:
+    """Whether the recipes were written from the memory as it is now. An accepted lesson changes the memory, and
+    recipes written before it do not know it: `stale`, and /director:recipes should be run again."""
+    cur, built = version(memory), None
+    try:
+        built = json.loads(stamp_path(memory).read_text(encoding="utf-8")).get("memory_version")
+    except (OSError, ValueError):
+        pass
+    return {"memory_version": cur, "recipes_built_from": built, "unstamped": built is None,
+            "stale": built is not None and built != cur}
 
 
 def load(memory: Path) -> list[dict]:
@@ -179,8 +204,12 @@ def main(argv: list[str]) -> int:
         problems = lint(rs, statement_ids(mem))
         known = statement_ids(mem)
         print(json.dumps({"recipes": len(rs), "problems": problems,
-                          "statements_cited": len(cited(rs) & known), "statements": len(known)}, indent=2))
+                          "statements_cited": len(cited(rs) & known), "statements": len(known),
+                          **freshness(mem)}, indent=2))
         return 1 if problems else 0
+    if len(argv) >= 2 and argv[0] == "stamp":
+        print(json.dumps(stamp(Path(argv[1]))))
+        return 0
     if len(argv) >= 3 and argv[0] == "plan":
         model = argv[argv.index("--model") + 1] if "--model" in argv else DEFAULT_MODEL
         print(json.dumps(plan(argv[2], load(Path(argv[1])), Ollama(model)), ensure_ascii=False, indent=2))
