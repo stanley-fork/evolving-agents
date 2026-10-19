@@ -14,16 +14,11 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))     # run as a script by the hook
+
+from director.memory.format import find as find_memory  # noqa: E402
+
 DIRECTOR_MD = Path(__file__).resolve().parent / "DIRECTOR.md"
-
-
-def find_memory(project: Path) -> Path | None:
-    env = os.environ.get("DIRECTOR_MEMORY")
-    for d in ([Path(env).expanduser()] if env else []) + [project / ".director" / "memory", project / "memory"]:
-        d = d if d.is_absolute() else project / d
-        if (d / "Index.md").is_file():
-            return d
-    return None
 
 
 def context(project: Path) -> str | None:

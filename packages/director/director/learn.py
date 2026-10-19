@@ -1,9 +1,10 @@
-"""D2 — the director learns: reflect on a task, propose memory edits, apply them deterministically, lint them.
+"""D2 — the director learns: reflect on a task and draft memory edits with probes.
 
-    reflect(episode, memory_dir)  -> {"edits": [...], "cost": ...}     Claude (frontier), memory read-only
-    apply_edits(src, edits, dst)  -> {"applied": [...], "rejected": [...]}   a copy; src is never touched
-    lint(memory_dir)              -> list of problems                   ids unique, links resolve, every
-                                                                        statement reachable from Index.md
+    reflect(episode, memory_dir)  -> {"edits": [...], "probes": [...], "cost": ...}   Claude (frontier), memory
+                                                                                      read-only
+
+Applying, linting and gating the edits is the memory's own work, in `director.memory` (`apply_edits`, `lint`,
+`new_problems`, `memory.gate`); the names are re-exported here so older imports keep working.
 
 An edit (JSON):
     {"op": "add" | "modify", "page": "Shell_Pitfalls", "id": "verify_scripted_edit",
@@ -20,10 +21,12 @@ from __future__ import annotations
 
 import json
 import re
-import shutil
 from pathlib import Path
 
 from .core import stream_claude, Log
+from .memory.edit import apply_edits, index_add, lint, new_problems  # noqa: F401  (re-exported)
+from .memory.format import LINK, STMT, field, render, statements  # noqa: F401  (re-exported)
+from .memory.gate import leak  # noqa: F401  (re-exported)
 
 REFLECT = """You keep this lab's operational memory in `./memory/` (pages of atomic statements; the format is in
 `memory/README.md`; the entry points are in `memory/Index.md`). A task has just ended. Its report, with the
@@ -56,10 +59,6 @@ End your reply with one fenced JSON block and nothing after it:
   "probes": [{{"situation": "...", "checklist": ["<an action the plan must take or refuse>", "..."]}}]}}
 ```"""
 
-STMT = re.compile(r"^## #(\w+)\s*$", re.M)
-LINK = re.compile(r"\[\[([A-Za-z0-9_]+)#(\w+)\]\]")
-
-
 def reflect(episode: str, memory_dir: Path, log: Log, model: str = "opus", budget: float = 2.0) -> dict:
     r = stream_claude(REFLECT.format(episode=episode), Path(memory_dir).parent, log, "director", "reflect",
                       model=model, max_turns=30, budget=budget)
@@ -73,115 +72,3 @@ def reflect(episode: str, memory_dir: Path, log: Log, model: str = "opus", budge
         edits, probes = None, []
     probes = [p for p in probes if isinstance(p, dict) and p.get("situation") and p.get("checklist")][:2]
     return {"edits": edits, "probes": probes, "cost": r.get("cost"), "turns": r.get("turns"), "reply": r.get("result")}
-
-
-def leak(episode: str, situation: str, n: int = 8) -> bool:
-    """A probe whose situation shares an n-word run with the episode it came from tests recall of the incident, not
-    the lesson."""
-    w = lambda t: re.findall(r"[a-z0-9']+", t.lower())
-    e, s = w(episode), w(situation)
-    runs = {tuple(e[i:i + n]) for i in range(len(e) - n + 1)}
-    return any(tuple(s[i:i + n]) in runs for i in range(len(s) - n + 1))
-
-
-# ------------------------------------------------------------------ pages as data
-
-def statements(page_text: str) -> dict[str, str]:
-    """id -> the statement's block (from its `## #id` line up to the next one)."""
-    out, ms = {}, list(STMT.finditer(page_text))
-    for i, m in enumerate(ms):
-        end = ms[i + 1].start() if i + 1 < len(ms) else len(page_text)
-        out[m.group(1)] = page_text[m.start():end].rstrip() + "\n"
-    return out
-
-
-def render(sid: str, e: dict) -> str:
-    links = " · ".join(f"[[{l}]]" for l in e.get("links") or [])
-    return (f"## #{sid}\n**When:** {e['when'].strip()}\n**Do:** {e['do'].strip()}\n"
-            f"**Because:** {e['because'].strip()}\n**Links:** {links}\n")
-
-
-def field(block: str, name: str) -> str:
-    m = re.search(rf"^\*\*{name}:\*\*\s*(.*)$", block, re.M)
-    return m.group(1).strip() if m else ""
-
-
-def apply_edits(src: Path, edits: list[dict], dst: Path) -> dict:
-    src, dst = Path(src), Path(dst)
-    if dst.exists():
-        shutil.rmtree(dst)
-    shutil.copytree(src, dst)
-    applied, rejected = [], []
-    for e in edits or []:
-        try:
-            page, sid, op = e["page"], e["id"], e["op"]
-            if not re.fullmatch(r"[A-Za-z0-9_]+", page) or not re.fullmatch(r"\w+", sid) or op not in ("add", "modify"):
-                raise ValueError("bad page, id or op")
-            p = dst / f"{page}.md"
-            text = p.read_text() if p.exists() else f"# {page}\n{(e.get('about') or page.replace('_', ' ')).strip()}\n"
-            have = statements(text)
-            if op == "add":
-                if sid in have:
-                    raise ValueError(f"add: {page}#{sid} exists")
-                text = text.rstrip() + "\n\n" + render(sid, e)
-            else:
-                if sid not in have:
-                    raise ValueError(f"modify: {page}#{sid} does not exist")
-                old = have[sid]
-                merged = {k: e.get(k) or field(old, k.capitalize()) for k in ("when", "do", "because")}
-                old_links = [f"{a}#{b}" for a, b in LINK.findall(field(old, "Links"))]
-                merged["links"] = e["links"] if e.get("links") is not None else old_links
-                ms = list(STMT.finditer(text))
-                i = next(k for k, m in enumerate(ms) if m.group(1) == sid)
-                end = ms[i + 1].start() if i + 1 < len(ms) else len(text)
-                sep = "\n" if i + 1 < len(ms) else ""
-                text = text[:ms[i].start()] + render(sid, merged) + sep + text[end:]
-                if render(sid, merged) not in text:                 # an edit that did not land is an error
-                    raise ValueError(f"modify: {page}#{sid} did not land")
-            p.write_text(text)
-            index_add(dst / "Index.md", f"{page}#{sid}", e.get("situations") or [])
-            applied.append(f"{op} {page}#{sid}")
-        except (KeyError, ValueError) as ex:
-            rejected.append({"edit": f"{e.get('op')} {e.get('page')}#{e.get('id')}", "why": str(ex)})
-    return {"applied": applied, "rejected": rejected}
-
-
-def index_add(index: Path, target: str, situations: list[str]) -> None:
-    lines = index.read_text().splitlines()
-    for sit in situations:
-        sit = sit.strip().rstrip("→").strip()
-        for i, l in enumerate(lines):
-            if l.startswith("- ") and re.sub(r"\s*→.*$", "", l[2:]).strip().lower() == sit.lower():
-                if f"[[{target}]]" not in l:
-                    lines[i] = l.rstrip() + f", [[{target}]]"
-                break
-        else:
-            lines.append(f"- {sit} → [[{target}]]")
-    index.write_text("\n".join(lines) + "\n")
-
-
-def lint(memory_dir: Path) -> list[str]:
-    """ids unique per page, every [[Page#id]] resolves, every statement reachable from Index.md."""
-    memory_dir, problems, ids = Path(memory_dir), [], set()
-    pages = [p for p in sorted(memory_dir.glob("*.md")) if p.name not in ("Index.md", "README.md")]
-    for p in pages:
-        found = STMT.findall(p.read_text())
-        for d in {x for x in found if found.count(x) > 1}:
-            problems.append(f"duplicate id {p.stem}#{d}")
-        ids |= {f"{p.stem}#{x}" for x in found}
-    index = (memory_dir / "Index.md").read_text()
-    for p in pages + [memory_dir / "Index.md"]:
-        for a, b in LINK.findall(p.read_text()):
-            if f"{a}#{b}" not in ids:
-                problems.append(f"{p.stem}: link to missing [[{a}#{b}]]")
-    reachable = {f"{a}#{b}" for a, b in LINK.findall(index)}
-    linked = {f"{a}#{b}" for p in pages for a, b in LINK.findall(p.read_text())}
-    for sid in sorted(ids - reachable - linked):
-        problems.append(f"unreachable {sid}")
-    return problems
-
-
-def new_problems(before: Path, after: Path) -> list[str]:
-    """The lint gate: problems the edits introduced (the compiled memory may already carry some)."""
-    old = set(lint(before))
-    return [x for x in lint(after) if x not in old]

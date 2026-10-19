@@ -115,7 +115,7 @@ def cited_statements(plans: list[dict]) -> dict[str, set[str]]:
 def changed_statements(current: Path, candidate: Path) -> set[str]:
     """The statements the candidate removes or whose When, Do or Because it modifies (added ones are not here: a
     positive probe checks those)."""
-    from .learn import statements
+    from .memory.format import statements
     out = set()
     for p in Path(current).glob("*.md"):
         if p.name in ("Index.md", "README.md"):
@@ -131,7 +131,7 @@ def changed_statements(current: Path, candidate: Path) -> set[str]:
 def _substance(block: str) -> tuple[str, str, str]:
     """When, Do and Because — what a plan follows. A change to Links alone is navigation (a dangling link is the
     lint's business), so it does not make the statements that carried the link relevant."""
-    from .learn import field
+    from .memory.format import field
     return field(block, "When"), field(block, "Do"), field(block, "Because")
 
 

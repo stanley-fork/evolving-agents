@@ -24,47 +24,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from director import mcp_server as srv  # noqa: E402
 from director import lanes as lns  # noqa: E402
-from director.plugin_hook import find_memory  # noqa: E402
-from director.recipes import statement_ids  # noqa: E402
+from director.memory import gate  # noqa: E402
+from director.memory.format import find as find_memory, statement_ids  # noqa: E402
 
 DONE = ("done", "completed", "finished", "succeeded")
-
-
-def _proposals(state: Path) -> tuple[list[dict], int]:
-    waiting, accepted = [], 0
-    for f in sorted((state / "candidates").glob("*/proposal.json")):
-        try:
-            rec = json.loads(f.read_text())
-        except ValueError:
-            continue
-        if rec.get("status") == "accepted":
-            accepted += 1
-        if rec.get("status") != "proposed":
-            continue
-        d = f.parent
-        check = None
-        if (d / "check.json").is_file():
-            try:
-                check = json.loads((d / "check.json").read_text()).get("verdict")
-            except ValueError:
-                check = "INCOMPLETE"
-        elif (d / "check.running").exists():
-            check = "RUNNING"
-        if rec.get("lint") or not rec.get("applied"):
-            why = "lint problems or no edit applied: propose again"
-        elif check == "RUNNING":
-            why = "its check is still running"
-        elif check == "INCOMPLETE":
-            why = "its check could not measure the probes: run memory_check again"
-        elif check not in (None, "TEACHES"):
-            why = f"its check says {check}"
-        else:
-            why = ""
-        waiting.append({"id": rec["id"], "rationale": rec.get("rationale", ""),
-                        "edits": [f"{e.get('op')} {e.get('page')}#{e.get('id')}" for e in rec.get("edits", [])],
-                        "lint": len(rec.get("lint") or []), "check": check, "probes": len(rec.get("probes") or []),
-                        "acceptable": not why, "why_not": why})
-    return waiting, accepted
 
 
 def status() -> dict:
@@ -72,7 +35,7 @@ def status() -> dict:
     if mem is None:
         return {"memory": None}
     st = srv.state()
-    waiting, accepted = _proposals(st)
+    waiting, accepted = gate.waiting(mem)
     out = [{"id": d.get("id"), "lane": d.get("lane"), "status": d.get("status"),
             "done": str(d.get("status", "")).lower() in DONE}
            for d in lns.listing(st) if d.get("lane") != lns.FRONTIER and not d.get("fetched")]
@@ -89,20 +52,10 @@ def fetch(task_id: str) -> dict:
     return res
 
 
-def reject(pid: str) -> dict:
-    d = srv.proposal_dir(pid)
-    rec = json.loads((d / "proposal.json").read_text())
-    if rec["status"] != "proposed":
-        raise srv.ToolError(f"proposal {pid} is {rec['status']}")
-    rec["status"] = "rejected"
-    (d / "proposal.json").write_text(json.dumps(rec, indent=1, ensure_ascii=False))
-    return {"id": pid, "status": "rejected"}
-
-
 ACTIONS = {
-    "diff": lambda i: {"id": i, "diff": srv.diff(srv.memory(), srv.proposal_dir(i) / "memory")},
-    "accept": lambda i: srv.tool_accept({"id": i, "user_said_yes": True}),
-    "reject": reject,
+    "diff": lambda i: {"id": i, "diff": gate.diff(srv.memory(), gate.proposal_dir(srv.memory(), i) / "memory")},
+    "accept": lambda i: gate.accept(srv.memory(), i, True),
+    "reject": lambda i: gate.reject(srv.memory(), i),
     "refresh": lambda i: srv.tool_lane_status({"id": i}),
     "fetch": fetch,
 }
@@ -116,7 +69,7 @@ def main(argv: list[str]) -> int:
             out = ACTIONS[argv[0]](argv[1])
         else:
             out = {"error": "usage: ui_state.py status | diff|accept|reject|refresh|fetch ID"}
-    except (srv.ToolError, lns.LaneError, OSError, ValueError, KeyError) as e:
+    except (srv.ToolError, gate.GateError, lns.LaneError, OSError, ValueError, KeyError) as e:
         out = {"error": str(e)}
     print(json.dumps(out, ensure_ascii=False))
     return 0
