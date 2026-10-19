@@ -29,6 +29,8 @@ import tempfile
 import time
 from pathlib import Path
 
+from .memory import journal
+
 FRONTIER = "frontier"
 ID = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 
@@ -138,6 +140,8 @@ def delegate(state: Path, cfg: dict, *, task: str, lane: str, task_id: str, inpu
             os.unlink(f.name)
     rec_path.parent.mkdir(parents=True, exist_ok=True)
     rec_path.write_text(json.dumps(rec, ensure_ascii=False, indent=2), encoding="utf-8")
+    journal.append(state, "lane.delegated", id=task_id, lane=lane, confidential=conf, status=rec["status"],
+                   task=task[:200])
     return rec
 
 
@@ -155,6 +159,7 @@ def status(state: Path, cfg: dict, task_id: str) -> dict:
     rec["last_status"] = _run(cfg["lanes"][rec["lane"]], "status", {"id": task_id}, timeout=120)
     rec["status"] = rec["last_status"].get("status", rec["status"])
     _record(state, task_id).write_text(json.dumps(rec, ensure_ascii=False, indent=2), encoding="utf-8")
+    journal.append(state, "lane.status", id=task_id, lane=rec["lane"], status=rec["status"])
     return rec
 
 
@@ -163,7 +168,9 @@ def fetch(state: Path, cfg: dict, task_id: str, dest: str | None = None) -> dict
     if rec["lane"] == FRONTIER:
         raise LaneError("the frontier lane's output is in this session")
     d = Path(dest).expanduser() if dest else state / "delegations" / task_id
-    return _run(cfg["lanes"][rec["lane"]], "fetch", {"id": task_id, "dest": str(d)}, timeout=1800)
+    out = _run(cfg["lanes"][rec["lane"]], "fetch", {"id": task_id, "dest": str(d)}, timeout=1800)
+    journal.append(state, "lane.fetched", id=task_id, lane=rec["lane"], dest=str(d))
+    return out
 
 
 def listing(state: Path) -> list[dict]:

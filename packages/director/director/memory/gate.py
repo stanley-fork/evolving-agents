@@ -25,6 +25,7 @@ import subprocess
 import time
 from pathlib import Path
 
+from . import journal
 from .edit import apply_edits, new_problems
 from .format import state_dir
 
@@ -101,6 +102,8 @@ def propose(memory: Path, edits: list[dict], probes: list[dict] | None = None, r
            "leaks": [i for i, p in enumerate(probes, 1) if episode and leak(episode, p["situation"])],
            "status": "proposed", "created": time.strftime("%Y-%m-%dT%H:%M:%S")}
     _write(d, rec)
+    journal.append(state_dir(memory), "lesson.proposed", id=pid, rationale=rec["rationale"][:200],
+                   applied=rec["applied"], lint=len(rec["lint"]), probes=len(probes))
     return {**rec, "diff": diff(memory, d / "memory")}
 
 
@@ -118,6 +121,7 @@ def start_check(memory: Path, pid: str, command: list[str], cwd: Path | None = N
     log = (d / "check.log").open("w")
     subprocess.Popen([*command, str(memory), str(d)], cwd=cwd, stdout=log, stderr=subprocess.STDOUT,
                      stdin=subprocess.DEVNULL, start_new_session=True)
+    journal.append(state_dir(memory), "lesson.check_started", id=rec["id"])
     return {"id": rec["id"], "check": "started", "probes": len(rec["probes"])}
 
 
@@ -150,6 +154,7 @@ def accept(memory: Path, pid: str, user_said_yes: bool) -> dict:
     if check is not None and not check.get("teaches"):
         rec["status"] = check.get("verdict", "not teaching").lower().replace(" ", "_")
         _write(d, rec)
+        journal.append(state_dir(memory), "lesson.not_kept", id=rec["id"], verdict=check.get("verdict"))
         raise GateError(f"not kept — the check says {check.get('verdict')}; the memory is unchanged")
     state, patch = state_dir(memory), None
     exe = os.environ.get("AGENTVCS") or shutil.which("agentvcs")
@@ -169,6 +174,8 @@ def accept(memory: Path, pid: str, user_said_yes: bool) -> dict:
     shutil.copytree(d / "memory", memory)
     rec.update(status="accepted", checked=check is not None, patch=patch)
     _write(d, rec)
+    journal.append(state, "lesson.accepted", id=rec["id"], checked=check is not None, versioned=patch is not None,
+                   applied=rec["applied"])
     return {"id": rec["id"], "status": "accepted", "checked": check is not None,
             "versioned": patch is not None, "patch": patch, "previous_memory": str(backup)}
 
@@ -180,6 +187,7 @@ def reject(memory: Path, pid: str) -> dict:
         raise GateError(f"proposal {pid} is {rec['status']}")
     rec["status"] = "rejected"
     _write(d, rec)
+    journal.append(state_dir(memory), "lesson.rejected", id=pid)
     return {"id": pid, "status": "rejected"}
 
 
