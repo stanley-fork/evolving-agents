@@ -121,8 +121,14 @@ def tool_recipes_lint(_: dict) -> dict:
     except FileNotFoundError as e:
         raise ToolError(str(e)) from None
     known = rcp.statement_ids(m)
-    return {"recipes": len(rs), "problems": rcp.lint(rs, known), "statements_cited": len(rcp.cited(rs) & known),
-            "statements": len(known), "uncited": sorted(known - rcp.cited(rs))[:50]}
+    fresh = rcp.freshness(m)
+    out = {"recipes": len(rs), "problems": rcp.lint(rs, known), "statements_cited": len(rcp.cited(rs) & known),
+           "statements": len(known), "uncited": sorted(known - rcp.cited(rs))[:50], **fresh}
+    if fresh["stale"]:
+        out["next"] = "the memory changed since these recipes were written: run /director:recipes again"
+    elif fresh["unstamped"]:
+        out["next"] = "the recipes record no memory version: stamp them (python -m director.recipes stamp <memory>)"
+    return out
 
 
 def tool_plan_local(args: dict) -> dict:
@@ -142,7 +148,10 @@ def tool_plan_local(args: dict) -> dict:
     out = rcp.plan(request, rs, who)
     if who.failures and not out["recipes"]:
         raise ToolError(f"the local model did not answer ({who.model} at {who.url}); is Ollama running?")
-    return {**out, "model": who.model, "calls": who.calls, "failures": who.failures,
+    fresh = rcp.freshness(m)
+    if fresh["stale"]:
+        out["warning"] = "the recipes were written from an older memory; this plan may miss lessons accepted since"
+    return {**out, "model": who.model, "calls": who.calls, "failures": who.failures, "recipes_stale": fresh["stale"],
             "seconds": round(time.time() - t0, 1)}
 
 

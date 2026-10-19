@@ -14,7 +14,6 @@ above the three cases D0 measured splitting between samples of one memory.
 
 from __future__ import annotations
 
-import hashlib
 import json
 import shutil
 import sys
@@ -24,10 +23,9 @@ HERE = Path(__file__).resolve().parent
 
 
 def memory_hash(memory: Path) -> str:
-    h = hashlib.sha256()
-    for p in sorted(Path(memory).rglob("*.md")):
-        h.update(p.relative_to(memory).as_posix().encode() + b"\0" + p.read_bytes() + b"\0")
-    return h.hexdigest()[:16]
+    """The memory's version (`director.memory.format.version`): the baseline is stored under it."""
+    from .memory.format import version
+    return version(memory)
 
 
 def paired_verdict(cand: dict, base: dict, slack: float | None = None, max_net_losses: int = 4) -> dict:

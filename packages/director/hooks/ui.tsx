@@ -25,6 +25,7 @@ export function statusText(s: Snapshot | null): string | undefined {
   if (plans) parts.push(`${plans} plan${plans === 1 ? '' : 's'} waiting`)
   const out = s.delegations?.length ?? 0
   if (out) parts.push(`${out} delegated`)
+  if (s.recipes_stale) parts.push('recipes stale')
   return parts.join(' · ')
 }
 

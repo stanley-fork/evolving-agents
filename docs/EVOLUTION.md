@@ -294,12 +294,12 @@ ArchitectZero as a separate agent, now that harnesses decompose work with their 
 | 3 | **Component evolution.** Skills, subagents, recipes and lane adapters change through the same gate as statements (§7). | **D17** (brief first): an evolved component beats its parent on held-out cases and the parent's own bank holds — **brief written** 2026-10-19 for the first component, the local model's recipes: [BRIEF-D17](../packages/director/docs/BRIEF-D17.md) |
 | 4 | **Plans on the band.** Each delegation shown with its lane before it runs: Run, Move lane, Cancel. | D3's result reproduced with moves made on the band — **built** 2026-10-19 (`plan_propose`, the band, moves logged for `/director:reflect`); the D3 reproduction is not yet run |
 | 5 | **The episodic journal.** One append-only file; `/director:reflect` reads it. | a lesson drafted from the journal passes D2's probes as one drafted from the session did — **built** 2026-10-19 (`.director/journal.jsonl`, `journal_read`, `journal_note`; `/director:reflect` reads it); the D2 comparison is not yet run |
-| 6 | **Views stamped with their memory version.** Recipes and baseline record it; lint flags a stale one. | a test: edit the memory, lint reports the recipes stale |
+| 6 | **Views stamped with their memory version.** Recipes and baseline record it; lint flags a stale one. | a test: edit the memory, lint reports the recipes stale — **built** 2026-10-19: the guard's baseline was already stored under the memory's version; the recipes now carry `recipes.stamp.json`, and `recipes_lint`, `plan_local` and the status line report them stale |
 | 7 | **An `anthropic-managed` lane.** An adapter behind `submit / status / fetch`; the memory mounted read-only; the walk as a skill; the gate over MCP. | **P1**: D0 through it within 0.03 of 0.929; cost per plan published |
 | 8 | **An `antigravity` lane.** The same artifact on Google's harness. | **P2**: the same bar; and D0's plans judged by the other provider, to measure self-preference |
 | 9 | **The memory package.** One export that installs on every harness above. | P0, P1 and P2 re-run from the same artifact |
 
-Steps 1–6 order what exists and keep EAT's open promises, and need no new provider. Steps 7–9 are where the director stops being a Claude Code
+What runs next on the lab's machine, in order, is in [RUNBOOK](../packages/director/docs/RUNBOOK.md). Steps 1–6 order what exists and keep EAT's open promises, and need no new provider. Steps 7–9 are where the director stops being a Claude Code
 plugin and becomes what the SystemAgent meant to be: one orchestrator with one memory, over whichever agents do the
 work.
 

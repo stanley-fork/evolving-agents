@@ -54,6 +54,10 @@ these planned at 0.806, against 0.854 for Sonnet walking the memory with tools.
 3. Call the `recipes_lint` tool (MCP `director`), or run
    `PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m director.recipes lint <memory folder>`. Fix every problem, then
    report the recipes, their triggers, and the coverage (statements cited / statements).
+   Once they lint clean, stamp them with the memory version they were written from:
+   `PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m director.recipes stamp <memory folder>`. When a lesson is accepted
+   later, the memory changes, `recipes_lint` reports the recipes `stale` and the status line says so: run this command
+   again.
 4. Tell the user that `plan_local` now plans with these recipes on their local model (Ollama, `DIRECTOR_LOCAL_MODEL`,
    default `gemma4:12b-mlx`). A plan that comes out wrong is a reason to run this command again with that request
    as the argument.

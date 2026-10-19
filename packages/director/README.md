@@ -80,7 +80,7 @@ only what it lacks:
 | `/director:compile` | compiles your `CLAUDE.md` / `AGENTS.md`, auto-memory, agents and skills into `.director/memory/` (asks first; ~US$5 for ~60 files) |
 | `SessionStart` hook | where that memory exists, puts the walk (`DIRECTOR.md`) into the session: every plan walks the memory and cites what it follows; silent elsewhere |
 | `/director:reflect` | after a task, the session drafts the lesson as edits plus two probes; nothing touches the memory until you say yes |
-| `/director:recipes` | writes (or rewrites) the meta-recipes a local model follows to plan from this memory (`recipes.json` beside the pages), then lints them and reports how much of the memory they cite (D15) |
+| `/director:recipes` | writes (or rewrites) the meta-recipes a local model follows to plan from this memory (`recipes.json` beside the pages), then lints them and reports how much of the memory they cite (D15); stamps them with the memory version they were written from, so `recipes_lint`, `plan_local` and the status line say when an accepted lesson has made them stale |
 | MCP server `director` | `memory_propose` (a candidate copy, linted, diffed), `memory_check` (D7's positive probe, in the background: TEACHES / REDUNDANT / NO EFFECT), `memory_accept` (your yes, a clean lint and — if checked — TEACHES; versioned as a gated agentvcs patch when agentvcs is installed), `memory_lint`, `memory_status`; `recipes_lint` and `plan_local` (a plan made by following the recipes with a local model on Ollama, `DIRECTOR_LOCAL_MODEL`, default `gemma4:12b-mlx`; free, and `abstain` when no recipe fits); `lanes_list`, `plan_propose`, `plan_status`, `delegate`, `lane_status`, `lane_fetch` (lanes, below); `journal_read` and `journal_note` (the episodic journal, below) |
 | status line and band (`hooks/ui.tsx`) | where that memory exists, the status line reads `director · 286 statements · 3 learned · 1 to decide`; when a plan waits, a band above the prompt shows each task with its lane (**Run**, **Move**, **Cancel**); when a lesson waits for a decision, it shows its edits and its check with **Diff**, **Accept** and **Reject** (Accept is your yes, through the same gate as `memory_accept`; it is offered only when the proposal lints clean and its check, if one ran, says TEACHES), and each delegation not yet brought back with **Status** and **Fetch**. What you press reaches the session with your next prompt. Needs a Claude Code with plugin UI modules; on older versions everything else works as before |
 
@@ -102,7 +102,7 @@ enforced in code (`director/lanes.py`), not only as a learned statement.
 Not in the plugin: the targeted guard (its cases are this lab's; a project has none until it has run some),
 lora-kernel's local lane and the two-lane web interface — those stay in `director.server` below; the band carries
 the interface's Accept / Reject into the session. Tests: `tests/test_plugin.py`, `tests/test_ui_state.py`,
-`tests/test_recipes.py`, `tests/test_lanes.py`, `tests/test_plans.py`, `tests/test_journal.py`; the band: `claude plugin test .`.
+`tests/test_recipes.py`, `tests/test_lanes.py`, `tests/test_plans.py`, `tests/test_journal.py`, `tests/test_versions.py`; the band: `claude plugin test .`.
 
 ## Running it (D1)
 

@@ -73,6 +73,9 @@ const PLAN = {
 describe('plans on the band', () => {
   test('the status line counts a waiting plan, and Run is summarised for the session', async () => {
     expect(statusText(PLAN)).toBe('director · 10 statements · 0 learned · 1 plan waiting')
+    expect(statusText({ ...PLAN, plans: [], recipes_stale: true })).toBe(
+      'director · 10 statements · 0 learned · recipes stale',
+    )
     expect(
       runSummary({
         results: [

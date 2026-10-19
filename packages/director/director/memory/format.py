@@ -7,6 +7,7 @@ atomic statements, each a `## #id` heading with **When**, **Do**, **Because** an
 
 from __future__ import annotations
 
+import hashlib
 import os
 import re
 from pathlib import Path
@@ -32,6 +33,16 @@ def state_dir(memory: Path) -> Path:
     """Where the director keeps its state beside a memory (candidates, checks, the agentvcs store, delegations)."""
     memory = Path(memory)
     return memory.parent if memory.parent.name == ".director" else memory.parent / ".director"
+
+
+def version(memory: Path) -> str:
+    """The memory's version: a hash of every page's path and bytes. Views compiled from the memory (the guard's
+    baseline, the recipes) record the version they were built from, so a stale one is caught by lint, not by a bad
+    plan."""
+    memory, h = Path(memory), hashlib.sha256()
+    for p in sorted(memory.rglob("*.md")):
+        h.update(p.relative_to(memory).as_posix().encode() + b"\0" + p.read_bytes() + b"\0")
+    return h.hexdigest()[:16]
 
 
 def statements(page_text: str) -> dict[str, str]:
