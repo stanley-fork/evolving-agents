@@ -17,17 +17,17 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import sys
 import urllib.request
 from pathlib import Path
 from typing import Protocol
 
+from .memory.format import statement_ids
+
 MAX_RECIPES_PICKED = 2
 MAX_DEPTH = 2
 DEFAULT_MODEL = os.environ.get("DIRECTOR_LOCAL_MODEL", "gemma4:12b-mlx")
 OLLAMA = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434")
-HEADING = re.compile(r"(?m)^## #([A-Za-z0-9_]+)\s*$")
 
 
 class Answerer(Protocol):
@@ -78,15 +78,6 @@ class Ollama:
 
 def path_for(memory: Path) -> Path:
     return Path(memory) / "recipes.json"
-
-
-def statement_ids(memory: Path) -> set[str]:
-    ids = set()
-    for f in Path(memory).glob("*.md"):
-        if f.name in ("Index.md", "README.md"):
-            continue
-        ids |= {f"{f.stem}#{s}" for s in HEADING.findall(f.read_text(encoding="utf-8"))}
-    return ids
 
 
 def load(memory: Path) -> list[dict]:

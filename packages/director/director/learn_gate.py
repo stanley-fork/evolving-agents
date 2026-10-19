@@ -10,7 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from director.learn import lint  # noqa: E402
+from director.memory.edit import lint  # noqa: E402
 
 m = json.loads(Path(os.environ["AGENTVCS_MANIFEST_FILE"]).read_text())
 with tempfile.TemporaryDirectory() as d:

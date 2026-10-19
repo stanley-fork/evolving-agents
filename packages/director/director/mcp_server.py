@@ -22,25 +22,25 @@ only; newline-delimited JSON-RPC over stdio.
     lane_status     id                a delegation's status, asked of its lane
     lane_fetch      id, dest          a delegation's output, brought back by its lane
 
-The memory is found as the SessionStart hook finds it (`plugin_hook.find_memory`); the director's state (candidates,
-checks, the agentvcs store) lives beside it in `.director/`.
+The memory is found as the SessionStart hook finds it (`director.memory.find`); the director's state (candidates,
+checks, the agentvcs store) lives beside it in `.director/`. The memory tools are thin wrappers over
+`director.memory.gate`, the same gate the plugin's band and the web interface use.
 """
 
 from __future__ import annotations
 
-import difflib
 import json
 import os
-import shutil
-import subprocess
 import sys
 import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from director.learn import apply_edits, leak, lint, new_problems  # noqa: E402
-from director.plugin_hook import find_memory  # noqa: E402
+from director.memory import gate  # noqa: E402
+from director.memory.edit import lint  # noqa: E402
+from director.memory.format import find as find_memory, state_dir  # noqa: E402
+from director.memory.gate import diff, new_proposal  # noqa: E402,F401  (re-exported for older imports)
 from director import recipes as rcp  # noqa: E402
 from director import lanes as lns  # noqa: E402
 
@@ -65,42 +65,14 @@ def memory() -> Path:
 
 
 def state() -> Path:
-    m = memory()
-    return m.parent if m.parent.name == ".director" else m.parent / ".director"
+    return state_dir(memory())
 
 
-def proposal_dir(pid: str) -> Path:
-    if not pid or not pid.replace("-", "").isalnum():
-        raise ToolError(f"bad proposal id {pid!r}")
-    d = state() / "candidates" / pid
-    if not (d / "proposal.json").is_file():
-        raise ToolError(f"no proposal {pid}")
-    return d
-
-
-def new_proposal(root: Path) -> tuple[str, Path]:
-    """A fresh proposal id and its directory, reserved atomically: two proposals in the same second get `-2`, `-3`, …
-    rather than one overwriting the other's candidate."""
-    root.mkdir(parents=True, exist_ok=True)
-    base = time.strftime("p%Y%m%d-%H%M%S")
-    for n in range(1, 1000):
-        pid = base if n == 1 else f"{base}-{n}"
-        try:
-            (root / pid).mkdir()
-        except FileExistsError:
-            continue
-        return pid, root / pid
-    raise ToolError("could not reserve a proposal id")
-
-
-def diff(before: Path, after: Path, limit: int = 12000) -> str:
-    out = []
-    for p in sorted({x.name for x in before.glob("*.md")} | {x.name for x in after.glob("*.md")}):
-        a = (before / p).read_text().splitlines() if (before / p).exists() else []
-        b = (after / p).read_text().splitlines() if (after / p).exists() else []
-        out += difflib.unified_diff(a, b, f"a/{p}", f"b/{p}", lineterm="", n=1)
-    text = "\n".join(out)
-    return text if len(text) <= limit else text[:limit] + "\n… (truncated)"
+def _gate(fn, *a, **kw):
+    try:
+        return fn(*a, **kw)
+    except gate.GateError as e:
+        raise ToolError(str(e)) from None
 
 
 # ------------------------------------------------------------------ tools
@@ -111,96 +83,34 @@ def tool_lint(_: dict) -> dict:
 
 
 def tool_propose(args: dict) -> dict:
-    m, edits = memory(), args.get("edits")
-    if not isinstance(edits, list) or not edits:
-        raise ToolError("edits: a non-empty list of edits (see the tool's schema)")
-    probes = [p for p in args.get("probes") or [] if isinstance(p, dict) and p.get("situation") and p.get("checklist")][:2]
-    pid, d = new_proposal(state() / "candidates")
-    res = apply_edits(m, edits, d / "memory")
-    problems = new_problems(m, d / "memory")
-    episode = args.get("episode") or ""
-    rec = {"id": pid, "rationale": args.get("rationale") or "", "edits": edits, "applied": res["applied"],
-           "rejected": res["rejected"], "lint": problems, "probes": probes,
-           "leaks": [i for i, p in enumerate(probes, 1) if episode and leak(episode, p["situation"])],
-           "status": "proposed", "created": time.strftime("%Y-%m-%dT%H:%M:%S")}
-    (d / "proposal.json").write_text(json.dumps(rec, indent=1, ensure_ascii=False))
-    return {**{k: rec[k] for k in ("id", "applied", "rejected", "lint", "leaks")}, "probes": len(probes),
-            "diff": diff(m, d / "memory"),
-            "next": ("cannot be accepted: fix the lint problems or the rejected edits and propose again"
-                     if problems or not res["applied"] else
+    rec = _gate(gate.propose, memory(), args.get("edits"), args.get("probes"), args.get("rationale") or "",
+                args.get("episode") or "")
+    blocked = rec["lint"] or not rec["applied"]
+    return {**{k: rec[k] for k in ("id", "applied", "rejected", "lint", "leaks")}, "probes": len(rec["probes"]),
+            "diff": rec["diff"],
+            "next": ("cannot be accepted: fix the lint problems or the rejected edits and propose again" if blocked else
                      ("the rejected edits were dropped (Index.md is edited only through an edit's `situations`); "
-                      if res["rejected"] else "")
+                      if rec["rejected"] else "")
                      + "show the diff to the user; memory_check to test it (paid), memory_accept on their yes")}
 
 
 def tool_check(args: dict) -> dict:
-    d = proposal_dir(args.get("id"))
-    rec = json.loads((d / "proposal.json").read_text())
-    if not rec["probes"]:
-        raise ToolError("this proposal has no probes to check; propose again with two probes")
-    if (d / "check.running").exists():
-        return {"id": rec["id"], "check": "already running"}
-    (d / "check.json").unlink(missing_ok=True)       # a rerun replaces an earlier (e.g. incomplete) verdict
-    (d / "check.running").write_text(time.strftime("%Y-%m-%dT%H:%M:%S"))
-    log = (d / "check.log").open("w")
-    subprocess.Popen([sys.executable, "-m", "director.plugin_check", str(memory()), str(d)],
-                     cwd=Path(__file__).resolve().parents[1], stdout=log, stderr=subprocess.STDOUT,
-                     stdin=subprocess.DEVNULL, start_new_session=True)
-    return {"id": rec["id"], "check": "started",
-            "note": f"{len(rec['probes'])} probe(s) × 2 samples × 2 memories, Sonnet, blind judge: minutes, a few "
-                    "dollars. memory_status reads the verdict."}
+    # the check plans the probes with Claude and judges them blind: the agent's work, so the command is ours, not the
+    # memory's (director.memory never calls a model)
+    out = _gate(gate.start_check, memory(), args.get("id"), [sys.executable, "-m", "director.plugin_check"],
+                cwd=Path(__file__).resolve().parents[1])
+    if out["check"] == "started":
+        out["note"] = (f"{out['probes']} probe(s) × 2 samples × 2 memories, Sonnet, blind judge: minutes, a few "
+                       "dollars. memory_status reads the verdict.")
+    return {k: v for k, v in out.items() if k != "probes"}
 
 
 def tool_status(args: dict) -> dict:
-    d = proposal_dir(args.get("id"))
-    rec = json.loads((d / "proposal.json").read_text())
-    out = {k: rec[k] for k in ("id", "status", "applied", "rejected", "lint", "rationale")}
-    if (d / "check.json").exists():
-        out["check"] = json.loads((d / "check.json").read_text())
-    elif (d / "check.running").exists():
-        tail = (d / "check.log").read_text().splitlines()[-3:] if (d / "check.log").exists() else []
-        out["check"] = {"verdict": "RUNNING", "progress": tail}
-    return out
+    return _gate(gate.status, memory(), args.get("id"))
 
 
 def tool_accept(args: dict) -> dict:
-    d = proposal_dir(args.get("id"))
-    rec = json.loads((d / "proposal.json").read_text())
-    if rec["status"] != "proposed":
-        raise ToolError(f"proposal {rec['id']} is {rec['status']}")
-    if rec["lint"] or not rec["applied"]:
-        raise ToolError("this proposal has lint problems or no edit applied; it cannot be accepted")
-    if args.get("user_said_yes") is not True:
-        raise ToolError("accept only on the user's explicit yes to this diff (user_said_yes: true)")
-    check = json.loads((d / "check.json").read_text()) if (d / "check.json").exists() else None
-    if (d / "check.running").exists() and check is None:
-        raise ToolError("its check is still running; wait for memory_status to show the verdict")
-    if check is not None and check.get("verdict") == "INCOMPLETE":
-        raise ToolError("its check could not measure the probes (nothing was decided); memory_check again")
-    if check is not None and not check.get("teaches"):
-        rec["status"] = check.get("verdict", "not teaching").lower().replace(" ", "_")
-        (d / "proposal.json").write_text(json.dumps(rec, indent=1, ensure_ascii=False))
-        raise ToolError(f"not kept — the check says {check.get('verdict')}; the memory is unchanged")
-    m, patch = memory(), None
-    exe = os.environ.get("AGENTVCS") or shutil.which("agentvcs")
-    if exe:
-        from director.memory_vcs import LiveStore
-        guard = None
-        if check is not None:
-            guard = {"mode": "probe", "passed": True, "probe": check}
-            (d / "guard.json").write_text(json.dumps(guard))
-        patch = LiveStore(state() / "vcs", m, exe).commit(d / "memory", rec["rationale"] or "accepted in session",
-                                                          rec["applied"], guard)
-    backup = state() / "previous" / rec["id"]
-    if backup.exists():
-        shutil.rmtree(backup)
-    shutil.copytree(m, backup)
-    shutil.rmtree(m)
-    shutil.copytree(d / "memory", m)
-    rec.update(status="accepted", checked=check is not None, patch=patch)
-    (d / "proposal.json").write_text(json.dumps(rec, indent=1, ensure_ascii=False))
-    return {"id": rec["id"], "status": "accepted", "checked": check is not None,
-            "versioned": patch is not None, "patch": patch, "previous_memory": str(backup)}
+    return _gate(gate.accept, memory(), args.get("id"), args.get("user_said_yes"))
 
 
 def tool_recipes_lint(_: dict) -> dict:

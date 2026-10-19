@@ -376,7 +376,8 @@ class Director:
         return "\n".join(lines)
 
     def reflect(self, correction: str) -> None:
-        from .learn import apply_edits, new_problems, reflect
+        from .learn import reflect
+        from .memory.edit import apply_edits, new_problems
         try:
             pid = f"p{len(self.proposals) + 1}"
             sb = self.home / "reflect-sandbox"
@@ -482,7 +483,7 @@ class Director:
             self.phase = "idle"
 
     def _commit(self, pid: str, guard: dict | None) -> dict:
-        from .memory_vcs import LiveStore
+        from .memory.vcs import LiveStore
         p = self.proposals[pid]
         if self.store is None:
             self.store = LiveStore(self.home / "vcs", self.memory, self.cfg.get("agentvcs"))

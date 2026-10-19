@@ -288,7 +288,7 @@ ArchitectZero as a separate agent, now that harnesses decompose work with their 
 
 | | step | how we will know |
 |---|---|---|
-| 1 | **The memory model in code.** This document's §4 as the reference; a `director/memory/` module (format, lint, walk, gate, versioning) apart from the agent that plans and delegates. Kept in this package until a second repository needs it. | existing tests pass unchanged; no measurement needed |
+| 1 | **The memory model in code.** This document's §4 as the reference; a `director/memory/` module (format, lint, walk, gate, versioning) apart from the agent that plans and delegates. Kept in this package until a second repository needs it. | existing tests pass unchanged; no measurement needed — **built** 2026-10-19: 56 tests unchanged, a boundary test added |
 | 2 | **The directory as data.** `lanes.json`, lora-kernel's domains and the routing statements become one directory: domains, `confidential_ok`, region, cost, reliability with its evidence. Statements cite entries instead of describing them. | **D16** (brief first): the directory routes D3's cases at least as well as the prose did, and D0 holds at 0.929 |
 | 3 | **Component evolution.** Skills, subagents, recipes and lane adapters change through the same gate as statements (§7). | **D17** (brief first): an evolved skill beats its parent on held-out probes; D0 holds at 0.929 |
 | 4 | **Plans on the band.** Each delegation shown with its lane before it runs: Run, Move lane, Cancel. | D3's result reproduced with moves made on the band |

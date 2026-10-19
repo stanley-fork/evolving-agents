@@ -162,6 +162,16 @@ goes to the frontier by itself. Ran live on lora-kernel's tracker member ([D4](d
 
 Not yet: any write access by default; the accept path is tested in CI only where the agentvcs CLI is installed.
 
+## The code, in two halves
+
+`director/memory/` is the memory's own code: where it is (`format.find`), its pages as data, edits applied to a copy
+and the lint they pass (`edit`), the gate a lesson goes through — propose, check, accept or reject — (`gate`), and
+each accepted edit as an agentvcs patch (`vcs`). It is standard library only, never calls a model, and imports
+nothing from the rest. Everything else is the agent that plans with it: `core` (the loop), `learn` (reflection),
+`guard`, `recipes`, `lanes`, and the interfaces (`server`, `mcp_server`, `ui_state`, `plugin_hook`). The MCP tools,
+the band and the web interface's Accept all go through `memory.gate`. `tests/test_memory_boundary.py` holds the line;
+the model behind it is [`docs/EVOLUTION.md`](../../docs/EVOLUTION.md) §4.
+
 ## Privacy
 
 The memory is the lab's own way of working and names private work. **Code here is public; the memory, the
