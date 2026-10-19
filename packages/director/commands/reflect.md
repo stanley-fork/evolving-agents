@@ -7,7 +7,9 @@ allowed-tools: Read, Grep, Glob, mcp__plugin_director_director__memory_lint, mcp
 A task in this session has ended. The user's correction, if they give one here: $ARGUMENTS
 
 1. Write the task report for yourself: what was asked, the plan and which memory statements it cited, what was done,
-   and the correction (from above, or from what the user said during the task). If there was no correction and
+   and the correction (from above, or from what the user said during the task). A task the user moved to another
+   lane on the band is a correction too: read `.director/lane-moves.jsonl` (beside the memory) for moves since the
+   last reflection, and treat each as "this kind of work runs on that lane". If there was no correction, no move and
    nothing went wrong, say so and stop: there is nothing to learn.
 2. Decide what the memory (the directory the director's context names, with `Index.md`) must hold so that the next
    time an agent is in a situation like this — not this exact one — its plan comes out right. Search the memory for

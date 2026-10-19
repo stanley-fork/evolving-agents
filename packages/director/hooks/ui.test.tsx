@@ -1,7 +1,7 @@
 import type { On } from 'claude-code'
 import { describe, expect, test } from 'claude-code/testing'
 
-import { statusText } from './ui'
+import { runSummary, statusText } from './ui'
 
 const SNAP = {
   memory: '/proj/.director/memory',
@@ -49,6 +49,58 @@ describe('status line', () => {
     expect(statusText({ memory: '/m', statements: 10, accepted: 0, proposals: [], delegations: [] })).toBe(
       'director · 10 statements · 0 learned',
     )
+  })
+})
+
+const PLAN = {
+  memory: '/proj/.director/memory',
+  statements: 10,
+  accepted: 0,
+  proposals: [],
+  delegations: [],
+  plans: [
+    {
+      id: 'plan-20261019-120000',
+      request: 'ship 0.6',
+      tasks: [
+        { id: 'draft-note', task: 'draft the release note', lane: 'local', confidential: false, movable: true },
+        { id: 'read-contract', task: 'summarise the contract', lane: 'private-exec', confidential: true, movable: false },
+      ],
+    },
+  ],
+}
+
+describe('plans on the band', () => {
+  test('the status line counts a waiting plan, and Run is summarised for the session', async () => {
+    expect(statusText(PLAN)).toBe('director · 10 statements · 0 learned · 1 plan waiting')
+    expect(
+      runSummary({
+        results: [
+          { id: 'draft-note', lane: 'frontier', status: 'in_session' },
+          { id: 'sum', lane: 'local', status: 'submitted' },
+          { id: 'x', lane: 'cloud', error: 'refused' },
+        ],
+      }),
+    ).toBe('draft-note is yours to do now; sum delegated to local; x failed on cloud (refused)')
+  })
+
+  test('each task shows its lane; Move only where another lane is allowed; Run and Move go through ui_state', async ($, on) => {
+    const calls: string[][] = []
+    fake(on, PLAN, calls)
+    await $.session.start({ cwd: '/proj', surface: 'terminal', isInteractive: true })
+    for (const surface of ['terminal', 'desktop', 'mobile'] as const) {
+      const ui = await $.ui.mount({ plugin: 'director', surface, ...BAND })
+      expect(await ui.find({ type: 'Text', text: /a plan to run/ })).toBeDefined()
+      expect(await ui.find({ key: 'move-plan-20261019-120000-draft-note' })).toBeDefined()
+      expect(await ui.find({ key: 'move-plan-20261019-120000-read-contract' })).toBe(undefined)
+      await ui.unmount()
+    }
+    const ui = await $.ui.mount({ plugin: 'director', surface: 'terminal', ...BAND })
+    await ui.press({ key: 'move-plan-20261019-120000-draft-note' })
+    expect(calls).toContainEqual(['plan-move', 'plan-20261019-120000', 'draft-note'])
+    await ui.press({ key: 'run-plan-20261019-120000' })
+    expect(calls).toContainEqual(['plan-run', 'plan-20261019-120000'])
+    await ui.unmount()
   })
 })
 

@@ -43,6 +43,7 @@ from director.memory.format import find as find_memory, state_dir  # noqa: E402
 from director.memory.gate import diff, new_proposal  # noqa: E402,F401  (re-exported for older imports)
 from director import recipes as rcp  # noqa: E402
 from director import lanes as lns  # noqa: E402
+from director import plans  # noqa: E402
 
 SERVER_INFO = {"name": "director", "version": "0.1.0"}
 PROTOCOL_VERSION = "2025-06-18"
@@ -165,6 +166,24 @@ def tool_delegate(args: dict) -> dict:
                        confidential=bool(args.get("confidential")))
 
 
+def tool_plan_propose(args: dict) -> dict:
+    try:
+        rec = plans.propose(state(), lns.load_config(), args.get("tasks"), args.get("request") or "")
+    except plans.PlanError as e:
+        raise ToolError(str(e)) from None
+    return {"id": rec["id"], "status": "waiting", "tasks": [{k: t[k] for k in ("id", "lane", "confidential")}
+                                                            for t in rec["tasks"]],
+            "next": "the plan waits on the director's band (Run, Move, Cancel); nothing is delegated until the person "
+                    "runs it. plan_status reads what they did. Tasks on `frontier` are yours to do once it runs."}
+
+
+def tool_plan_status(args: dict) -> dict:
+    try:
+        return plans._read(state(), args.get("id") or "")
+    except plans.PlanError as e:
+        raise ToolError(str(e)) from None
+
+
 def tool_lane_status(args: dict) -> dict:
     return _lanes_call(lns.status, state(), lns.load_config(), args.get("id") or "")
 
@@ -218,6 +237,21 @@ TOOLS = {
                      "lane": {"type": "string"}, "id": {"type": "string", "description": "lowercase-hyphen slug"},
                      "inputs": {"type": "array", "items": {"type": "string"}},
                      "confidential": {"type": "boolean"}}}),
+    "plan_propose": (tool_plan_propose, "Propose a plan for the person to review before anything is delegated: each "
+                     "task with its lane. It waits on the director's band, where the person runs it, moves a task to "
+                     "another lane, or cancels it; a move is logged for the next reflection. Prefer this to `delegate` "
+                     "whenever a person is at the session. A confidential task on a lane not cleared for it is refused.",
+                     {"type": "object", "required": ["tasks"], "properties": {
+                         "request": {"type": "string", "description": "the person's request, in one line"},
+                         "tasks": {"type": "array", "items": {"type": "object", "required": ["id", "task", "lane"],
+                                   "properties": {"id": {"type": "string", "description": "lowercase-hyphen slug"},
+                                                  "task": {"type": "string"}, "lane": {"type": "string"},
+                                                  "inputs": {"type": "array", "items": {"type": "string"}},
+                                                  "confidential": {"type": "boolean"},
+                                                  "why_lane": {"type": "string"}}}}}}),
+    "plan_status": (tool_plan_status, "A proposed plan: waiting, cancelled, or ran (with each task's delegation "
+                    "result), and its tasks' lanes after any move.",
+                    {"type": "object", "required": ["id"], "properties": {"id": {"type": "string"}}}),
     "lane_status": (tool_lane_status, "A delegation's status (submitted, running, done), asked of its lane.",
                     {"type": "object", "required": ["id"], "properties": {"id": {"type": "string"}}}),
     "lane_fetch": (tool_lane_fetch, "Bring a delegation's output back from its lane (to `dest`, or beside the memory).",
