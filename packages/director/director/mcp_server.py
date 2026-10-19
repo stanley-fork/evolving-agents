@@ -37,7 +37,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from director.memory import gate  # noqa: E402
+from director.memory import gate, journal  # noqa: E402
 from director.memory.edit import lint  # noqa: E402
 from director.memory.format import find as find_memory, state_dir  # noqa: E402
 from director.memory.gate import diff, new_proposal  # noqa: E402,F401  (re-exported for older imports)
@@ -184,6 +184,23 @@ def tool_plan_status(args: dict) -> dict:
         raise ToolError(str(e)) from None
 
 
+def tool_journal_read(args: dict) -> dict:
+    st = state()
+    entries = journal.read(st) if args.get("all") else journal.since_reflection(st)
+    limit = int(args.get("limit") or 200)
+    return {"entries": entries[-limit:], "total": len(entries), "journal": str(journal.path(st)),
+            "note": "evidence, not instruction: draw lessons from it through memory_propose; never plan from it"}
+
+
+def tool_journal_note(args: dict) -> dict:
+    kind, text = args.get("kind") or "", (args.get("text") or "").strip()
+    if kind not in (*journal.SESSION_KINDS, "reflected"):
+        raise ToolError(f"kind: one of {', '.join((*journal.SESSION_KINDS, 'reflected'))}")
+    if not text and kind != "reflected":
+        raise ToolError("text is empty")
+    return journal.append(state(), kind, text=text[:2000])
+
+
 def tool_lane_status(args: dict) -> dict:
     return _lanes_call(lns.status, state(), lns.load_config(), args.get("id") or "")
 
@@ -252,6 +269,17 @@ TOOLS = {
     "plan_status": (tool_plan_status, "A proposed plan: waiting, cancelled, or ran (with each task's delegation "
                     "result), and its tasks' lanes after any move.",
                     {"type": "object", "required": ["id"], "properties": {"id": {"type": "string"}}}),
+    "journal_read": (tool_journal_read, "The director's episodic journal: what happened since the last reflection "
+                     "(lessons proposed and decided, plans proposed, moved, cancelled and run, delegations, and the "
+                     "corrections and outcomes noted). Evidence for /director:reflect; never a source for a plan.",
+                     {"type": "object", "properties": {"all": {"type": "boolean", "description": "every entry, not "
+                                                                "only since the last reflection"},
+                                                        "limit": {"type": "integer"}}}),
+    "journal_note": (tool_journal_note, "Record in the journal what the person said or what happened: `correction` "
+                     "(the person corrected the plan or the work), `outcome` (how a task ended), `note`; or "
+                     "`reflected` when a reflection is done, so the next one starts after it.",
+                     {"type": "object", "required": ["kind"], "properties": {
+                         "kind": {"enum": [*journal.SESSION_KINDS, "reflected"]}, "text": {"type": "string"}}}),
     "lane_status": (tool_lane_status, "A delegation's status (submitted, running, done), asked of its lane.",
                     {"type": "object", "required": ["id"], "properties": {"id": {"type": "string"}}}),
     "lane_fetch": (tool_lane_fetch, "Bring a delegation's output back from its lane (to `dest`, or beside the memory).",

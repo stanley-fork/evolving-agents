@@ -22,6 +22,7 @@ import time
 from pathlib import Path
 
 from . import lanes as lns
+from .memory import journal
 
 
 class PlanError(Exception):
@@ -92,6 +93,8 @@ def propose(state: Path, cfg: dict, tasks: list[dict], request: str = "") -> dic
     rec = {"id": _new_id(state), "request": request, "created": time.strftime("%Y-%m-%dT%H:%M:%S"),
            "status": "waiting", "tasks": out}
     _write(state, rec)
+    journal.append(state, "plan.proposed", id=rec["id"], request=request[:200],
+                   tasks=[{"id": t["id"], "lane": t["lane"], "confidential": t["confidential"]} for t in out])
     return rec
 
 
@@ -137,6 +140,7 @@ def move(state: Path, cfg: dict, pid: str, task_id: str, to: str | None = None) 
     _write(state, rec)
     with (Path(state) / "lane-moves.jsonl").open("a", encoding="utf-8") as f:
         f.write(json.dumps(mv, ensure_ascii=False) + "\n")
+    journal.append(state, "plan.moved", **{k: v for k, v in mv.items() if k != "at"})
     return mv
 
 
@@ -144,6 +148,7 @@ def cancel(state: Path, pid: str) -> dict:
     rec = _waiting(state, pid)
     rec["status"] = "cancelled"
     _write(state, rec)
+    journal.append(state, "plan.cancelled", id=pid)
     return {"id": pid, "status": "cancelled"}
 
 
@@ -161,4 +166,5 @@ def run(state: Path, cfg: dict, pid: str) -> dict:
             results.append({"id": t["id"], "lane": t["lane"], "error": str(e)})
     rec.update(status="ran", ran=time.strftime("%Y-%m-%dT%H:%M:%S"), results=results)
     _write(state, rec)
+    journal.append(state, "plan.ran", id=pid, results=results)
     return {"id": pid, "status": "ran", "results": results}

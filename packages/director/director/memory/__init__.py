@@ -6,6 +6,7 @@ a lesson passes, and its versioning. Standard library only; it never calls a mod
     memory.edit     apply edits to a copy (`apply_edits`), lint (`lint`, `new_problems`)
     memory.gate     a lesson's way in: propose → check → accept or reject, one directory per proposal
     memory.vcs      each accepted edit as a gated agentvcs patch (`LiveStore`)
+    memory.journal  the episodic journal: what happened, append-only; read by the reflection, never by planning
 
 The agent's side (planning, reflection, lanes, the interfaces) imports from here; the memory never imports from it.
 The format itself is in `docs/MEMORY-FORMAT.md`; the memory model this module serves is in the repository's
