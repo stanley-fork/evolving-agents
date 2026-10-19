@@ -11,12 +11,17 @@ export type Proposal = {
 
 export type Delegation = { id: string; lane: string; status: string; done: boolean }
 
+export type PlanTask = { id: string; task: string; lane: string; confidential: boolean; movable: boolean }
+
+export type Plan = { id: string; request: string; tasks: PlanTask[] }
+
 export type Snapshot = {
   memory: string | null
   statements?: number
   accepted?: number
   proposals?: Proposal[]
   delegations?: Delegation[]
+  plans?: Plan[]
   error?: string
 }
 

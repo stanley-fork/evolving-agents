@@ -1,6 +1,6 @@
 // The director's band and status line. The status line names the memory and what waits for a decision; the band
-// above the prompt shows a proposed lesson (its edits, its check, Diff / Accept / Reject) and the delegations not
-// yet brought back. Both read director/ui_state.py and stay silent where the project has no director memory.
+// above the prompt shows a plan waiting to run (each task's lane; Run / Move / Cancel), a proposed lesson (its edits,
+// its check, Diff / Accept / Reject) and the delegations not yet brought back. Both read director/ui_state.py and stay silent where the project has no director memory.
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
@@ -21,6 +21,8 @@ export function statusText(s: Snapshot | null): string | undefined {
   const parts = [`director · ${n} statement${n === 1 ? '' : 's'}`, `${s.accepted ?? 0} learned`]
   const waiting = s.proposals?.length ?? 0
   if (waiting) parts.push(`${waiting} to decide`)
+  const plans = s.plans?.length ?? 0
+  if (plans) parts.push(`${plans} plan${plans === 1 ? '' : 's'} waiting`)
   const out = s.delegations?.length ?? 0
   if (out) parts.push(`${out} delegated`)
   return parts.join(' · ')
@@ -58,15 +60,30 @@ async function refresh($: EngineInterface): Promise<void> {
 }
 
 // An action from a button: run it, say how it went, tell the session on the next prompt, and re-read the state.
-async function act($: EngineInterface, verb: string, id: string, note: string): Promise<void> {
-  await update($, busy, () => `${verb} ${id}`)
-  const r = await run($, [verb, id])
-  const text = r.error ? `${verb} ${id}: ${r.error}` : `${verb} ${id}: done`
+async function act($: EngineInterface, args: string[], note: string | ((r: Result) => string)): Promise<void> {
+  const what = args.join(' ')
+  await update($, busy, () => what)
+  const r = await run($, args)
+  const text = r.error ? `${what}: ${r.error}` : `${what}: done`
   await update($, message, () => text)
-  if (!r.error) await update($, notes, xs => [...xs, note])
+  if (!r.error) await update($, notes, xs => [...xs, typeof note === 'string' ? note : note(r)])
   await update($, busy, () => null)
   $.ui.toast(`director: ${text}`)
   await refresh($)
+}
+
+// What the session needs to hear after Run: where each task went, and which are its own to do now.
+export function runSummary(r: Result): string {
+  const results = (r.results ?? []) as { id: string; lane: string; status?: string; error?: string }[]
+  return results
+    .map(x =>
+      x.error
+        ? `${x.id} failed on ${x.lane} (${x.error})`
+        : x.lane === 'frontier'
+          ? `${x.id} is yours to do now`
+          : `${x.id} delegated to ${x.lane}`,
+    )
+    .join('; ')
 }
 
 async function showDiff($: EngineInterface, id: string): Promise<void> {
@@ -105,16 +122,54 @@ export const register: Register = on => {
     const s = await read($, snap)
     const proposals = s?.proposals ?? []
     const delegations = s?.delegations ?? []
-    if (e.props.hasSurvey || !s?.memory || (!proposals.length && !delegations.length)) return next(e)
+    const plans = s?.plans ?? []
+    if (e.props.hasSurvey || !s?.memory || (!proposals.length && !delegations.length && !plans.length)) return next(e)
 
     const { Box, Button, Text, Code } = $.ui.resolve(e)
     const shown = await read($, diff)
     const working = await read($, busy)
     const said = await read($, message)
     const p = proposals[0]
+    const plan = plans[0]
 
     return (
       <Box flexDirection="column">
+        {plan && (
+          <Box flexDirection="column">
+            <Text bold>Director · a plan to run{plans.length > 1 ? ` (1 of ${plans.length})` : ''}</Text>
+            {plan.request ? <Text>{plan.request}</Text> : null}
+            {plan.tasks.map(t => (
+              <Box key={`task-${plan.id}-${t.id}`} flexDirection="row" gap={1}>
+                <Text>
+                  <Text bold>{t.lane}</Text> {t.task}
+                  {t.confidential ? <Text dimColor> (confidential)</Text> : null}
+                </Text>
+                {t.movable ? (
+                  <Button
+                    key={`move-${plan.id}-${t.id}`}
+                    label="Move"
+                    onPress={() =>
+                      act($, ['plan-move', plan.id, t.id], r => `moved task ${t.id} from ${t.lane} to ${String(r.to)}`)
+                    }
+                  />
+                ) : null}
+              </Box>
+            ))}
+            <Box flexDirection="row" gap={1}>
+              <Button
+                key={`run-${plan.id}`}
+                label="Run"
+                variant="primary"
+                onPress={() => act($, ['plan-run', plan.id], r => `ran plan ${plan.id}: ${runSummary(r)}`)}
+              />
+              <Button
+                key={`cancel-${plan.id}`}
+                label="Cancel"
+                onPress={() => act($, ['plan-cancel', plan.id], `cancelled plan ${plan.id} (nothing was delegated)`)}
+              />
+            </Box>
+          </Box>
+        )}
         {p && (
           <Box flexDirection="column">
             <Text bold>Director · a lesson to decide{proposals.length > 1 ? ` (1 of ${proposals.length})` : ''}</Text>
@@ -139,13 +194,13 @@ export const register: Register = on => {
                   key={`accept-${p.id}`}
                   label="Accept"
                   variant="primary"
-                  onPress={() => act($, 'accept', p.id, `accepted proposal ${p.id} (now the live memory)`)}
+                  onPress={() => act($, ['accept', p.id], `accepted proposal ${p.id} (now the live memory)`)}
                 />
               ) : null}
               <Button
                 key={`reject-${p.id}`}
                 label="Reject"
-                onPress={() => act($, 'reject', p.id, `rejected proposal ${p.id} (the memory is unchanged)`)}
+                onPress={() => act($, ['reject', p.id], `rejected proposal ${p.id} (the memory is unchanged)`)}
               />
             </Box>
           </Box>
@@ -158,13 +213,13 @@ export const register: Register = on => {
             <Button
               key={`refresh-${d.id}`}
               label="Status"
-              onPress={() => act($, 'refresh', d.id, `asked lane ${d.lane} for the status of ${d.id}`)}
+              onPress={() => act($, ['refresh', d.id], `asked lane ${d.lane} for the status of ${d.id}`)}
             />
             {d.done ? (
               <Button
                 key={`fetch-${d.id}`}
                 label="Fetch"
-                onPress={() => act($, 'fetch', d.id, `fetched delegation ${d.id} from lane ${d.lane}`)}
+                onPress={() => act($, ['fetch', d.id], `fetched delegation ${d.id} from lane ${d.lane}`)}
               />
             ) : null}
           </Box>

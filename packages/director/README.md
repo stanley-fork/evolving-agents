@@ -81,8 +81,8 @@ only what it lacks:
 | `SessionStart` hook | where that memory exists, puts the walk (`DIRECTOR.md`) into the session: every plan walks the memory and cites what it follows; silent elsewhere |
 | `/director:reflect` | after a task, the session drafts the lesson as edits plus two probes; nothing touches the memory until you say yes |
 | `/director:recipes` | writes (or rewrites) the meta-recipes a local model follows to plan from this memory (`recipes.json` beside the pages), then lints them and reports how much of the memory they cite (D15) |
-| MCP server `director` | `memory_propose` (a candidate copy, linted, diffed), `memory_check` (D7's positive probe, in the background: TEACHES / REDUNDANT / NO EFFECT), `memory_accept` (your yes, a clean lint and — if checked — TEACHES; versioned as a gated agentvcs patch when agentvcs is installed), `memory_lint`, `memory_status`; `recipes_lint` and `plan_local` (a plan made by following the recipes with a local model on Ollama, `DIRECTOR_LOCAL_MODEL`, default `gemma4:12b-mlx`; free, and `abstain` when no recipe fits); `lanes_list`, `delegate`, `lane_status`, `lane_fetch` (lanes, below) |
-| status line and band (`hooks/ui.tsx`) | where that memory exists, the status line reads `director · 286 statements · 3 learned · 1 to decide`; when a lesson waits for a decision, a band above the prompt shows its edits and its check with **Diff**, **Accept** and **Reject** (Accept is your yes, through the same gate as `memory_accept`; it is offered only when the proposal lints clean and its check, if one ran, says TEACHES), and each delegation not yet brought back with **Status** and **Fetch**. What you press reaches the session with your next prompt. Needs a Claude Code with plugin UI modules; on older versions everything else works as before |
+| MCP server `director` | `memory_propose` (a candidate copy, linted, diffed), `memory_check` (D7's positive probe, in the background: TEACHES / REDUNDANT / NO EFFECT), `memory_accept` (your yes, a clean lint and — if checked — TEACHES; versioned as a gated agentvcs patch when agentvcs is installed), `memory_lint`, `memory_status`; `recipes_lint` and `plan_local` (a plan made by following the recipes with a local model on Ollama, `DIRECTOR_LOCAL_MODEL`, default `gemma4:12b-mlx`; free, and `abstain` when no recipe fits); `lanes_list`, `plan_propose`, `plan_status`, `delegate`, `lane_status`, `lane_fetch` (lanes, below) |
+| status line and band (`hooks/ui.tsx`) | where that memory exists, the status line reads `director · 286 statements · 3 learned · 1 to decide`; when a plan waits, a band above the prompt shows each task with its lane (**Run**, **Move**, **Cancel**); when a lesson waits for a decision, it shows its edits and its check with **Diff**, **Accept** and **Reject** (Accept is your yes, through the same gate as `memory_accept`; it is offered only when the proposal lints clean and its check, if one ran, says TEACHES), and each delegation not yet brought back with **Status** and **Fetch**. What you press reaches the session with your next prompt. Needs a Claude Code with plugin UI modules; on older versions everything else works as before |
 
 **Measured [ran] 2026-10-17 ([P0](docs/BRIEF-P0.md)):** the walk through the plugin's hook plans D0's 14 situations
 at **0.929**, the same as the director driving Claude Code (T − P = 0.0; 27 of 28 plans cite the statements they
@@ -90,15 +90,19 @@ follow), against 0.589 for a session without it.
 
 **Lanes.** The session is the `frontier` lane. Other lanes are commands named in a private config
 (`$DIRECTOR_LANES`, default `~/.config/director/lanes.json`: `submit`, `status` and `fetch` per lane), so the public
-code knows nothing about what they run. `delegate` sends a task to one; `lane_status` and `lane_fetch` follow it, and
-the band shows each delegation until it is fetched. **A confidential task — flagged, or with an input under a
+code knows nothing about what they run. **With a person at the session, the plan waits for them:** `plan_propose`
+puts each task with its lane on the band, where they press **Run**, **Move** (the next lane allowed for that task) or
+**Cancel**; nothing is delegated before Run, each move is logged in `.director/lane-moves.jsonl` for the next
+`/director:reflect` (D3 learned the lane from such moves), and `plan_status` tells the session what they did.
+`delegate` still sends one task straight to a lane; `lane_status` and `lane_fetch` follow it, and the band shows each
+delegation until it is fetched. **A confidential task — flagged, or with an input under a
 `confidential_paths` folder — is refused by every lane without `"confidential_ok": true`, the frontier included**:
 enforced in code (`director/lanes.py`), not only as a learned statement.
 
 Not in the plugin: the targeted guard (its cases are this lab's; a project has none until it has run some),
 lora-kernel's local lane and the two-lane web interface — those stay in `director.server` below; the band carries
 the interface's Accept / Reject into the session. Tests: `tests/test_plugin.py`, `tests/test_ui_state.py`,
-`tests/test_recipes.py`, `tests/test_lanes.py`; the band: `claude plugin test .`.
+`tests/test_recipes.py`, `tests/test_lanes.py`, `tests/test_plans.py`; the band: `claude plugin test .`.
 
 ## Running it (D1)
 

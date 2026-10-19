@@ -10,6 +10,9 @@ Standard library only. It prints one JSON object on stdout, always, and exits 0 
     reject   ID             the proposal is marked rejected; the memory is unchanged
     refresh  ID             a delegation's status, asked of its lane
     fetch    ID             a delegation's output, brought back beside the memory, and the delegation marked fetched
+    plan-run    PLAN        the person pressed Run: each task delegated to its lane
+    plan-cancel PLAN        nothing is delegated
+    plan-move   PLAN TASK   the task to the next lane allowed for it; logged in lane-moves.jsonl
 
 The memory is found as the SessionStart hook and the MCP server find it (`$CLAUDE_PROJECT_DIR`, else the cwd).
 """
@@ -24,6 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from director import mcp_server as srv  # noqa: E402
 from director import lanes as lns  # noqa: E402
+from director import plans  # noqa: E402
 from director.memory import gate  # noqa: E402
 from director.memory.format import find as find_memory, statement_ids  # noqa: E402
 
@@ -39,8 +43,13 @@ def status() -> dict:
     out = [{"id": d.get("id"), "lane": d.get("lane"), "status": d.get("status"),
             "done": str(d.get("status", "")).lower() in DONE}
            for d in lns.listing(st) if d.get("lane") != lns.FRONTIER and not d.get("fetched")]
+    cfg = lns.load_config()
+    plans_out = [{"id": p["id"], "request": p.get("request", ""),
+                  "tasks": [{"id": t["id"], "task": t["task"][:160], "lane": t["lane"], "confidential": t["confidential"],
+                             "movable": len(plans.allowed(cfg, t["confidential"])) > 1} for t in p["tasks"]]}
+                 for p in plans.waiting(st)]
     return {"memory": str(mem), "statements": len(statement_ids(mem)), "accepted": accepted,
-            "proposals": waiting, "delegations": out}
+            "proposals": waiting, "delegations": out, "plans": plans_out}
 
 
 def fetch(task_id: str) -> dict:
@@ -58,6 +67,8 @@ ACTIONS = {
     "reject": lambda i: gate.reject(srv.memory(), i),
     "refresh": lambda i: srv.tool_lane_status({"id": i}),
     "fetch": fetch,
+    "plan-run": lambda i: plans.run(srv.state(), lns.load_config(), i),
+    "plan-cancel": lambda i: plans.cancel(srv.state(), i),
 }
 
 
@@ -67,9 +78,12 @@ def main(argv: list[str]) -> int:
             out = status()
         elif len(argv) == 2 and argv[0] in ACTIONS:
             out = ACTIONS[argv[0]](argv[1])
+        elif len(argv) == 3 and argv[0] == "plan-move":
+            out = plans.move(srv.state(), lns.load_config(), argv[1], argv[2])
         else:
-            out = {"error": "usage: ui_state.py status | diff|accept|reject|refresh|fetch ID"}
-    except (srv.ToolError, gate.GateError, lns.LaneError, OSError, ValueError, KeyError) as e:
+            out = {"error": "usage: ui_state.py status | diff|accept|reject|refresh|fetch ID | plan-run|plan-cancel PLAN"
+                            " | plan-move PLAN TASK"}
+    except (srv.ToolError, gate.GateError, lns.LaneError, plans.PlanError, OSError, ValueError, KeyError) as e:
         out = {"error": str(e)}
     print(json.dumps(out, ensure_ascii=False))
     return 0
