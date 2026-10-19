@@ -247,8 +247,9 @@ is accepted by a person. agentvcs already versions harness changes as gated patc
   Antigravity's named agents serve the same way.
 - *Unmanaged:* the same files, in the Agent SDK's plugin directory or a command lane's working copy.
 
-*How we will know (**D17**, brief first):* an evolved skill beats its parent on held-out probes it was not written
-from, and D0 holds at 0.929.
+*How we will know (**D17**, [brief](../packages/director/docs/BRIEF-D17.md)):* an evolved component beats its parent on held-out
+cases it was not changed for, and the parent's own bank holds. The first component measured is the local model's
+recipes (D15); a skill or subagent gets its own measurement.
 
 ### Component creation
 
@@ -289,8 +290,8 @@ ArchitectZero as a separate agent, now that harnesses decompose work with their 
 | | step | how we will know |
 |---|---|---|
 | 1 | **The memory model in code.** This document's §4 as the reference; a `director/memory/` module (format, lint, walk, gate, versioning) apart from the agent that plans and delegates. Kept in this package until a second repository needs it. | existing tests pass unchanged; no measurement needed — **built** 2026-10-19: 56 tests unchanged, a boundary test added |
-| 2 | **The directory as data.** `lanes.json`, lora-kernel's domains and the routing statements become one directory: domains, `confidential_ok`, region, cost, reliability with its evidence. Statements cite entries instead of describing them. | **D16** (brief first): the directory routes at least as well as the prose did, and D0 holds at 0.929 — **brief written** 2026-10-19: [BRIEF-D16](../packages/director/docs/BRIEF-D16.md) |
-| 3 | **Component evolution.** Skills, subagents, recipes and lane adapters change through the same gate as statements (§7). | **D17** (brief first): an evolved skill beats its parent on held-out probes; D0 holds at 0.929 |
+| 2 | **The directory as data.** `lanes.json`, lora-kernel's domains and the routing statements become one directory: domains, `confidential_ok`, region, cost, reliability with its evidence. Statements cite entries instead of describing them. | **D16** (brief first): the directory routes at least as well as the prose did, and D0 holds at 0.929 — **brief written** 2026-10-19: [BRIEF-D16](../packages/director/docs/BRIEF-D16.md); the run is the user's, on their machine |
+| 3 | **Component evolution.** Skills, subagents, recipes and lane adapters change through the same gate as statements (§7). | **D17** (brief first): an evolved component beats its parent on held-out cases and the parent's own bank holds — **brief written** 2026-10-19 for the first component, the local model's recipes: [BRIEF-D17](../packages/director/docs/BRIEF-D17.md) |
 | 4 | **Plans on the band.** Each delegation shown with its lane before it runs: Run, Move lane, Cancel. | D3's result reproduced with moves made on the band |
 | 5 | **The episodic journal.** One append-only file; `/director:reflect` reads it. | a lesson drafted from the journal passes D2's probes as one drafted from the session did |
 | 6 | **Views stamped with their memory version.** Recipes and baseline record it; lint flags a stale one. | a test: edit the memory, lint reports the recipes stale |

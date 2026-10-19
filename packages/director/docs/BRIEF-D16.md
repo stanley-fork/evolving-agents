@@ -10,6 +10,21 @@ is, and do something prose cannot: change routing when a fact about a lane chang
 Nothing runs until the user authorises the spend (cap below). The run needs the lab's private memory and lane
 configuration, which live on the user's machine, not in this repository.
 
+> **Run: to be done by the user on their machine, the night of 2026-10-19.** None of the run's inputs exists yet, so
+> the run starts by preparing them, in this order, before any plan is made:
+>
+> 1. the **fact sheet**: the lab's lanes as about 30 facts, private, `~/.config/director/d16/facts.md`;
+> 2. the **bank**: 18 cases by a fresh agent from the fact sheet alone, `~/.config/director/d16/cases.jsonl`, then read
+>    once to drop any case its facts do not decide;
+> 3. **arm P**: a copy of the live memory whose lane statements carry the facts in prose; **arm D**: the same copy with
+>    those statements citing a `directory.json` written from the facts;
+> 4. the **parity check** by a second fresh agent; a missing fact stops the run until it is fixed;
+> 5. a runner, `packages/director/d16/run_d16.py`, in the shape of `d15/`: plan each case through each arm, read the
+>    lanes from the plan's JSON, write `report.json`. Then measurements 1–4 and the verdict, against the table below,
+>    unchanged.
+>
+> The result is added here as `## Outcome`, flat if it is flat.
+
 ## The directory (what step 2 would build)
 
 `.director/directory.json` (shareable) plus an optional private overlay `~/.config/director/directory.json` (merged
