@@ -192,3 +192,53 @@ near a small distant town. A small brass surveyor's level on a tripod stands at 
 the surveyed track. Strictly no legible text, letters or numbers, no logos, no people, no trains with faces, no
 glow, no gradients, no 3D render.
 ```
+
+## 9. `docs/img/lineage.jpg` — from the SystemAgent to the director
+
+- 1800 × 720 (5:2), JPEG ~82, < 350 KB. Used in: `README.md` (§ From the SystemAgent to the director).
+- The 2025 toolkit as a blueprint never built (left); each of its parts, now real, on the director's bench (right):
+  orchestrator → chart table, smart memory → card-catalogue drawer of linked cards, bus → dispatch tubes,
+  Firmware → a brass gate, evolution loop → the sealed ledger. Dashed ochre = the tracing of where each part went.
+
+```
+A wide 5:2 plate in the style of a 19th-century natural-history and engineering engraving: fine sepia ink
+linework with a muted, transparent watercolour wash on warm, slightly textured parchment paper (#F3EBDD), soft
+even daylight, generous empty margins. Scene, read left to right. LEFT THIRD: a large architect's blueprint sheet
+pinned flat on a drafting board, showing an elaborate machine drawn only in faint outline, never built: a central
+orchestrating mechanism of gears, a tall filing cabinet, a network of pipes like a bus, a small control panel with
+a speaker grille, a looping arrow of evolution; every part hollow, drawn in thin pale lines, dust on the board.
+MIDDLE: six thin dashed lines in ochre chalk (#C9A54A) leave six parts of the blueprint and cross the gap to the
+right, like a tracing of where each part went. RIGHT TWO THIRDS: the same parts, now solid, real and in use,
+arranged on one workbench around a large chart table: the orchestrator has become the chart table itself, with a
+map of small cream index cards linked by thin ink lines and a route traced in red pencil (rust orange #B5603A);
+the filing cabinet has become a compact card-catalogue drawer of linked index cards; the pipe network has become
+two brass dispatch tubes leaving the table, one toward a window, one toward a small machine; the control panel has
+become a small brass gate with a lever that every new index card must pass through; the evolution arrow has become
+a paper ledger whose ruled lines each end in a round wax seal in slate blue (#5B7186). Solid sage-green (#8A9A6B)
+cords tie the gate to the ledger. Palette limited to sepia ink, slate blue, sage green, rust orange and ochre on
+parchment. Orderly, precise, quiet. Strictly no legible text, letters or numbers, no logos, no people or hands, no
+robots, no glow, no gradients, no 3D render, no photographic look.
+```
+
+## 10. `docs/img/harnesses.jpg` — one memory, one harness today, three next
+
+- 1800 × 720 (5:2), JPEG ~82, < 350 KB. Used in: `README.md` (§ One harness today, three next).
+- The memory travels as a sealed, glass-fronted drawer (mounted read-only); lessons come back only through the
+  brass gate. Built (solid green): the desk at hand (Claude Code). Planned (dashed ochre): two hosted workshops.
+
+```
+A wide 5:2 plate in the style of a 19th-century natural-history and engineering engraving: fine sepia ink
+linework with a muted, transparent watercolour wash on warm, slightly textured parchment paper (#F3EBDD), soft
+even daylight, generous empty margins. Scene: in the centre foreground, the director's chart table with a map of
+small cream index cards linked by thin ink lines and a route in red pencil (rust orange #B5603A); beside it a small
+brass gate with a lever, and a paper ledger whose lines end in round slate-blue (#5B7186) wax seals. From the table,
+three identical small card-catalogue drawers, each with a glass front and a little brass lock (to be read, not
+written), travel outward to three places: LEFT, close by, a compact writing desk with an open notebook and a
+brass lamp, joined to the chart table by a solid sage-green (#8A9A6B) cord firmly tied at both ends; CENTRE-RIGHT,
+far away on a hill, a large workshop with a sawtooth roof; FAR RIGHT, far away on another hill, an observatory-like
+building with a round dome. The two distant buildings are joined to the table only by thin dashed lines in ochre
+chalk (#C9A54A), faint, as if surveyed but not yet built. From each of the three places a single small index card
+returns along a thin line toward the brass gate, not to the drawers. Palette limited to sepia ink, slate blue,
+sage green, rust orange and ochre on parchment. Orderly, precise, quiet. Strictly no legible text, letters or
+numbers, no logos, no people or hands, no robots, no glow, no gradients, no 3D render, no photographic look.
+```
