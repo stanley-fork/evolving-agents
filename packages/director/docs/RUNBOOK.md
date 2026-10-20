@@ -28,6 +28,21 @@ the bank (18 cases, then a read-through), arms P and D, the parity check, and `d
 measurements 1–4 against the verdict table, unchanged. The result goes in the brief as `## Outcome`, flat if flat, and
 in EVOLUTION §8 step 2.
 
+## 1b. Phase 1 of the roadmap, before D17 (2026-10-20)
+
+[ROADMAP](../../../ROADMAP.md#next--in-phases) now runs in phases, and phase 1 comes first: does D0's 0.929 hold
+outside the lab's own history and outside one provider's judgement? Each step needs a short brief first.
+
+- **1a · another provider's judge** (about US$2–5): re-judge D0's plans already on disk with a non-Claude model,
+  same rubric, nothing re-planned. Needs that provider's key on the machine. Falsified if the director's gap over
+  today's session falls below +0.15.
+- **1b · held-out from the future** (about US$30): a new bank from work done after the memory was compiled; D0's two
+  arms. Same bar.
+- **2a · headroom for multi-day coherence** (about US$5–10, one arm, may run beside 1b): probes on decisions dated
+  across one real multi-day thread, answered by Claude Code with its own memory. Phase 2 stops if it scores ≥ 0.85.
+
+D17 below waits for 1a and 1b: its guard uses the same judge.
+
 ## 2. D17, component evolution on the recipes
 
 [BRIEF-D17](BRIEF-D17.md), **cap US$40**, needs Ollama with `gemma4:12b-mlx`. Episodes come from D15's runs on disk
@@ -59,5 +74,5 @@ borrowed:
 ## 5. Still open, needing a person
 
 - ROADMAP step 1: a stranger's own `CLAUDE.md` compiled on their machine (time and cost from a clean clone).
-- EVOLUTION steps 7–9 (Managed Agents and Antigravity lanes, the memory package): after D16, since the directory is
-  where a managed lane's region and clearance are recorded.
+- EVOLUTION steps 7–9 (Managed Agents and Antigravity lanes, the memory package): roadmap phase 4, after phase 1 —
+  porting a number not yet checked outside our history only spreads it.
