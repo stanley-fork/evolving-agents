@@ -1,25 +1,36 @@
 # director
 
-**A meta-agent that keeps the lab's operational memory — how we work — and uses it to plan, delegate and
-improve.** It walks the memory as a trajectory (page → atomic statement → link → statement) to plan a task,
-delegates each step to Claude Code (frontier) or to local models, and proposes edits to the memory after
-each task, gated and versioned, so the way of working is learned, recalled, refined and reproduced.
+**Evolving Agents' SystemAgent, rebuilt on what we measured.** The director keeps a team's operational memory —
+how it works — as small, linked, verifiable statements; plans a task by walking it (page → statement → link →
+statement), citing what each step follows; delegates each step to Claude Code, to a local model or to another
+harness; and after each task proposes edits to the memory, gated and versioned, so the way of working is learned,
+recalled, refined and reproduced. It ships as a **Claude Code plugin** (this folder) and as a local harness with a
+two-lane interface; Anthropic's Managed Agents and Google's Antigravity agent are the next harnesses, planned.
 
-> **Status — 2026-10-14: D0–D3 built and measured [ran].** Planning by walking the compiled operational memory:
-> **0.929** against **0.589** for today's session ([D0](docs/BRIEF-D0.md)). Learning from tasks: held-out
-> lab-specific probes **0.0 → 0.781**, D0 kept at 0.964, the edit a gated agentvcs patch ([D2](docs/BRIEF-D2.md)).
-> Learning where work runs: after one lane move and one reflection, public-facing drafts went **0 → 6 / 6** to the
-> frontier while internal text stayed local ([D3](docs/BRIEF-D3.md)). The interface runs locally (below); the local
-> lane ran live on llama.cpp.
->
-> **2026-10-17: the guard, the plugin and local planning [ran].** Accept is guarded (D4–D7); the plugin carries the
-> walk at the same **0.929** ([P0](docs/BRIEF-P0.md)); and a local model can plan by following recipes Claude writes
-> from the memory: gemma4:12b at **0.806** against **0.854** for Sonnet walking with tools, in ~10 s and at no cost
-> ([D15](docs/BRIEF-D15.md), after D8–D14's flat and partial results, below).
+> **Status — 2026-10-20 [ran].** Planning by walking the compiled memory: **0.929** against **0.589** for today's
+> session ([D0](docs/BRIEF-D0.md)), and the same **0.929** through the plugin ([P0](docs/BRIEF-P0.md)). Learning from
+> tasks: held-out probes **0.0 → 0.781**, D0 kept at 0.964 ([D2](docs/BRIEF-D2.md)). Learning where work runs: **0 →
+> 6 / 6** after one move ([D3](docs/BRIEF-D3.md)). Accept guarded by a targeted guard and the lesson's own probes
+> ([D4–D7](docs/BRIEF-D6.md)). A local model plans by following recipes Claude writes: gemma4:12b at **0.806** against
+> **0.854**, in ~10 s and at no cost ([D15](docs/BRIEF-D15.md), after D8–D14's flat and partial results, below).
+> **Planned:** the `anthropic-managed` and `antigravity` lanes (P1, P2).
 
 <p align="center">
   <img src="docs/img/results.png" alt="Three bar charts. D0, planning the team's way on 14 situations: today's session 0.589, today's session told to walk its files 0.768, the director 0.929. D2, learning from tasks on 8 held-out probes: before 0.0, after learning 0.781, and D0 re-checked afterwards 0.964. D3, learning the lane: public-facing drafts sent to the frontier before 0.0, after one move 1.0, and the internal control kept local 1.0." width="100%">
 </p>
+
+## Where it comes from
+
+![Left, a blueprint of an elaborate machine drawn only in outline and never built. Dashed ochre lines carry each of its parts across to the right, where the same parts stand real on one bench: a chart table of linked index cards with a red route, a card-catalogue drawer, two brass dispatch tubes leaving for a window, a small brass box with a lever, and a ledger whose lines end in wax seals.](../../docs/img/lineage.jpg)
+
+The Evolving Agents Toolkit (2025, [`legacy/eat/`](../../legacy/eat/)) had a SystemAgent, ArchitectZero, Smart
+Memory, a SmartLibrary and a SmartAgentBus, Firmware and an EvolutionStrategist — and three test functions. The
+director keeps each idea and pins it to a measurement: the SystemAgent plans by walking the memory and leaves the
+loop to the harness; ArchitectZero's design comes from the team's own rules; Smart Memory becomes linked When / Do /
+Because statements; the library and the bus become lanes; Firmware becomes rules enforced in code; evolution becomes
+a lesson that passes a gate and lands as an agentvcs patch. The table, piece by piece:
+[the repository's README](../../README.md#from-the-systemagent-to-the-director); the analysis:
+[`docs/EVOLUTION.md`](../../docs/EVOLUTION.md).
 
 ## How it works, in three pictures
 
@@ -65,6 +76,8 @@ Images: [`docs/img/`](docs/img/) — the plates' prompts are in the repository's
 | D11–D12 | do the 12B's plans hold up, on a bank no strategy was designed on? | **memory helps, gap remains**: 0.68 against Sonnet's 0.92; a plan composed by code did not close it — [D11](docs/BRIEF-D11.md), [D12](docs/BRIEF-D12.md) |
 | D13–D14 | retrieval in code (lexical + local embeddings), the plan written by Claude | retrieval **partial** (0.77 / 0.74); the split planned **0.837 vs 0.892** at 17× less per plan, short of its gate by 0.005 — [D13](docs/BRIEF-D13.md), [D14](docs/BRIEF-D14.md) |
 | D15 | Claude writes meta-recipes from the memory; code runs them; the local model only picks a recipe and answers yes/no | **recipes work** with the 12B: 0.806 vs 0.854, 3 / 3 / 6 per case; not yet with 4B (0.58) or 2B (0.26) — [brief](docs/BRIEF-D15.md) |
+| P1 | an `anthropic-managed` lane: Managed Agents behind `submit / status / fetch`, the memory mounted read-only, the walk as a skill, the gate over MCP | **planned** — D0 through it within 0.03 of 0.929; cost per plan published ([EVOLUTION §5](../../docs/EVOLUTION.md#5-agents-and-harnesses)) |
+| P2 | an `antigravity` lane: the same artifact on Google's harness | **planned** — the same bar, and D0's plans judged by the other provider |
 
 ## As a Claude Code plugin
 
@@ -98,6 +111,13 @@ puts each task with its lane on the band, where they press **Run**, **Move** (th
 delegation until it is fetched. **A confidential task — flagged, or with an input under a
 `confidential_paths` folder — is refused by every lane without `"confidential_ok": true`, the frontier included**:
 enforced in code (`director/lanes.py`), not only as a learned statement.
+
+**Other harnesses, next.** Claude Code is one harness; Managed Agents and the Antigravity agent are the same kind,
+hosted. All three load `SKILL.md` and call MCP servers and the memory is plain files, so a managed lane is an adapter
+behind the same three commands — the memory mounted read-only, lessons returned through the gate, and no cloud lane
+cleared for confidential work unless you clear it (P1, P2 above).
+
+![The chart table, a brass gate and a sealed ledger. Three glass-fronted, locked card drawers travel from it: to a writing desk close by, joined by a solid green cord, and to two distant buildings on hills joined only by dashed ochre lines. From each place a single index card returns to the brass gate.](../../docs/img/harnesses.jpg)
 
 Not in the plugin: the targeted guard (its cases are this lab's; a project has none until it has run some),
 lora-kernel's local lane and the two-lane web interface — those stay in `director.server` below; the band carries
