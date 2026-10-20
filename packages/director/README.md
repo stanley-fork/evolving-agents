@@ -16,6 +16,12 @@ each task, gated and versioned, so the way of working is learned, recalled, refi
 > walk at the same **0.929** ([P0](docs/BRIEF-P0.md)); and a local model can plan by following recipes Claude writes
 > from the memory: gemma4:12b at **0.806** against **0.854** for Sonnet walking with tools, in ~10 s and at no cost
 > ([D15](docs/BRIEF-D15.md), after D8–D14's flat and partial results, below).
+>
+> **2026-10-19: the directory of lanes, published flat [ran].** Lane facts kept as one directory of data, cited by the
+> statements, route as well as the same facts in prose (0.880 vs 0.864, 15 cases) and leave D0 at 0.929 — but the plans
+> broke clearance more often (5 vs 1) and followed a lane going down below the bar (0.762 / 0.786 against 0.8 / 0.9):
+> **DIRECTORY LOSES**, so it is not built and the prose stays ([D16](docs/BRIEF-D16.md)). Next: component evolution on
+> the recipes ([D17](docs/BRIEF-D17.md)).
 
 <p align="center">
   <img src="docs/img/results.png" alt="Three bar charts. D0, planning the team's way on 14 situations: today's session 0.589, today's session told to walk its files 0.768, the director 0.929. D2, learning from tasks on 8 held-out probes: before 0.0, after learning 0.781, and D0 re-checked afterwards 0.964. D3, learning the lane: public-facing drafts sent to the frontier before 0.0, after one move 1.0, and the internal control kept local 1.0." width="100%">
@@ -65,6 +71,8 @@ Images: [`docs/img/`](docs/img/) — the plates' prompts are in the repository's
 | D11–D12 | do the 12B's plans hold up, on a bank no strategy was designed on? | **memory helps, gap remains**: 0.68 against Sonnet's 0.92; a plan composed by code did not close it — [D11](docs/BRIEF-D11.md), [D12](docs/BRIEF-D12.md) |
 | D13–D14 | retrieval in code (lexical + local embeddings), the plan written by Claude | retrieval **partial** (0.77 / 0.74); the split planned **0.837 vs 0.892** at 17× less per plan, short of its gate by 0.005 — [D13](docs/BRIEF-D13.md), [D14](docs/BRIEF-D14.md) |
 | D15 | Claude writes meta-recipes from the memory; code runs them; the local model only picks a recipe and answers yes/no | **recipes work** with the 12B: 0.806 vs 0.854, 3 / 3 / 6 per case; not yet with 4B (0.58) or 2B (0.26) — [brief](docs/BRIEF-D15.md) |
+| D16 | the lanes' facts as one directory of data the statements cite, against the same facts in prose (EVOLUTION step 2) | **directory loses**: routes as well (0.880 vs 0.864) and D0 holds (0.929), but 5 clearance violations vs 1 and a lane going down followed at 0.762 / 0.786 against 0.8 / 0.9; not built — [brief](docs/BRIEF-D16.md) |
+| D17 | gated evolution of the recipes from D15's own runs (EVOLUTION step 3) | brief written; runs on the lab's machine (Ollama) — [brief](docs/BRIEF-D17.md) |
 
 ## As a Claude Code plugin
 
@@ -83,6 +91,30 @@ only what it lacks:
 | `/director:recipes` | writes (or rewrites) the meta-recipes a local model follows to plan from this memory (`recipes.json` beside the pages), then lints them and reports how much of the memory they cite (D15); stamps them with the memory version they were written from, so `recipes_lint`, `plan_local` and the status line say when an accepted lesson has made them stale |
 | MCP server `director` | `memory_propose` (a candidate copy, linted, diffed), `memory_check` (D7's positive probe, in the background: TEACHES / REDUNDANT / NO EFFECT), `memory_accept` (your yes, a clean lint and — if checked — TEACHES; versioned as a gated agentvcs patch when agentvcs is installed), `memory_lint`, `memory_status`; `recipes_lint` and `plan_local` (a plan made by following the recipes with a local model on Ollama, `DIRECTOR_LOCAL_MODEL`, default `gemma4:12b-mlx`; free, and `abstain` when no recipe fits); `lanes_list`, `plan_propose`, `plan_status`, `delegate`, `lane_status`, `lane_fetch` (lanes, below); `journal_read` and `journal_note` (the episodic journal, below) |
 | status line and band (`hooks/ui.tsx`) | where that memory exists, the status line reads `director · 286 statements · 3 learned · 1 to decide`; when a plan waits, a band above the prompt shows each task with its lane (**Run**, **Move**, **Cancel**); when a lesson waits for a decision, it shows its edits and its check with **Diff**, **Accept** and **Reject** (Accept is your yes, through the same gate as `memory_accept`; it is offered only when the proposal lints clean and its check, if one ran, says TEACHES), and each delegation not yet brought back with **Status** and **Fetch**. What you press reaches the session with your next prompt. Needs a Claude Code with plugin UI modules; on older versions everything else works as before |
+
+**What you see in Claude Code.** No other window: the director lives in the session. The status line names the memory
+and what waits for you; a band appears above the prompt only when something does. An illustration, not a capture:
+
+```
+╭─ Director · a plan to run ───────────────────────────────────────────╮
+│ Draft the 0.7 release note and summarise this week's internal log    │
+│ frontier  Draft the release note (public)                            │
+│ local     Summarise the week's log                          [Move]   │
+│ [Run]  [Cancel]                                                      │
+├─ Director · a lesson to decide ──────────────────────────────────────┤
+│ Screenshots are cropped before publishing                            │
+│ add Confidentiality#crop_screens · check: TEACHES                    │
+│ [Diff]  [Accept]  [Reject]                                           │
+╰──────────────────────────────────────────────────────────────────────╯
+> _
+  director · 291 statements · 3 learned · 1 to decide · 1 plan waiting
+```
+
+Nothing is delegated before **Run**; **Move** offers only a lane the task is cleared for; **Accept** appears only when
+the lesson lints clean and its check, if one ran, says TEACHES. What you press reaches the session with your next
+prompt (*"On the director's band, the person: moved task t2 from local to frontier"*). The memory is found at
+`$DIRECTOR_MEMORY`, else `.director/memory/` in the project, else `memory/`; with none, the plugin stays silent. To use a
+memory kept elsewhere: `DIRECTOR_MEMORY=~/path/to/memory claude`.
 
 **Measured [ran] 2026-10-17 ([P0](docs/BRIEF-P0.md)):** the walk through the plugin's hook plans D0's 14 situations
 at **0.929**, the same as the director driving Claude Code (T − P = 0.0; 27 of 28 plans cite the statements they
