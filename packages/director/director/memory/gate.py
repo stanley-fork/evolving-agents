@@ -9,6 +9,8 @@ person decides.
     accept(memory, pid, user_said_yes)   a person's yes, a clean lint and — if checked — TEACHES; the candidate
                                          becomes the live memory, versioned when agentvcs is installed
     reject(memory, pid)                  marked rejected; the memory is unchanged
+    stale(memory, rec)                   why a proposal no longer applies: the live memory changed after it was made
+                                         (its candidate is a whole copy, so accepting it would undo what came since)
     waiting(memory)                      the proposals that wait for a decision, and how many were accepted
 
 A proposal lives in `<state>/candidates/<id>/`: `proposal.json`, the candidate `memory/`, and the check's files.
@@ -17,6 +19,7 @@ A proposal lives in `<state>/candidates/<id>/`: `proposal.json`, the candidate `
 from __future__ import annotations
 
 import difflib
+import hashlib
 import json
 import os
 import re
@@ -89,6 +92,26 @@ def _check(d: Path) -> dict | None:
     return json.loads((d / "check.json").read_text()) if (d / "check.json").exists() else None
 
 
+def fingerprint(memory: Path) -> str:
+    """The live memory's pages, hashed: what a proposal's candidate was copied from."""
+    h = hashlib.sha256()
+    for f in sorted(Path(memory).glob("*.md")):
+        h.update(f.name.encode() + b"\0" + f.read_bytes() + b"\0")
+    return h.hexdigest()[:16]
+
+
+def stale(memory: Path, rec: dict) -> str:
+    """Empty when the proposal still applies to the live memory; otherwise why not. A proposal made before this check
+    existed has no `base`: it is stale when a proposal created after it has been accepted."""
+    if rec.get("base"):
+        return "" if rec["base"] == fingerprint(memory) else \
+            "the live memory changed since this proposal was made; accepting it would undo that: propose again"
+    later = [f.parent.name for f in (state_dir(memory) / "candidates").glob("*/proposal.json")
+             if f.parent.name > rec["id"] and json.loads(f.read_text()).get("status") == "accepted"]
+    return f"{min(later)} was accepted after this proposal was made; accepting it would undo that: propose again" \
+        if later else ""
+
+
 def propose(memory: Path, edits: list[dict], probes: list[dict] | None = None, rationale: str = "",
             episode: str = "") -> dict:
     """The proposal record, plus its diff against the live memory. The live memory is never touched."""
@@ -100,7 +123,7 @@ def propose(memory: Path, edits: list[dict], probes: list[dict] | None = None, r
     rec = {"id": pid, "rationale": rationale or "", "edits": edits, "applied": res["applied"],
            "rejected": res["rejected"], "lint": new_problems(memory, d / "memory"), "probes": probes,
            "leaks": [i for i, p in enumerate(probes, 1) if episode and leak(episode, p["situation"])],
-           "status": "proposed", "created": time.strftime("%Y-%m-%dT%H:%M:%S")}
+           "status": "proposed", "created": time.strftime("%Y-%m-%dT%H:%M:%S"), "base": fingerprint(memory)}
     _write(d, rec)
     journal.append(state_dir(memory), "lesson.proposed", id=pid, rationale=rec["rationale"][:200],
                    applied=rec["applied"], lint=len(rec["lint"]), probes=len(probes))
@@ -134,6 +157,8 @@ def status(memory: Path, pid: str) -> dict:
     elif (d / "check.running").exists():
         tail = (d / "check.log").read_text().splitlines()[-3:] if (d / "check.log").exists() else []
         out["check"] = {"verdict": "RUNNING", "progress": tail}
+    if rec["status"] == "proposed" and stale(memory, rec):
+        out["stale"] = stale(memory, rec)
     return out
 
 
@@ -146,6 +171,9 @@ def accept(memory: Path, pid: str, user_said_yes: bool) -> dict:
         raise GateError("this proposal has lint problems or no edit applied; it cannot be accepted")
     if user_said_yes is not True:
         raise GateError("accept only on the user's explicit yes to this diff (user_said_yes: true)")
+    why = stale(memory, rec)
+    if why:
+        raise GateError(why)
     check = _check(d)
     if (d / "check.running").exists() and check is None:
         raise GateError("its check is still running; wait for memory_status to show the verdict")
@@ -218,6 +246,8 @@ def waiting(memory: Path) -> tuple[list[dict], int]:
             check = "RUNNING"
         if rec.get("lint") or not rec.get("applied"):
             why = "lint problems or no edit applied: propose again"
+        elif stale(memory, rec):
+            why = stale(memory, rec)
         elif check == "RUNNING":
             why = "its check is still running"
         elif check == "INCOMPLETE":
