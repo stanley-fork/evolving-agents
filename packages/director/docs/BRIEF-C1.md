@@ -102,3 +102,7 @@ How they will be read:
 | F ≥ C0 − 0.05 | the auto-memory adds nothing on these probes: the decisions were not recoverable from it in practice |
 
 W and F run in that order; F is cheap and runs either way.
+
+**A third judge (2026-10-21, at the person's request, before W's and F's scores were seen):** Claude Opus 5.5 judges
+every arm — C0, C1, W, F — with the same `judge.md`, blind. It is reported beside Sonnet and Gemini; the verdicts
+written above stay on the judges they name.

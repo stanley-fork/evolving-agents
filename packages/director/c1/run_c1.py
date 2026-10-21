@@ -149,6 +149,53 @@ def prepare_attribution(c: dict) -> dict:
             "W_memory_sha": digest(w / "sandbox" / ".director" / "memory"), "F_sandbox_files": 0}
 
 
+JUDGE_OPUS = "opus"          # Claude Opus 5.5, a third judge at the person's request (2026-10-21)
+
+
+def judge_opus(c: dict, experiment: str, arm: str) -> None:
+    """D0's judge.md, unchanged and blind, answered by Opus; verdicts beside Sonnet's, in verdicts-opus.jsonl."""
+    saved = run_d0.EXPERIMENT
+    run_d0.EXPERIMENT = experiment
+    try:
+        d = run_d0.arm_dir(c, arm)
+        by = {cs["id"]: cs for cs in run_d0.cases(c)}
+        tmpl = (run_d0.HERE / "judge.md").read_text()
+        out = d / "verdicts-opus.jsonl"
+        done = {(r["case"], r["sample"]) for r in run_d0.rows(out) if r.get("items")}
+        todo = [r for r in run_d0.rows(d / "plans.jsonl") if r.get("plan") and (r["case"], r["sample"]) not in done]
+        (d / "judge-cwd").mkdir(exist_ok=True)
+        for i, r in enumerate(todo, 1):
+            cs = by[r["case"]]
+            checklist = "\n".join(f"- `{it['id']}`: {it['text']}" for it in cs["checklist"])
+            prompt = (tmpl.replace("{situation}", cs["situation"]).replace("{checklist}", checklist)
+                      .replace("{plan}", r["plan"]))
+            v = run_d0.claude(prompt, d / "judge-cwd", None, "", 1, 1.0, model=JUDGE_OPUS)
+            items = run_d0.parse_items(v.get("result") or "", [it["id"] for it in cs["checklist"]])
+            with out.open("a") as f:
+                f.write(json.dumps({"arm": arm, "case": r["case"], "sample": r["sample"], "items": items,
+                                    "judge": JUDGE_OPUS, "cost_usd": v.get("total_cost_usd"),
+                                    "at": time.strftime("%Y-%m-%dT%H:%M:%S")}, ensure_ascii=False) + "\n")
+            print(f"[opus] {experiment}/{arm} {i}/{len(todo)} {r['case']} s{r['sample']} · "
+                  f"{sum(x['met'] for x in items or [])}/{len(cs['checklist'])}{'' if items else ' · UNPARSED'}", flush=True)
+    finally:
+        run_d0.EXPERIMENT = saved
+
+
+def opus_score(c: dict, experiment: str, arm: str) -> float | None:
+    saved = run_d0.EXPERIMENT
+    run_d0.EXPERIMENT = experiment
+    try:
+        per = {}
+        for r in run_d0.rows(run_d0.arm_dir(c, arm) / "verdicts-opus.jsonl"):
+            if r.get("items"):
+                per.setdefault(r["case"], []).append(sum(x["met"] for x in r["items"]) / len(r["items"]))
+    finally:
+        run_d0.EXPERIMENT = saved
+    if not per:
+        return None
+    return round(sum(sum(v) / len(v) for v in per.values()) / len(per), 4)
+
+
 def scores(c: dict, experiment: str, arm: str) -> tuple[dict, dict]:
     saved = run_d0.EXPERIMENT
     run_d0.EXPERIMENT = experiment
@@ -171,6 +218,8 @@ def report(c: dict) -> dict:
             extra[arm] = {"sonnet": sx["mean"], "gemini": gx["mean"], "cases": sx["cases"]}
     out = {"C0": {"sonnet": s0["mean"], "gemini": g0["mean"]}, "C1": {"sonnet": s1["mean"], "gemini": g1["mean"]},
            "attribution": extra,
+           "opus_judge": {name: opus_score(c, e, arm) for name, e, arm in
+                          (("C0", "c0", "A"), ("C1", "c1", ARM), ("W", "c1", "W"), ("F", "c1", "F"))},
            "C1_cases": s1["cases"], "C0_cases": s0["cases"], "samples": s1["samples"],
            "agreement": rejudge.agreement(c, ARM), "cost_per_plan": round(sum(r.get("cost_usd") or 0 for r in plans)
                                                                           / max(len(plans), 1), 4),
@@ -193,7 +242,8 @@ def report(c: dict) -> dict:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["prepare", "reflect", "regate", "attribution", "run", "judge", "gemini", "report"])
+    ap.add_argument("cmd", choices=["prepare", "reflect", "regate", "attribution", "run", "judge", "gemini", "opus",
+                                    "report"])
     ap.add_argument("--arm", default=ARM, choices=[ARM, "W", "F"])
     ap.add_argument("--config", required=True)
     a = ap.parse_args()
@@ -208,6 +258,9 @@ def main() -> int:
         run_d0.judge(c, a.arm)
     elif a.cmd == "gemini":
         rejudge.judge(c, a.arm)
+    elif a.cmd == "opus":
+        for name, e, arm in (("C0", "c0", "A"), ("C1", "c1", ARM), ("W", "c1", "W"), ("F", "c1", "F")):
+            judge_opus(c, e, arm)
     else:
         rep = report(c)
         (root(c) / "report.json").write_text(json.dumps(rep, indent=1))
