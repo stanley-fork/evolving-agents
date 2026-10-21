@@ -57,6 +57,7 @@ def test_submit_status_fetch_through_the_configured_commands(cfg):
     assert lns.status(tmp / "state", c, "ch-1")["status"] == "running"
     assert lns.fetch(tmp / "state", c, "ch-1", str(tmp / "out"))["fetched_to"] == str(tmp / "out")
     assert [d["id"] for d in lns.listing(tmp / "state")] == ["ch-1"]
+    assert lns.listing(tmp / "state")[0]["fetched"] == str(tmp / "out")     # the status line stops counting it
 
 
 def test_a_confidential_task_is_refused_by_the_frontier_and_by_lanes_without_confidential_ok(cfg):
