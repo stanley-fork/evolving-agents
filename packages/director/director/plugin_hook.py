@@ -42,6 +42,29 @@ def nudge(mem: Path) -> str:
             f"memory until a reflection proposes them: run `/director:reflect` at the next natural break.") if n else ""
 
 
+def stale_install(root: Path | None = None, registry: Path | None = None) -> str:
+    """When the director running here is not the version Claude Code has installed (a session that loaded an older
+    cached copy, or a plugin updated after the session started), say so: the band, the status line and the tools are
+    the old ones until a new session starts."""
+    root = Path(root or os.environ.get("CLAUDE_PLUGIN_ROOT") or Path(__file__).resolve().parents[1])
+    registry = Path(registry or Path.home() / ".claude" / "plugins" / "installed_plugins.json")
+    try:
+        mine = json.loads((root / ".claude-plugin" / "plugin.json").read_text())["version"]
+        reg = json.loads(registry.read_text())
+    except (OSError, ValueError, KeyError):
+        return ""
+    for key, installs in (reg.get("plugins", reg) or {}).items():
+        if not key.startswith("director@"):
+            continue
+        for inst in installs if isinstance(installs, list) else [installs]:
+            path, version = inst.get("installPath"), inst.get("version")
+            if path and Path(path).resolve() != root.resolve() and version and version != mine:
+                return (f"\n\n**This session runs director {mine}, but {version} is installed** ({path}). The band, the "
+                        f"status line and the tools here are {mine}'s until a new session starts: tell the person to "
+                        f"restart if they are waiting for a change.")
+    return ""
+
+
 def capture(project: Path, prompt: str) -> bool:
     """UserPromptSubmit: the person's message goes to the journal as it is sent, keys scrubbed. Nothing is decided
     here and nothing reaches the memory; the reflection reads it later and proposes lessons through the gate."""
@@ -64,7 +87,7 @@ def main() -> int:
         return 0
     text = context(project)
     if text:
-        text += nudge(find_memory(project))
+        text += nudge(find_memory(project)) + stale_install()
         print(json.dumps({"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": text}}))
     return 0
 

@@ -9,7 +9,7 @@ listed here in the order it should run. Each item names its brief, its cap and w
 
 ```bash
 git pull origin main
-cd packages/director && python -m pytest tests -q          # 73 passed, 3 skipped expected
+cd packages/director && python -m pytest tests -q          # 90 passed expected (2026-10-21)
 claude plugin test . && claude plugin validate .           # the band: 6 pass
 ```
 

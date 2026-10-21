@@ -10,6 +10,8 @@ only; newline-delimited JSON-RPC over stdio.
     memory_accept   id                lint clean, a person's yes, and — if a check ran — TEACHES; then the candidate
                                       becomes the live memory, versioned as a gated agentvcs patch when agentvcs is
                                       installed (`AGENTVCS` or `agentvcs` on PATH)
+    memory_reject   id                the proposal marked rejected (the person's no, or one made stale by a later
+                                      accept); the memory is unchanged
     recipes_lint                      the memory's meta-recipes (`recipes.json`): runnable, every cite exists, coverage
     plan_local      request           a plan made by following the recipes with a local model (Ollama,
                                       `DIRECTOR_LOCAL_MODEL`, default gemma4:12b-mlx): it picks recipes and answers
@@ -45,7 +47,7 @@ from director import recipes as rcp  # noqa: E402
 from director import lanes as lns  # noqa: E402
 from director import plans  # noqa: E402
 
-SERVER_INFO = {"name": "director", "version": "0.2.2"}
+SERVER_INFO = {"name": "director", "version": "0.2.3"}
 PROTOCOL_VERSION = "2025-06-18"
 
 
@@ -112,6 +114,10 @@ def tool_status(args: dict) -> dict:
 
 def tool_accept(args: dict) -> dict:
     return _gate(gate.accept, memory(), args.get("id"), args.get("user_said_yes"))
+
+
+def tool_reject(args: dict) -> dict:
+    return _gate(gate.reject, memory(), args.get("id"))
 
 
 def tool_recipes_lint(_: dict) -> dict:
@@ -245,6 +251,9 @@ TOOLS = {
                       "if it lints dirty or its check did not TEACH.",
                       {"type": "object", "required": ["id", "user_said_yes"],
                        "properties": {"id": {"type": "string"}, "user_said_yes": {"type": "boolean"}}}),
+    "memory_reject": (tool_reject, "Mark a proposal rejected; the memory is unchanged. Only on the person's no, or for "
+                      "a proposal that memory_status says is stale (the memory changed after it was made).",
+                      {"type": "object", "required": ["id"], "properties": {"id": {"type": "string"}}}),
     "recipes_lint": (tool_recipes_lint, "Check the memory's meta-recipes (recipes.json): every step runnable, every cite "
                      "an existing statement, branches at most 2 deep; reports how much of the memory they cover.",
                      {"type": "object", "properties": {}}),

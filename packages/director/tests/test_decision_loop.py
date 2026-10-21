@@ -87,6 +87,48 @@ def test_accept_replaces_a_linked_memory_at_its_target_and_keeps_the_link(tmp_pa
     assert "## #scrub_paths" not in (Path(res["previous_memory"]) / "Docs.md").read_text()
 
 
+# ------------------------------------------------------------------ a proposal made before another was accepted
+
+OTHER = {**EDIT, "id": "two_estimates", "when": "a centre can be estimated two ways", "do": "compute both"}
+
+
+def test_a_proposal_older_than_an_accepted_one_cannot_undo_it(tmp_path):
+    mem = find(project_with_memory(tmp_path))
+    old = gate.propose(mem, [EDIT], rationale="old")
+    new = gate.propose(mem, [EDIT, OTHER], rationale="new")
+    gate.accept(mem, new["id"], user_said_yes=True)
+    assert "stale" in gate.status(mem, old["id"])
+    assert [w for w in gate.waiting(mem)[0] if w["id"] == old["id"]][0]["acceptable"] is False
+    try:
+        gate.accept(mem, old["id"], user_said_yes=True)
+        raise AssertionError("a stale proposal was accepted")
+    except gate.GateError as e:
+        assert "propose again" in str(e)
+    assert "## #two_estimates" in (mem / "Docs.md").read_text()
+    assert gate.reject(mem, old["id"])["status"] == "rejected"
+
+
+def test_a_proposal_without_a_base_is_stale_once_a_later_one_is_accepted(tmp_path):
+    mem = find(project_with_memory(tmp_path))
+    old = gate.propose(mem, [EDIT], rationale="made before the base existed")
+    d = gate.proposal_dir(mem, old["id"])
+    rec = json.loads((d / "proposal.json").read_text())
+    del rec["base"]
+    (d / "proposal.json").write_text(json.dumps(rec))
+    assert gate.stale(mem, rec) == ""
+    new = gate.propose(mem, [OTHER], rationale="new")
+    gate.accept(mem, new["id"], user_said_yes=True)
+    assert new["id"] in gate.stale(mem, rec)
+
+
+def test_memory_reject_is_a_tool(tmp_path, monkeypatch):
+    from director import mcp_server
+    proj = project_with_memory(tmp_path)
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(proj))
+    pid = gate.propose(find(proj), [EDIT], rationale="r")["id"]
+    assert mcp_server.TOOLS["memory_reject"][0]({"id": pid}) == {"id": pid, "status": "rejected"}
+
+
 # ------------------------------------------------------------------ the public guard
 
 def repo_with(tmp: Path, remote: str, staged: str) -> Path:
@@ -148,3 +190,20 @@ def test_without_a_config_the_guard_is_silent(tmp_path):
                    {"DIRECTOR_PUBLIC_GUARD": str(tmp_path / "missing.json")})
     assert out.strip() == ""
     assert public_guard.decide({"tool_name": "Read", "tool_input": {}}) is None
+
+
+# ------------------------------------------------------------------ a session running an older copy than installed
+
+def test_session_start_says_when_an_older_director_is_running(tmp_path):
+    def plugin(v):
+        r = tmp_path / v
+        (r / ".claude-plugin").mkdir(parents=True)
+        (r / ".claude-plugin" / "plugin.json").write_text(json.dumps({"name": "director", "version": v}))
+        return r
+    old, new = plugin("0.2.1"), plugin("0.2.2")
+    reg = tmp_path / "installed_plugins.json"
+    reg.write_text(json.dumps({"version": 2, "plugins": {"director@lab": [
+        {"scope": "user", "installPath": str(new), "version": "0.2.2"}]}}))
+    assert "0.2.2 is installed" in plugin_hook.stale_install(old, reg)
+    assert plugin_hook.stale_install(new, reg) == ""
+    assert plugin_hook.stale_install(old, tmp_path / "missing.json") == ""
