@@ -57,3 +57,23 @@ stops itself at **US$15** of Gemini spend. Claude: the Opus judge, about US$3. T
 - No tools: an agent that reads files one by one might use the notes differently.
 - F1's bank was written by Claude; a planner from another provider may read its phrasing differently, the same for
   every arm.
+
+## Result [ran] — 2026-10-21: STOP, no headroom
+
+| arm | Opus judge | Gemini judge | plans | US$ / plan | input tokens / plan |
+|---|---|---|---|---|---|
+| **GA — the plain notes** | **0.875** | 1.000 | 28 | 0.2134 | 100,673 |
+| GT — the director's memory | not run | — | — | — | — |
+| **GF — floor** | **0.345** | 0.446 | 28 | 0.0064 | 174 |
+
+GA ≥ 0.85, so the verdict written before the run is **STOP — no headroom**: Gemini already plans the team's way from
+the plain notes, and GT was not bought. Both judges agree on the rest: written method lifts this model from the floor
+by **+0.53** (Opus) and **+0.55** (Gemini).
+
+What this does establish: **the team's method written outside the model ports to an agent that is not Claude.**
+What it does not: whether the director's compiled form carries it better, as well, or worse than the notes. That
+needs a bank where the notes leave room (GA < 0.85), not this one.
+
+GA's weak cases (Opus): f12 whole gate 0.25, f01 path before model 0.5, f08 headroom before coherence 0.5. Zero
+errors, zero leaks stopped. Spend: Gemini US$6.15 planning + US$0.13 judging (key ledger US$7.96 of the US$50 cap);
+Claude Opus judge US$1.58.
