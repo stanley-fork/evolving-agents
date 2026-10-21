@@ -20,8 +20,11 @@ SessionStart hook does. Same model (Sonnet 5.5), tools, turns, per-call budget a
 reflection over all of it, the conservative case (eight days without one). It runs unattended: a fresh Claude Opus 5.5
 session (`claude -p`, `Read, Grep, Glob`) in a directory holding only a copy of the memory and the journal, with
 `/director:reflect`'s steps 1–2 for a batch ([`c1/reflect.md`](../c1/reflect.md)); it never sees the probes. Its edits
-go through the memory's own code: each edit is applied in order and kept only if it adds no lint problem (the gate's
-first check). Two departures from the plugin, said here: **no person accepts** (every lint-clean edit is kept, and the
+go through the memory's own code: applied as one set and kept unless they add a lint problem (the gate's first
+check). **Corrected before any arm ran (2026-10-21):** the first version of the runner kept edits one at a time, so a new
+statement linking to another new one was refused (5 of 10, all about the director); the gate applies a proposal's
+edits as one set, and so does the runner now, dropping only edits whose problems remain. Two departures from the
+plugin, said here: **no person accepts** (every lint-clean edit is kept, and the
 count is published) and **no positive probe** (TEACHES) runs.
 
 ## Judges

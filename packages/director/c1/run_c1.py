@@ -79,17 +79,38 @@ def reflect(c: dict) -> dict:
                             "error": r.get("is_error"), "at": time.strftime("%Y-%m-%dT%H:%M:%S")}) + "\n")
     m = re.findall(r"```json\s*(\{.*?\})\s*```", r.get("result") or "", re.S)
     edits = json.loads(m[-1]).get("edits", []) if m else []
-    # The gate's first check, edit by edit: keep an edit only if it adds no lint problem to what is kept so far.
-    kept, refused, cur = [], [], root(c) / "memory-before"
-    for i, e in enumerate(edits):
-        trial = w / f"trial-{i}"
-        res = apply_edits(cur, [e], trial)
-        if res["applied"] and not new_problems(cur, trial):
-            kept.append(e)
-            cur = trial
-        else:
-            refused.append({"edit": f"{e.get('op')} {e.get('page')}#{e.get('id')}", "rejected": res["rejected"],
-                            "lint": new_problems(cur, trial)[:3]})
+    (w / "edits.json").write_text(json.dumps({"proposed": edits}, indent=1, ensure_ascii=False))
+    return {**gate_and_build(c, edits), "cost_usd": r.get("total_cost_usd"), "turns": r.get("num_turns")}
+
+
+def regate(c: dict) -> dict:
+    """The gate and the sandbox again, from the edits the reflection already proposed (no model call)."""
+    return gate_and_build(c, json.loads((root(c) / "reflect" / "edits.json").read_text())["proposed"])
+
+
+def gate_and_build(c: dict, edits: list[dict]) -> dict:
+    w = root(c) / "reflect"
+    # The gate's first check, as the gate applies it: the edits as one set (statements may link to each other). While
+    # the set adds lint problems, drop the edits a problem names — the statement it is about, or a link to a statement
+    # that is still missing — and try again; what is left is kept.
+    kept, refused, base = list(edits), [], root(c) / "memory-before"
+    cur = w / "candidate"
+    for _ in range(len(edits) + 1):
+        res = apply_edits(base, kept, cur)
+        probs = new_problems(base, cur)
+        if not probs:
+            break
+        named = {x for pr in probs for x in re.findall(r"\[\[([^\]]+)\]\]", pr)}
+        bad = [e for e in kept if f"{e.get('page')}#{e.get('id')}" in " ".join(probs)
+               or any(l in named for l in e.get("links", []))
+               or any(pr.startswith(f"{e.get('page')}:") and e.get("id", "") in pr for pr in probs)]
+        bad = bad or kept[-1:]
+        refused += [{"edit": f"{e.get('op')} {e.get('page')}#{e.get('id')}", "lint": probs[:3]} for e in bad]
+        kept = [e for e in kept if e not in bad]
+    else:
+        kept = []
+    if not kept:
+        cur = base
     after = root(c) / "memory-after"
     if after.exists():
         shutil.rmtree(after)
@@ -105,8 +126,7 @@ def reflect(c: dict) -> dict:
     assert walk and ".director/memory/" in walk, "the walk does not point at .director/memory/"
     c0_system = (Path(c["private_dir"]) / "c0" / "arm-A" / "system.md").read_text()
     (run_d0.arm_dir(c, ARM) / "system.md").write_text(c0_system + "\n\n" + walk)
-    return {"proposed": len(edits), "kept": len(kept), "refused": len(refused), "cost_usd": r.get("total_cost_usd"),
-            "turns": r.get("num_turns"), "memory_after_sha": digest(after),
+    return {"proposed": len(edits), "kept": len(kept), "refused": len(refused), "memory_after_sha": digest(after),
             "kept_ids": [f"{e.get('op')} {e.get('page')}#{e.get('id')}" for e in kept]}
 
 
@@ -148,13 +168,14 @@ def report(c: dict) -> dict:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["prepare", "reflect", "run", "judge", "gemini", "report"])
+    ap.add_argument("cmd", choices=["prepare", "reflect", "regate", "run", "judge", "gemini", "report"])
     ap.add_argument("--config", required=True)
     a = ap.parse_args()
     c = run_d0.cfg(a.config)
     root(c).mkdir(parents=True, exist_ok=True)
-    if a.cmd in ("prepare", "reflect"):
-        print(json.dumps({"prepare": prepare, "reflect": reflect}[a.cmd](c), indent=1, ensure_ascii=False))
+    if a.cmd in ("prepare", "reflect", "regate"):
+        print(json.dumps({"prepare": prepare, "reflect": reflect, "regate": regate}[a.cmd](c), indent=1,
+                         ensure_ascii=False))
     elif a.cmd == "run":
         run_d0.run(c, ARM)
     elif a.cmd == "judge":
