@@ -32,7 +32,7 @@ from director.memory.edit import apply_edits, new_problems  # noqa: E402
 
 run_d0.EXPERIMENT = "c1"
 run_d0.CASES_FILE = HERE.parent / "c0" / "cases.jsonl"   # C0's probes, unchanged
-run_d0.CAP = 20.0
+run_d0.CAP = 35.0                        # raised from 20 by the person, 2026-10-21, for the attribution arms
 ARM = "T"
 REFLECTOR, REFLECT_BUDGET, REFLECT_TURNS = "opus", 8.0, 120
 PASS = run_d0.PASS_DELTA
@@ -130,6 +130,25 @@ def gate_and_build(c: dict, edits: list[dict]) -> dict:
             "kept_ids": [f"{e.get('op')} {e.get('page')}#{e.get('id')}" for e in kept]}
 
 
+def prepare_attribution(c: dict) -> dict:
+    """W: C0's sandbox + the walk over the memory before the reflection. F: an empty directory, no system prompt."""
+    w = run_d0.arm_dir(c, "W")
+    if w.exists():
+        shutil.rmtree(w)
+    shutil.copytree(Path(c["private_dir"]) / "c0" / "arm-A" / "sandbox", w / "sandbox")
+    shutil.copytree(root(c) / "memory-before", w / "sandbox" / ".director" / "memory")
+    walk = plugin_hook.context(w / "sandbox")
+    assert walk and ".director/memory/" in walk
+    (w / "system.md").write_text((Path(c["private_dir"]) / "c0" / "arm-A" / "system.md").read_text() + "\n\n" + walk)
+    f = run_d0.arm_dir(c, "F")
+    if f.exists():
+        shutil.rmtree(f)
+    (f / "sandbox").mkdir(parents=True)
+    (f / "system.md").write_text(" ")
+    return {"W_sandbox_files": sum(1 for p in (w / "sandbox").rglob("*") if p.is_file()),
+            "W_memory_sha": digest(w / "sandbox" / ".director" / "memory"), "F_sandbox_files": 0}
+
+
 def scores(c: dict, experiment: str, arm: str) -> tuple[dict, dict]:
     saved = run_d0.EXPERIMENT
     run_d0.EXPERIMENT = experiment
@@ -145,7 +164,13 @@ def report(c: dict) -> dict:
     s0, g0 = scores(c, "c0", "A")
     s1, g1 = scores(c, "c1", ARM)
     plans = run_d0.rows(run_d0.arm_dir(c, ARM) / "plans.jsonl")
+    extra = {}
+    for arm in ("W", "F"):
+        sx, gx = scores(c, "c1", arm)
+        if sx["mean"] is not None:
+            extra[arm] = {"sonnet": sx["mean"], "gemini": gx["mean"], "cases": sx["cases"]}
     out = {"C0": {"sonnet": s0["mean"], "gemini": g0["mean"]}, "C1": {"sonnet": s1["mean"], "gemini": g1["mean"]},
+           "attribution": extra,
            "C1_cases": s1["cases"], "C0_cases": s0["cases"], "samples": s1["samples"],
            "agreement": rejudge.agreement(c, ARM), "cost_per_plan": round(sum(r.get("cost_usd") or 0 for r in plans)
                                                                           / max(len(plans), 1), 4),
@@ -168,20 +193,21 @@ def report(c: dict) -> dict:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["prepare", "reflect", "regate", "run", "judge", "gemini", "report"])
+    ap.add_argument("cmd", choices=["prepare", "reflect", "regate", "attribution", "run", "judge", "gemini", "report"])
+    ap.add_argument("--arm", default=ARM, choices=[ARM, "W", "F"])
     ap.add_argument("--config", required=True)
     a = ap.parse_args()
     c = run_d0.cfg(a.config)
     root(c).mkdir(parents=True, exist_ok=True)
-    if a.cmd in ("prepare", "reflect", "regate"):
-        print(json.dumps({"prepare": prepare, "reflect": reflect, "regate": regate}[a.cmd](c), indent=1,
-                         ensure_ascii=False))
+    if a.cmd in ("prepare", "reflect", "regate", "attribution"):
+        print(json.dumps({"prepare": prepare, "reflect": reflect, "regate": regate,
+                          "attribution": prepare_attribution}[a.cmd](c), indent=1, ensure_ascii=False))
     elif a.cmd == "run":
-        run_d0.run(c, ARM)
+        run_d0.run(c, a.arm)
     elif a.cmd == "judge":
-        run_d0.judge(c, ARM)
+        run_d0.judge(c, a.arm)
     elif a.cmd == "gemini":
-        rejudge.judge(c, ARM)
+        rejudge.judge(c, a.arm)
     else:
         rep = report(c)
         (root(c) / "report.json").write_text(json.dumps(rep, indent=1))

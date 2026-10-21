@@ -82,3 +82,23 @@ of them; that was corrected before any arm ran (above).
 **What is not yet shown.** The brief's attribution arms come next: the director **without** the reflection (does the
 walk alone, which also makes the session read more, carry part of the gain?) and a floor with no memory. They need
 about US$12 more, past this brief's cap; they wait for the person's decision.
+
+## Attribution arms — written before they run (2026-10-21)
+
+The person raised C1's cap from US$20 to **US$35** on 2026-10-21 for these two arms. Same probes, model, tools, turns,
+per-call budget, k and judges.
+
+| arm | what the session gets |
+|---|---|
+| **W — the walk without the reflection** | C0's sandbox + the director as the hook puts it in, over the live memory **before** the reflection (no lessons from the thread) |
+| **F — floor** | nothing: an empty directory and no system prompt beyond Claude Code's own |
+
+How they will be read:
+
+| result (Sonnet) | reading |
+|---|---|
+| **C1 − W ≥ +0.15** | the **lessons** carry the gain: the reflection put into the memory what the walk then found |
+| C1 − W < +0.15 | the **walk** carries most of it: asking the session to walk a memory makes it read more, and it finds the decisions in its own notes — the same split D0's A+ measured for rules |
+| F ≥ C0 − 0.05 | the auto-memory adds nothing on these probes: the decisions were not recoverable from it in practice |
+
+W and F run in that order; F is cheap and runs either way.
