@@ -1,7 +1,7 @@
 {
   "name": "director",
   "displayName": "Director",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Your CLAUDE.md, actually followed: compile your instructions into linked atomic statements, plan every task by walking them, and learn from corrections through gated, versioned edits.",
   "author": {
     "name": "EvolvingAgentsLabs",
