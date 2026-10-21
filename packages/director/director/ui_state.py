@@ -52,7 +52,20 @@ def status() -> dict:
     fresh = rcp.freshness(mem) if rcp.path_for(mem).is_file() else None
     return {"memory": str(mem), "statements": len(statement_ids(mem)), "accepted": accepted,
             "proposals": waiting, "delegations": out, "plans": plans_out,
-            "recipes_stale": bool(fresh and fresh["stale"]), "to_reflect": journal.owed(st)}
+            "recipes_stale": bool(fresh and fresh["stale"]), "to_reflect": journal.owed(st),
+            "recent": recent(st)}
+
+
+def recent(st, n: int = 6) -> list[dict]:
+    """The journal's latest events, newest last, each as {t, kind, what}: what the band shows as the director's steps
+    when they did not come through this session's own tool calls (a button on the band, another session, a lane)."""
+    out = []
+    for e in journal.read(st)[-n:]:
+        what = e.get("text") or e.get("rationale") or e.get("id") or e.get("note") or ""
+        if e.get("lane"):
+            what = f"{e['lane']}: {what}" + (f" ({e['status']})" if e.get("status") else "")
+        out.append({"t": e.get("t", ""), "kind": e.get("kind", ""), "what": str(what)[:140]})
+    return out
 
 
 def fetch(task_id: str) -> dict:

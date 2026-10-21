@@ -45,7 +45,7 @@ from director import recipes as rcp  # noqa: E402
 from director import lanes as lns  # noqa: E402
 from director import plans  # noqa: E402
 
-SERVER_INFO = {"name": "director", "version": "0.2.1"}
+SERVER_INFO = {"name": "director", "version": "0.2.2"}
 PROTOCOL_VERSION = "2025-06-18"
 
 
