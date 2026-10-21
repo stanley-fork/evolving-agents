@@ -44,3 +44,20 @@ at the cap the person sets; nothing runs before that.
 - D0's cases are the lab's own history and were written before the freeze (F1 is the future bank); a STOP here would
   be followed by F1 with Opus before concluding anything about new situations.
 - Opus judging Opus plans may prefer them; Gemini is reported beside it.
+
+## Result [ran] 2026-10-21 — **STOP: no headroom with Opus**
+
+| arm | Opus 5.5 judge | Gemini judge | cost / plan | turns |
+|---|---|---|---|---|
+| **AO — D0's arm A, planned by Opus** | **0.964** | **0.946** | US$0.49 | 5.7 |
+| TO — not run (the gate) | — | — | — | — |
+
+- **AO = 0.964 ≥ 0.85: STOP.** Opus 5.5, with the workspace `CLAUDE.md` and the memory files as D0 froze them,
+  plans by the written rules on 26 of 28 samples fully; c10 and c13 at 0.75. D0's gap (0.589 → 0.929) was Sonnet's.
+- **Not the judge preferring itself:** Gemini, which gave Sonnet's arm A 0.696 in J0, gives Opus's 0.946.
+- 28 plans, 0 errors, 0 unparsed verdicts. **Spent US$14.50 of the US$50 cap**; Gemini US$0.12.
+
+**What follows.** Every advantage the director published was measured with Sonnet planning, and two of them (D0's
+rules, C1's decisions) are gone with Opus. Left standing with Opus: lower cost per plan (C2, −34 %). The brief's own
+next step is F1 with Opus — situations from after the freeze, where Sonnet's session scored 0.363 — before anything
+is concluded about new situations.

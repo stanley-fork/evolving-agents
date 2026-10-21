@@ -14,6 +14,10 @@ two-lane interface; Anthropic's Managed Agents and Google's Antigravity agent ar
 > ([D4–D7](docs/BRIEF-D6.md)). A local model plans by following recipes Claude writes: gemma4:12b at **0.806** against
 > **0.854**, in ~10 s and at no cost ([D15](docs/BRIEF-D15.md), after D8–D14's flat and partial results, below).
 > **Planned:** the `anthropic-managed` and `antigravity` lanes (P1, P2).
+>
+> **2026-10-21 — all of the above planned with Sonnet 5.5.** With Opus 5.5 planning, the session alone follows D0's
+> rules 0.964 ([D0O](docs/BRIEF-D0O.md)) and keeps a thread's decisions 0.80 vs the director's 0.85 ([C2](docs/BRIEF-C2.md));
+> the director's measured edge with Opus is cost (−34 % per plan). F1 with Opus is next.
 
 <p align="center">
   <img src="docs/img/results.png" alt="Three bar charts. D0, planning the team's way on 14 situations: today's session 0.589, today's session told to walk its files 0.768, the director 0.929. D2, learning from tasks on 8 held-out probes: before 0.0, after learning 0.781, and D0 re-checked afterwards 0.964. D3, learning the lane: public-facing drafts sent to the frontier before 0.0, after one move 1.0, and the internal control kept local 1.0." width="100%">
