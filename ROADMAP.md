@@ -50,7 +50,8 @@ sessions. That is the problem the episodic journal and the gated memory were bui
 | | step | how we will know |
 |---|---|---|
 | 2a | **Headroom first.** One real multi-day thread of the lab's own work, its decisions dated in PRs and briefs; about ten probes ("why was X dropped on day *k*?", "is the rule decided on day *k* respected on day *k + n*?"), answered by Claude Code with its own auto-memory and compaction. One arm, about US$5–10. | if that baseline scores ≥ 0.85 there is no room, and phase 2 stops here without building anything — **[ran] 2026-10-21, GO:** on 10 probes from the person's own decisions over eight days, today's session with its auto-memory scored 0.275 (Gemini 0.45); the decisions were written in its memory and not recalled. US$4.80 ([C0](packages/director/docs/BRIEF-C0.md)) |
-| 2b | **The director on the same thread.** Only if 2a leaves room: the same probes with the director's journal and gated memory, judged blind. Brief first. | ≥ +0.15 over 2a's baseline |
+| 2b | **The director on the same thread.** Only if 2a leaves room: the same probes with the director's journal and gated memory, judged blind. Brief first. | ≥ +0.15 over 2a's baseline — **[ran] 2026-10-21, THE LOOP WORKS:** after one reflection over the thread, 0.725 against 0.275 (Gemini 0.825 / 0.45); the lessons carry it: the walk without them 0.23, C1 − W +0.46 ([C1](packages/director/docs/BRIEF-C1.md)) |
+| 2c | **The same with Opus planning** (the person's model since 2026-10-21). | **[ran] 2026-10-21, DOES NOT ADD WITH OPUS:** Opus alone 0.80, with the director 0.85 (+0.05; Gemini +0.025), at 34 % less per plan ([C2](packages/director/docs/BRIEF-C2.md)). Next: D0's rules with an Opus planner, headroom first |
 
 ### Phase 3 — evolve components, not only the memory
 

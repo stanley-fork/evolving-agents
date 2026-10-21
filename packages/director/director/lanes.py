@@ -169,6 +169,10 @@ def fetch(state: Path, cfg: dict, task_id: str, dest: str | None = None) -> dict
         raise LaneError("the frontier lane's output is in this session")
     d = Path(dest).expanduser() if dest else state / "delegations" / task_id
     out = _run(cfg["lanes"][rec["lane"]], "fetch", {"id": task_id, "dest": str(d)}, timeout=1800)
+    # Marked on the record, whichever way it was fetched (the band did this itself; a fetch through MCP did not, and
+    # the status line kept counting a delegation already brought back)
+    rec["fetched"] = str(d)
+    _record(state, task_id).write_text(json.dumps(rec, ensure_ascii=False, indent=2), encoding="utf-8")
     journal.append(state, "lane.fetched", id=task_id, lane=rec["lane"], dest=str(d))
     return out
 
