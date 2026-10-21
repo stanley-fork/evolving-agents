@@ -105,7 +105,7 @@ the cases file and the scores are what is published.
 - **One instrument error:** T's f11 sample 0 hit the per-call budget mid-walk (US$0.69, empty plan); retried once with
   the same budget as the runner resumes, it planned (US$0.49) and was judged like the rest. No other errors; 0 unparsed
   verdicts; 0 private terms sent.
-- **Spent:** Claude US$19.99 of the US$30 cap (cases 3.05, A 1.73 + judge, T 14.05 + judge); Gemini US$0.32 (key total
+- **Spent:** Claude US$19.99 of the US$30 cap (cases 3.05; A 1.73, its judge 0.31; T 14.50 with the cut call, its judge 0.40); Gemini US$0.32 (key total
   US$0.84 of 50).
 
 **What it rules out, and what not.** D0's gap is not the past the memory was compiled from: on situations that had not
