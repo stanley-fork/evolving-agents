@@ -1,19 +1,27 @@
 ---
-description: After a task, turn what went wrong (or the user's correction) into a gated edit of the director's memory
+description: Turn the user's corrections and decisions since the last reflection into gated edits of the director's memory
 argument-hint: "[the correction, if not already said]"
 allowed-tools: Read, Grep, Glob, mcp__plugin_director_director__memory_lint, mcp__plugin_director_director__memory_propose, mcp__plugin_director_director__memory_check, mcp__plugin_director_director__memory_status, mcp__plugin_director_director__memory_accept, mcp__plugin_director_director__journal_read, mcp__plugin_director_director__journal_note
 ---
 
 A task in this session has ended. The user's correction, if they give one here: $ARGUMENTS
 
-1. Call `journal_read`: what happened since the last reflection — plans proposed, moved, cancelled and run,
-   delegations, lessons decided, and the corrections and outcomes noted. Then write the task report for yourself:
-   what was asked, the plan and which memory statements it cited, what was done, and the correction (from above, from
-   what the user said during the task, or a `correction` entry). A task the user moved to another lane on the band
-   (`plan.moved`) is a correction too: "this kind of work runs on that lane". If there was no correction, no move and
-   nothing went wrong, call `journal_note` with kind `reflected`, say so and stop: there is nothing to learn.
-2. Decide what the memory (the directory the director's context names, with `Index.md`) must hold so that the next
-   time an agent is in a situation like this — not this exact one — its plan comes out right. Search the memory for
+1. Call `journal_read`: what happened since the last reflection — the user's own messages (`person`, captured as they
+   were sent), plans proposed, moved, cancelled and run, delegations, lessons decided, and the corrections and outcomes
+   noted. From it, list what the memory may lack:
+   - **corrections** — the user said a plan or a result was wrong (from above, from a `person` message, or a
+     `correction` entry); a task the user moved to another lane on the band (`plan.moved`) is one too: "this kind of
+     work runs on that lane";
+   - **decisions** — the user chose, capped, ruled or preferred something that later work must follow and could not
+     work out on its own: a model, a provider, a spending cap, a tool, a layout, "from now on …", "don't …", "use X,
+     not Y". A decision is a lesson even when nothing went wrong.
+   Check each against the memory first; drop what it already holds. If nothing is left, call `journal_note` with kind
+   `reflected`, say so and stop.
+2. For each correction or decision left, decide what the memory (the directory the director's context names, with
+   `Index.md`) must hold so that the next time an agent is in a situation like this — not this exact one — its plan
+   comes out right. For a decision, **When** is the situation where it applies, **Do** the decision itself, exactly
+   (the number, the name, the choice), and **Because** the user's reason if they gave one, with the date they decided
+   it. Search the memory for
    statements that already cover it first: if one does, **modify** it (sharpen its When, Do or Because) rather than
    adding a duplicate; add a statement only for what none covers. Phrase **When** as a situation an agent recognises
    mid-task, general enough to recur in other tools and files; **Do** as a concrete, checkable action; **Because**

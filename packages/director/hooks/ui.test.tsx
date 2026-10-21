@@ -76,6 +76,7 @@ describe('plans on the band', () => {
     expect(statusText({ ...PLAN, plans: [], recipes_stale: true })).toBe(
       'director · 10 statements · 0 learned · recipes stale',
     )
+    expect(statusText({ ...PLAN, plans: [], to_reflect: 3 })).toBe('director · 10 statements · 0 learned · 3 to reflect')
     expect(
       runSummary({
         results: [

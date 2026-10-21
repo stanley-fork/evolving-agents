@@ -23,6 +23,7 @@ export type Snapshot = {
   delegations?: Delegation[]
   plans?: Plan[]
   recipes_stale?: boolean
+  to_reflect?: number
   error?: string
 }
 
