@@ -54,3 +54,31 @@ US$50 ledger.
   turning them into memory — and walking it — recalls them better; it does not test decisions nobody wrote down.
 - No person accepted the lessons; a person who rejects some would keep fewer.
 - c01's threat from C0 holds here too (the memory knows a later decision); C1 is reported with and without it.
+
+## Result [ran] 2026-10-21 — **THE LOOP WORKS** (attribution pending)
+
+**The reflection.** One unattended Opus session over the 95 messages (US$1.47, 15 turns) proposed 10 edits — 6
+modifications and 4 new statements; gated as one set, all 10 pass lint. Its first gating (one at a time) refused 5
+of them; that was corrected before any arm ran (above).
+
+| | Sonnet 5.5 | gemini-4-argon |
+|---|---|---|
+| C0 — today's session with its auto-memory | 0.275 | 0.450 |
+| **C1 — the same, plus the director after one reflection** | **0.725** | **0.825** |
+| C1 − C0 | **+0.45** | **+0.375** |
+
+- **Both above +0.15: THE LOOP WORKS.** Per probe (Sonnet) C1 8 wins, C0 1 (c10), 1 tie (c01). Without c01: 0.75
+  against 0.25.
+- **Where it moved:** c02 0 → 0.75, c03 0.33 → 1, c04 0 → 1, c06 0 → 0.67, c07 0.5 → 1, c08 0 → 1, c05 0.75 → 1.
+  On c08 the plans quote the person's cap with its date — the statement the reflection wrote; C0's plans, with the
+  same cap in their auto-memory, set their own.
+- **Where it did not:** c10 (feature the repository's star count on the site) 0.5 → 0, and c09 0.17 → 0.33 — the
+  reflection's statement about the README did not carry the details those probes check.
+- Item agreement between judges 0.90 (κ 0.72). Every C1 plan cites director statements (19/19).
+- **Cost:** US$0.51 per plan against C0's US$0.15. **One sample missing:** c07 s1 hit the per-call budget twice
+  (first pass and its one retry) and is reported as an error; c07 is scored on one sample. Spent US$12.83 of the
+  US$20 cap; Gemini US$0.10.
+
+**What is not yet shown.** The brief's attribution arms come next: the director **without** the reflection (does the
+walk alone, which also makes the session read more, carry part of the gain?) and a floor with no memory. They need
+about US$12 more, past this brief's cap; they wait for the person's decision.
