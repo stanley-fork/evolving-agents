@@ -25,8 +25,15 @@
 ## Your CLAUDE.md, actually followed
 
 You wrote the rules down. Your agent still breaks them under pressure — **on 14 real situations, a Claude Code
-session with the rules loaded planned by them 0.589 of the time; the director, walking the same rules compiled
-into linked statements, 0.929.** If you keep a `CLAUDE.md`, an `AGENTS.md` or Claude Code's memory, this is for you:
+session planning with Sonnet 5.5 and the rules loaded planned by them 0.589 of the time; the director, walking the
+same rules compiled into linked statements, 0.929.** If you keep a `CLAUDE.md`, an `AGENTS.md` or Claude Code's
+memory, this is for you:
+
+> **Measured with Sonnet. With Opus 5.5 planning (2026-10-21) the gap is not there:** today's session alone follows
+> the same rules 0.964 of the time ([D0O](packages/director/docs/BRIEF-D0O.md)) and keeps a multi-day thread's
+> decisions 0.80 against the director's 0.85 ([C2](packages/director/docs/BRIEF-C2.md)). What the director still
+> showed with Opus is cost — 34 % less per plan in C2. Whether it helps the strongest model on harder, newer
+> situations is the next measurement; until then, read every number below as Sonnet's.
 
 - **it recalls the rule at the moment it applies** — and cites the statement it followed in every step of its plan;
 - **it learns from your corrections** — each lesson proposed, checked against what it already knew, and kept only
