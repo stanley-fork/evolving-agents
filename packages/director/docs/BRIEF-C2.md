@@ -45,8 +45,8 @@ and the full cap is set by the person from it. Gemini inside the key's US$50 led
 
 | arm | Opus 5.5 judge | Gemini judge | cost / plan | turns |
 |---|---|---|---|---|
-| O0 — Opus, today's session with its auto-memory | **0.80** | 0.84 | US$0.88 | — |
-| O1 — Opus + the director after the reflection | **0.85** | 0.87 | **US$0.58** | — |
+| O0 — Opus, today's session with its auto-memory | **0.80** | 0.84 | US$0.88 | 4.4 |
+| O1 — Opus + the director after the reflection | **0.85** | 0.87 | **US$0.58** | 7.1 |
 | O1 − O0 | **+0.05** | **+0.025** | **−34 %** | |
 
 - **O0 = 0.80, below 0.85: there was room, and O1 ran — but it moved +0.05 (Opus) and +0.025 (Gemini), below +0.15
@@ -57,8 +57,8 @@ and the full cap is set by the person from it. Gemini inside the key's US$50 led
 - **Per probe (Opus judge):** O1 better on c03 (0.67 → 1), c06 (0.83 → 1), c09 (0.5 → 1); worse on c01 (0.5 → 0) —
   the probe flagged in C0, whose checklist the director's memory contradicts with a later decision; equal on the rest.
   Without c01: 0.83 → 0.94, +0.11, still below the bar.
-- **What the director did buy with Opus: cost.** O1's plans cost 34 % less (US$0.58 against 0.88): the walk goes to
-  the statement instead of reading notes until the decision turns up.
+- **What the director did buy with Opus: cost.** O1's plans cost 34 % less (US$0.58 against 0.88) although they take
+  more turns (7.1 against 4.4); why is not measured here (what each turn reads, caching) and is not claimed.
 - 40 plans, 0 errors (the per-call budget of US$2.50 cut none), 0 unparsed verdicts. **Spent US$30.49 of the US$50
   cap**; Gemini US$0.20.
 
