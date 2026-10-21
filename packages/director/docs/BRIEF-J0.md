@@ -52,3 +52,28 @@ item and still moves the gap would say the disagreement is concentrated on one a
   not every bias a judge can have (length among them).
 - The marker replacing a private name may read differently to the judge than the name did; the checklist items
   judge actions, so this should not move a verdict, but it is a change to the input and is said here.
+
+## Result [ran] 2026-10-20 — **HOLDS**
+
+| arm | Sonnet 5.5 (D0) | gemini-4-argon (J0) | item agreement | κ |
+|---|---|---|---|---|
+| A — today's session | 0.589 | **0.696** | 0.857 | 0.69 |
+| A+ — told to walk its files | 0.768 | 0.857 | 0.911 | 0.71 |
+| P — the plugin | 0.929 | 0.946 | 0.982 | 0.85 |
+| T — the director | 0.929 | **1.000** | 0.929 | — (Gemini met every item) |
+
+- **T − A under Gemini: +0.304** (Sonnet: +0.339), above the +0.15 bar; per case T 7 wins, A 0, 7 ties. **HOLDS.**
+- **The order is the same under both judges:** A < A+ < P ≤ T. The attribution arm keeps its meaning: T − A+ is
+  +0.143 under Gemini (Sonnet +0.161), T 2 wins, A+ 0.
+- **Gemini is more lenient, on both sides.** Items Gemini met and Sonnet did not: 7 in A (cases c03, c12, c13), 4 in T
+  (c10, c12); the reverse, 1 and 0. c12 is the case D0 had noted for the judge's strictness (the right command, then
+  waiting for the user's go). The leniency lifts A more than T only because T is at the ceiling under Gemini: the gap
+  can show no larger there, so +0.304 is a lower bound for this judge.
+- κ is undefined for T because Gemini never said "not met" there; raw agreement is 0.929.
+- 112 verdicts, 0 unparsed, 0 retries needed; private terms replaced before every call, 0 leaks. **Spent US$0.51**
+  (key total US$0.51 of 50).
+
+**What it rules out, and what not.** A Claude judge preferring the plans of a Claude that walked Claude's memory does
+not explain D0's gap: another provider's judge, blind to the arm, gives the same order and a gap twice the bar. It does
+not rule out what any judge may share (length: T's plans are still longer), and the cases are still the lab's own
+history — step 1b.
