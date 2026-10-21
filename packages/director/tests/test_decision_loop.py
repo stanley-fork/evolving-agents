@@ -25,7 +25,8 @@ GUARD = ROOT / "director" / "public_guard.py"
 def run_hook(script: Path, event: dict, env: dict | None = None) -> str:
     e = {k: v for k, v in os.environ.items() if k not in ("CLAUDE_PROJECT_DIR", "DIRECTOR_MEMORY")}
     return subprocess.run([sys.executable, str(script)], input=json.dumps(event), capture_output=True, text=True,
-                          env={**e, **(env or {})}, timeout=60).stdout
+                          env={**e, "HOME": str(Path(__file__).parent / "no-home"), **(env or {})},
+                          timeout=60).stdout
 
 
 # ------------------------------------------------------------------ capture, owed, nudge

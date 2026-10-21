@@ -32,7 +32,8 @@ A task in this session has ended. The user's correction, if they give one here: 
    adding a duplicate; add a statement only for what none covers. Phrase **When** as a situation an agent recognises
    mid-task, general enough to recur in other tools and files; **Do** as a concrete, checkable action; **Because**
    with the incident as evidence. Link it to the statements it applies with, and name the Index situations that
-   should reach it (reuse an existing situation line's text exactly when one fits).
+   should reach it (reuse an existing situation line's text exactly when one fits: the text before its `→`
+   only, never the whole line with its links — `memory_propose` refuses a situation holding `→` or `[[`).
 3. Write **two probes**: each a short situation — a task in flight, in the second person — where the lesson should
    change the plan, set apart from this incident (another file, tool or goal; none of its sentences), with one to
    three checklist items that each name an **action** the plan must take or refuse. Do not say in the situation what
@@ -40,8 +41,9 @@ A task in this session has ended. The user's correction, if they give one here: 
 4. Call `memory_propose` with the edits (`op` add|modify, `page`, `id`, `when`, `do`, `because`, `links` as
    `Page#id`, `situations`; `about` only for a new page), the probes, a one-line `rationale`, and the report as
    `episode`. If it reports lint problems or rejected edits, fix them and propose again. A proposal you replace with a
-   new one — and any proposal `memory_status` calls `stale` (the memory changed after it was made; accepting it would
-   undo what came since) — is closed with `memory_reject`, and you say so.
+   new one — and any proposal `memory_status` reports in `conflict` (what it touches changed after it was made;
+   accepting it would undo what came since) — is closed with `memory_reject`, and you say so. A proposal
+   `memory_status` reports `rebased_from` was brought up to the live memory untouched: show its new diff and go on.
 5. Show the user the diff, and ask: accept, check first, or reject. **Check** runs the positive probe
    (`memory_check`, minutes and a few dollars): it keeps a lesson only if it changes the plans its probes test —
    TEACHES; REDUNDANT means the memory or the model already does it; NO EFFECT means the edit changed nothing.

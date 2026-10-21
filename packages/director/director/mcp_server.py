@@ -6,12 +6,14 @@ only; newline-delimited JSON-RPC over stdio.
                     rationale         returns a proposal id
     memory_check    id                starts D7's positive probe in the background (paid: the probes re-planned on the
                                       current memory and the candidate, blind judge); `memory_status` reads it
-    memory_status   id                the proposal, and the check's verdict once it lands
+    memory_status   id                the proposal, and the check's verdict once it lands; a stale proposal is rebased
+                                      onto the live memory here when nothing it touches changed (`rebased_from`),
+                                      else `conflict` names what did
     memory_accept   id                lint clean, a person's yes, and — if a check ran — TEACHES; then the candidate
                                       becomes the live memory, versioned as a gated agentvcs patch when agentvcs is
                                       installed (`AGENTVCS` or `agentvcs` on PATH)
-    memory_reject   id                the proposal marked rejected (the person's no, or one made stale by a later
-                                      accept); the memory is unchanged
+    memory_reject   id                the proposal marked rejected (the person's no, or one a later accept left in
+                                      `conflict`); the memory is unchanged
     recipes_lint                      the memory's meta-recipes (`recipes.json`): runnable, every cite exists, coverage
     plan_local      request           a plan made by following the recipes with a local model (Ollama,
                                       `DIRECTOR_LOCAL_MODEL`, default gemma4:12b-mlx): it picks recipes and answers
@@ -47,7 +49,7 @@ from director import recipes as rcp  # noqa: E402
 from director import lanes as lns  # noqa: E402
 from director import plans  # noqa: E402
 
-SERVER_INFO = {"name": "director", "version": "0.2.3"}
+SERVER_INFO = {"name": "director", "version": "0.2.4"}
 PROTOCOL_VERSION = "2025-06-18"
 
 
@@ -236,7 +238,10 @@ TOOLS = {
                                                     "when": {"type": "string"}, "do": {"type": "string"},
                                                     "because": {"type": "string"},
                                                     "links": {"type": "array", "items": {"type": "string"}},
-                                                    "situations": {"type": "array", "items": {"type": "string"}}}}},
+                                                    "situations": {"type": "array", "items": {"type": "string"},
+                                                                   "description": "situation text only, e.g. 'about to "
+                                                                   "commit a document'; never a whole Index line (no "
+                                                                   "'→', no '[[')"}}}},
                            "probes": {"type": "array", "items": {"type": "object", "properties": {
                                "situation": {"type": "string"},
                                "checklist": {"type": "array", "items": {"type": "string"}}}}},
@@ -245,14 +250,17 @@ TOOLS = {
     "memory_check": (tool_check, "Start the positive probe for a proposal in the background (paid, minutes): its "
                      "probes re-planned on the current memory and the candidate, judged blind.",
                      {"type": "object", "required": ["id"], "properties": {"id": {"type": "string"}}}),
-    "memory_status": (tool_status, "A proposal's status and, once it lands, its check's verdict.",
+    "memory_status": (tool_status, "A proposal's status and, once it lands, its check's verdict. A proposal made "
+                      "before another was accepted is rebased onto the live memory when none of the statements or "
+                      "Index lines it touches changed (`rebased_from`, and the new `diff`); otherwise `conflict` lists "
+                      "them and it must be proposed again.",
                       {"type": "object", "required": ["id"], "properties": {"id": {"type": "string"}}}),
     "memory_accept": (tool_accept, "Make a proposal the live memory. Only after the user said yes to its diff; refused "
                       "if it lints dirty or its check did not TEACH.",
                       {"type": "object", "required": ["id", "user_said_yes"],
                        "properties": {"id": {"type": "string"}, "user_said_yes": {"type": "boolean"}}}),
     "memory_reject": (tool_reject, "Mark a proposal rejected; the memory is unchanged. Only on the person's no, or for "
-                      "a proposal that memory_status says is stale (the memory changed after it was made).",
+                      "a proposal that memory_status says is in conflict (what it touches changed after it was made).",
                       {"type": "object", "required": ["id"], "properties": {"id": {"type": "string"}}}),
     "recipes_lint": (tool_recipes_lint, "Check the memory's meta-recipes (recipes.json): every step runnable, every cite "
                      "an existing statement, branches at most 2 deep; reports how much of the memory they cover.",
