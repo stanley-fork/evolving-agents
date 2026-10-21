@@ -63,3 +63,34 @@ US$50 ledger.
 - The auto-memory in C0 was written by the same sessions, with care: this lab writes its decisions down. A team that
   does not would score lower; C0 measures this workspace, not Claude Code in general.
 - Ten probes on one thread is small; a STOP or GO near 0.85 is reported with its per-case spread.
+
+## Result [ran] 2026-10-21 — **GO to 2b**
+
+**The bank.** 14 candidates by a fresh Opus that never saw the memory (decisions from 2026-10-14 to 2026-10-21); all
+passed the code screen; the first 10 are [`c0/cases.jsonl`](../c0/cases.jsonl), committed before the arm ran. The arm
+was frozen (58 files, hashed) before the probes were written.
+
+| | Sonnet 5.5 | gemini-4-argon |
+|---|---|---|
+| **C0 — today's session, with its own auto-memory** | **0.275** | 0.450 |
+| C0 without c01 (see below) | 0.250 | — |
+
+- **0.275, far below 0.85: there is room. GO to 2b.** Per probe (Sonnet): c05 0.75; c01, c07, c10 0.5; c03 0.33;
+  c09 0.17; c02, c04, c06, c08 0.0. Item agreement between judges 0.80 (κ 0.57); Gemini more lenient again.
+- **The decisions were written down; they were not recalled.** Every decision has a matching line in the frozen
+  memory (a loose search), and the four checked exactly are there verbatim. On c08 the memory holds the person's cap
+  of US$50 for the key; both plans set their own cap instead (one "≈ US$75"). The failure is not storage, it is
+  bringing the right note to the plan — the failure D0 measured for rules, now for decisions made along the way.
+- **Two threats, said before reading further.** (1) c01 is set on 2026-10-17 but the frozen memory already holds a
+  later decision (2026-10-21) that contradicts its checklist; it was kept (removing it after seeing the bank would be a
+  redesign) and the score is given without it too. (2) The frozen `CLAUDE.md` now tells the session to walk the
+  director's memory, which is not in the sandbox; 2 of 20 plans mention it as missing, and the arm read a little more (2.4 turns
+  on average, US$0.15 per plan) than D0's arm A did (1.5, US$0.06). Neither moves the verdict: without c01 the score is 0.25.
+- 20 plans, 0 errors, 0 unparsed verdicts, 0 private terms or keys sent. **Spent US$4.71** (probes 1.43, plans 3.06,
+  judge 0.23) and Gemini US$0.09.
+
+**What 2b has to show.** The director's memory, as it stands, does not hold these decisions either: it was compiled on
+2026-10-14 and has learned two lessons since. So 2b is not "walk the memory you have": it is the loop the director was
+built for — corrections and decisions noted in the journal as they happen, proposed as lessons by `/director:reflect`,
+kept through the gate — measured on these probes against C0, with a floor arm (no memory at all) to show the memory,
+not reasoning, carries the score. Its brief comes first.
