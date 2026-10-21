@@ -106,3 +106,24 @@ W and F run in that order; F is cheap and runs either way.
 **A third judge (2026-10-21, at the person's request, before W's and F's scores were seen):** Claude Opus 5.5 judges
 every arm — C0, C1, W, F — with the same `judge.md`, blind. It is reported beside Sonnet and Gemini; the verdicts
 written above stay on the judges they name.
+
+## Attribution [ran] 2026-10-21 — **the lessons carry the gain**
+
+| arm (Sonnet; on the 9 probes every arm planned) | Sonnet | Gemini | Opus 5.5 (all 10) |
+|---|---|---|---|
+| F — floor, no memory | 0.19 | 0.25 | 0.22 |
+| **W — C0 + the walk, no reflection** | **0.23** | 0.32 | 0.34 |
+| C0 — the session with its auto-memory | 0.25 | 0.45 | 0.42 |
+| **C1 — C0 + the director after one reflection** | **0.69** | 0.83 | 0.81 |
+
+- **C1 − W = +0.46** (Sonnet, 9 common probes; W has no plan for c07, which hit the per-call budget in both
+  passes). Above +0.15: **the lessons carry the gain.** Walking a memory that does not hold the decisions buys nothing
+  — W is no better than C0 — unlike D0's rules, where the walk instruction alone carried part (A+). Here the content
+  the reflection wrote is what moved the plans.
+- **F (0.19) against C0 (0.25):** the auto-memory adds 0.06 on these probes, just past the "adds nothing" line
+  (F ≥ C0 − 0.05). The decisions were in it; plans did not use them.
+- **The third judge agrees on the order** (Opus 5.5: F 0.22 < W 0.34 < C0 0.42 < C1 0.81), and so does Gemini.
+- F scored 1.0 on c01 — the probe flagged in C0 as contradicted by a later decision; with no memory, the plan drew
+  the two-lane layout the situation describes.
+- One F verdict was unparsed when the account hit its session limit; the judge re-ran it on resume. **Spent US$28.61
+  of the US$35 cap**; Opus judging ~US$2 of it.
