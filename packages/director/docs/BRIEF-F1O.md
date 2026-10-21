@@ -30,7 +30,7 @@ on 2026-10-21. Gemini inside the key's US$50 ledger.
 
 | arm | Opus 5.5 judge | Gemini judge | cost / plan | turns |
 |---|---|---|---|---|
-| F1's A, Sonnet planning (F1) | 0.363 | 0.512 | US$0.06 | 1.5 |
+| F1's A, Sonnet planning (F1) | 0.363 (Sonnet judge; no Opus judge ran) | 0.512 | US$0.06 | 1.5 |
 | **AO — F1's A, Opus planning** | **0.780** | **0.857** | US$0.43 | 4.8 |
 
 - **AO = 0.780 under Opus: below 0.85, ROOM** by the rule written above. 17 of 28 plans meet every item. Weakest:
