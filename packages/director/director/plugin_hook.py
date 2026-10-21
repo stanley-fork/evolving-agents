@@ -16,7 +16,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))     # run as a script by the hook
 
-from director.memory.format import find as find_memory  # noqa: E402
+from director.memory import journal  # noqa: E402
+from director.memory.format import find as find_memory, state_dir  # noqa: E402
 
 DIRECTOR_MD = Path(__file__).resolve().parent / "DIRECTOR.md"
 
@@ -34,14 +35,36 @@ def context(project: Path) -> str | None:
     return text if rel == "memory" else re.sub(r"`(?:\./)?memory/", lambda _: f"`{rel}/", text)
 
 
+def nudge(mem: Path) -> str:
+    n = journal.owed(state_dir(mem))
+    return (f"\n\n**The journal holds {n} message{'s' if n != 1 else ''} or correction{'s' if n != 1 else ''} since the "
+            f"last reflection.** Decisions the person made there (a choice, a cap, a rule, a preference) are not in this "
+            f"memory until a reflection proposes them: run `/director:reflect` at the next natural break.") if n else ""
+
+
+def capture(project: Path, prompt: str) -> bool:
+    """UserPromptSubmit: the person's message goes to the journal as it is sent, keys scrubbed. Nothing is decided
+    here and nothing reaches the memory; the reflection reads it later and proposes lessons through the gate."""
+    mem = find_memory(project)
+    text = (prompt or "").strip()
+    if mem is None or not text or text.startswith("<"):
+        return False
+    journal.append(state_dir(mem), "person", text=journal.scrub(text)[:4000])
+    return True
+
+
 def main() -> int:
     try:
         event = json.load(sys.stdin)
     except ValueError:
         event = {}
     project = Path(os.environ.get("CLAUDE_PROJECT_DIR") or event.get("cwd") or os.getcwd())
+    if event.get("hook_event_name") == "UserPromptSubmit":
+        capture(project, event.get("prompt", ""))
+        return 0
     text = context(project)
     if text:
+        text += nudge(find_memory(project))
         print(json.dumps({"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": text}}))
     return 0
 

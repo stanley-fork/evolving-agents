@@ -14,17 +14,28 @@ Kinds written by the director itself:
     plan.proposed / plan.moved / plan.cancelled / plan.ran                       plans
     lane.delegated / lane.status / lane.fetched                                  lanes
     correction / outcome / note                                                  the session, through `journal_note`
+    person                                                                       every message the person sends,
+                                                                                 by the plugin's UserPromptSubmit hook
     reflected                                                                    the reflection, when it is done
 """
 
 from __future__ import annotations
 
 import json
+import re
 import time
 from pathlib import Path
 
 NAME = "journal.jsonl"
 SESSION_KINDS = ("correction", "outcome", "note")
+TO_REFLECT = ("person", "correction")      # what a reflection still owes: what the person said, what was corrected
+# Anything shaped like an API key or token never reaches the journal (a person pastes one into a message sometimes).
+SECRET = re.compile(r"\b(?:AQ\.[A-Za-z0-9_-]{20,}|AIza[0-9A-Za-z_-]{20,}|sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{20,}"
+                    r"|xox[abprs]-[A-Za-z0-9-]{10,})")
+
+
+def scrub(text: str) -> str:
+    return SECRET.sub("[SECRET]", text)
 
 
 def path(state: Path) -> Path:
@@ -76,3 +87,9 @@ def since_reflection(state: Path) -> list[dict]:
 
 def reflected(state: Path, note: str = "") -> dict:
     return append(state, "reflected", note=note)
+
+
+def owed(state: Path) -> int:
+    """How many entries since the last reflection a reflection still has to read: the person's messages and the
+    corrections. The status line shows it, so a reflection is not forgotten."""
+    return sum(1 for e in since_reflection(state) if e.get("kind") in TO_REFLECT)

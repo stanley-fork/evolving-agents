@@ -29,7 +29,7 @@ from director import mcp_server as srv  # noqa: E402
 from director import lanes as lns  # noqa: E402
 from director import plans  # noqa: E402
 from director import recipes as rcp  # noqa: E402
-from director.memory import gate  # noqa: E402
+from director.memory import gate, journal  # noqa: E402
 from director.memory.format import find as find_memory, statement_ids  # noqa: E402
 
 DONE = ("done", "completed", "finished", "succeeded")
@@ -52,7 +52,7 @@ def status() -> dict:
     fresh = rcp.freshness(mem) if rcp.path_for(mem).is_file() else None
     return {"memory": str(mem), "statements": len(statement_ids(mem)), "accepted": accepted,
             "proposals": waiting, "delegations": out, "plans": plans_out,
-            "recipes_stale": bool(fresh and fresh["stale"])}
+            "recipes_stale": bool(fresh and fresh["stale"]), "to_reflect": journal.owed(st)}
 
 
 def fetch(task_id: str) -> dict:

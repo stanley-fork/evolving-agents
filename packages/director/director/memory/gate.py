@@ -169,9 +169,12 @@ def accept(memory: Path, pid: str, user_said_yes: bool) -> dict:
     backup = state / "previous" / rec["id"]
     if backup.exists():
         shutil.rmtree(backup)
-    shutil.copytree(memory, backup)
-    shutil.rmtree(memory)
-    shutil.copytree(d / "memory", memory)
+    # A memory reached through a link (a workspace's `.director/memory` pointing at a private directory) is replaced
+    # at its target; rmtree refuses a link, and replacing the link itself would cut the memory off from its home.
+    target = Path(memory).resolve() if Path(memory).is_symlink() else Path(memory)
+    shutil.copytree(target, backup)
+    shutil.rmtree(target)
+    shutil.copytree(d / "memory", target)
     rec.update(status="accepted", checked=check is not None, patch=patch)
     _write(d, rec)
     journal.append(state, "lesson.accepted", id=rec["id"], checked=check is not None, versioned=patch is not None,
