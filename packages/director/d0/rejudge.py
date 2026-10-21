@@ -38,8 +38,9 @@ URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateC
 
 
 def out_dir(c: dict, arm: str) -> Path:
-    # Beside D0's directory, not in it: run_d0.spent() sums every cost under d0/.
-    return Path(c["private_dir"]) / "d0-rejudge" / JUDGE_MODEL / f"arm-{arm}"
+    # Beside the experiment's directory, not in it: run_d0.spent() sums every cost under it. F1 reuses this
+    # judge by setting run_d0.EXPERIMENT.
+    return Path(c["private_dir"]) / f"{run_d0.EXPERIMENT}-rejudge" / JUDGE_MODEL / f"arm-{arm}"
 
 
 def api_key(c: dict) -> str:
@@ -74,7 +75,7 @@ def ledger_total() -> float:
 
 
 def run_spent(c: dict) -> float:
-    return sum(r.get("cost_usd") or 0 for f in (Path(c["private_dir"]) / "d0-rejudge").rglob("verdicts.jsonl")
+    return sum(r.get("cost_usd") or 0 for f in (Path(c["private_dir"]) / f"{run_d0.EXPERIMENT}-rejudge").rglob("verdicts.jsonl")
                for r in run_d0.rows(f))
 
 
@@ -201,7 +202,7 @@ def main() -> None:
         judge(c, a.arm)
     else:
         rep = report(c)
-        out = Path(c["private_dir"]) / "d0-rejudge" / JUDGE_MODEL / "report.json"
+        out = Path(c["private_dir"]) / f"{run_d0.EXPERIMENT}-rejudge" / JUDGE_MODEL / "report.json"
         out.write_text(json.dumps(rep, indent=1))
         print(json.dumps(rep, indent=1))
 
