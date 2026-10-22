@@ -8,6 +8,9 @@ director) measures exactly that: chained headless Claude Code sessions on recurr
 the memory store the only thing kept between sessions. Its full v0 is 1,000 sessions. DB0 is the pilot that decides
 whether the full run is worth its cost.
 
+What the director should win on, and where it should not, is argued in [WHERE-IT-SHOULD-WIN](WHERE-IT-SHOULD-WIN.md)
+(five hypotheses, each with the metric that would show it).
+
 ## What runs
 
 - **One family**: the bench's synthetic repository (`ledgerkit`, house conventions an agent without memory tends to
