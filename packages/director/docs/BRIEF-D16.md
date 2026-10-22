@@ -139,3 +139,46 @@ cases written from the facts and not from either arm. It will not show which lan
 are inputs here, not results. Nor will it show routing on real requests over time; the journal (step 5) will. And the
 bank is written by Claude from a fact sheet Claude can read, which favours both arms equally but not a stranger's
 phrasing.
+
+## Outcome [ran] 2026-10-19 — **DIRECTORY LOSES** by the table; it routes as well as prose, but does not yet earn the rest
+
+The inputs, in the order of the Run box: a fact sheet of 30 facts on six lanes; a bank of 18 cases by a fresh Opus agent
+from the facts alone, then read once by a second fresh agent, who dropped 3 cases the facts did not decide (one listed
+`frontier` for a check meant to run without the session's context; one excluded the untested managed agent where two
+others sent work only there; one set a cost threshold the facts do not) — **15 cases**; arms P and D built from a copy of
+the live memory, both lint clean. **The parity check stopped the run twice** before any plan: arm D had weakened three
+facts (the local model's size and failure, a confidential task waiting when its lane is down, the tracker's mid-session
+failure), and then lacked "frontier model"; each arm carried rationale sentences the facts lack. Fixed in the inputs, not
+the instrument; the third check found nothing missing, and one shared extra (the release-note incident, in both arms).
+
+| measurement | P (prose) | D (directory) | bar | |
+|---|--:|--:|---|---|
+| 1 · lane accuracy, 15 cases × k = 2 | 0.864 | **0.880** | D ≥ P − 0.05 | ✔ (2 wins each, 11 ties, p 0.69) |
+| 2 · clearance violations | **1** | 5 | D ≤ P | ✘ |
+| 3 · following the data: affected tasks to the fallback | — | 0.762 | ≥ 0.8 | ✘ |
+| 3 · following the data: unaffected tasks stay | — | 0.786 | ≥ 0.9 | ✘ |
+| 4 · D0 through D's memory, blind judge | — | **0.929** | ≥ 0.899 | ✔ |
+
+Cost **US$55.92** of the US$75 cap (bank and read-through 1.85, parity 3.84 over three checks, P 13.98, D 14.02,
+measurement 3 7.90, D0 13.96 and its judge). US$0.47 per plan in both arms. The lanes cost 64 prompt words + 1,032 memory
+words in P, 624 + 445 in D.
+
+**Read before relying on it — where each failure happens.**
+- **Violations.** P's one and two of D's five are the same harmless act counted by the rule: in a confidential case, a
+  step that reads a script with no client data, or reports counts to the user, planned on `frontier`. D's other three
+  are one plan (internal-3, sample 1) that marked internal text `confidential: true` and then put it on `frontier` — a
+  plan contradicting itself, which `lanes.py` would refuse at delegation. Counting only the case's confidentiality,
+  it is P 1, D 2: still a loss on this bar.
+- **Measurement 3 aligns tasks by position**, as written before the run, so a re-plan with fewer tasks counts its missing
+  tasks as moved: internal-3 went from 3 tasks to 1. Not scored, read as sets: the down lane left **14 of 15** plans, and
+  **11 of 12** unaffected lanes stayed. The one real failure is where it matters most: with `local` down, confidential-1
+  (a client file) put one step on `frontier` in one of two samples, where the directory says a confidential task waits for
+  a cleared lane (`private-exec`).
+- **Bulk is where both arms fail** (P 0.229, D 0.267): plans keep most steps of a long sandboxed job on `frontier` and
+  hand only the run to `cloud-agent`; the bank accepts only `cloud-agent`. The cases or the planner — not separated here.
+- Every other kind scores 1.0 in both arms: public, internal, reliability, specialist.
+
+**What it says.** Lane facts kept as data route as well as the same facts in prose (0.880 vs 0.864) and leave D0 where
+it was (0.929); what the brief asked beyond that — no extra violations, and a fact change followed as data — did not
+clear its bar, on one instrument choice (position alignment) and one real routing error under a down lane. By the table:
+**the directory is not built**; prose stays. One measurement, k = 2; not re-run, no redesign on these data.

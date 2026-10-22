@@ -15,7 +15,7 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/EvolvingAgentsLabs/evolving-agents?style=social)](https://github.com/EvolvingAgentsLabs/evolving-agents/stargazers)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Roadmap](https://img.shields.io/badge/roadmap-D0%E2%80%93D15%20%C2%B7%20P0%20measured-8A9A6B)](ROADMAP.md)
+[![Roadmap](https://img.shields.io/badge/roadmap-D0%E2%80%93D16%20%C2%B7%20P0%20measured-8A9A6B)](ROADMAP.md)
 
 **Contents** — [Your CLAUDE.md, actually followed](#your-claudemd-actually-followed) ·
 [Install](#install) · [From the SystemAgent to the director](#from-the-systemagent-to-the-director) ·
@@ -63,6 +63,10 @@ intact: **0.929** through it, the same as the director harness, on the same 14 s
 ([P0](packages/director/docs/BRIEF-P0.md)). The status line names the memory and what waits for you; a band above
 the prompt shows each proposed lesson with **Diff**, **Accept** and **Reject**, each plan's delegations before they
 run, and each task delegated to another lane until its result is fetched.
+
+**Published flat, too.** Keeping the lanes' facts as one directory of data instead of prose routed as well (0.880 vs
+0.864) but broke clearance more often and did not follow a lane going down well enough, so it was not built
+([D16](packages/director/docs/BRIEF-D16.md)).
 
 **Or the harness, with its two-lane interface** (frontier and local model side by side):
 

@@ -22,6 +22,12 @@ published as flat. Built steps link to their brief. Dates are not promised; orde
 | ✔ | **In the plugin: recipes, lanes, the band** | `/director:recipes` and `plan_local` bring D15 into the session; lanes send a task to a configured command lane, with confidential tasks refused by any lane not cleared for them — the frontier included — in code; a status line and a band above the prompt show what waits for the person: a lesson to accept or reject (through the same gate), a delegation to fetch — [README](packages/director/README.md#as-a-claude-code-plugin). Built and tested; not measured — nothing in it changes a plan |
 | ✔ | **The order of [EVOLUTION](docs/EVOLUTION.md), steps 1 and 4–6** | the memory in its own module, kept apart from the agent by a boundary test; plans that wait on the band (Run, Move, Cancel), each move logged for the next reflection; one episodic journal the reflection reads and planning never does; recipes stamped with the memory version they came from, reported stale after an accepted lesson. Built and tested; the measurements that need the private memory, and D16 and D17, are in the [RUNBOOK](packages/director/docs/RUNBOOK.md) |
 
+## Measured flat — not built
+
+| | step | what it showed |
+|---|---|---|
+| ✘ | **D16 · the lanes as a directory of data** | the same lane facts as data cited by the statements, against prose: routed as well (0.880 vs 0.864, 15 cases) and D0 held (0.929), but 5 clearance violations vs 1 and a lane going down followed at 0.762 / 0.786 against bars of 0.8 / 0.9 — **DIRECTORY LOSES**, prose stays — [brief](packages/director/docs/BRIEF-D16.md) |
+
 ## Next — in phases
 
 **Revised 2026-10-20.** Everything published so far rests on one number, D0's 0.929, measured on cases from the

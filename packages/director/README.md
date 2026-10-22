@@ -15,6 +15,12 @@ two-lane interface; Anthropic's Managed Agents and Google's Antigravity agent ar
 > **0.854**, in ~10 s and at no cost ([D15](docs/BRIEF-D15.md), after D8–D14's flat and partial results, below).
 > **Planned:** the `anthropic-managed` and `antigravity` lanes (P1, P2).
 >
+> **2026-10-19: the directory of lanes, published flat [ran].** Lane facts kept as one directory of data, cited by the
+> statements, route as well as the same facts in prose (0.880 vs 0.864, 15 cases) and leave D0 at 0.929 — but the plans
+> broke clearance more often (5 vs 1) and followed a lane going down below the bar (0.762 / 0.786 against 0.8 / 0.9):
+> **DIRECTORY LOSES**, so it is not built and the prose stays ([D16](docs/BRIEF-D16.md)). Next: component evolution on
+> the recipes ([D17](docs/BRIEF-D17.md)).
+>
 > **2026-10-21 — all of the above planned with Sonnet 5.5.** With Opus 5.5 planning, the session alone follows D0's
 > rules 0.964 ([D0O](docs/BRIEF-D0O.md)) and keeps a thread's decisions 0.80 vs the director's 0.85 ([C2](docs/BRIEF-C2.md));
 > the director's measured edge with Opus is cost (−34 % per plan). F1 with Opus is next.
@@ -80,6 +86,8 @@ Images: [`docs/img/`](docs/img/) — the plates' prompts are in the repository's
 | D11–D12 | do the 12B's plans hold up, on a bank no strategy was designed on? | **memory helps, gap remains**: 0.68 against Sonnet's 0.92; a plan composed by code did not close it — [D11](docs/BRIEF-D11.md), [D12](docs/BRIEF-D12.md) |
 | D13–D14 | retrieval in code (lexical + local embeddings), the plan written by Claude | retrieval **partial** (0.77 / 0.74); the split planned **0.837 vs 0.892** at 17× less per plan, short of its gate by 0.005 — [D13](docs/BRIEF-D13.md), [D14](docs/BRIEF-D14.md) |
 | D15 | Claude writes meta-recipes from the memory; code runs them; the local model only picks a recipe and answers yes/no | **recipes work** with the 12B: 0.806 vs 0.854, 3 / 3 / 6 per case; not yet with 4B (0.58) or 2B (0.26) — [brief](docs/BRIEF-D15.md) |
+| D16 | the lanes' facts as one directory of data the statements cite, against the same facts in prose (EVOLUTION step 2) | **directory loses**: routes as well (0.880 vs 0.864) and D0 holds (0.929), but 5 clearance violations vs 1 and a lane going down followed at 0.762 / 0.786 against 0.8 / 0.9; not built — [brief](docs/BRIEF-D16.md) |
+| D17 | gated evolution of the recipes from D15's own runs (EVOLUTION step 3) | brief written; runs on the lab's machine (Ollama) — [brief](docs/BRIEF-D17.md) |
 | P1 | an `anthropic-managed` lane: Managed Agents behind `submit / status / fetch`, the memory mounted read-only, the walk as a skill, the gate over MCP | **planned** — D0 through it within 0.03 of 0.929; cost per plan published ([EVOLUTION §5](../../docs/EVOLUTION.md#5-agents-and-harnesses)) |
 | P2 | an `antigravity` lane: the same artifact on Google's harness | **planned** — the same bar, and D0's plans judged by the other provider |
 
@@ -103,6 +111,30 @@ only what it lacks:
 | MCP server `director` | `memory_propose` (a candidate copy, linted, diffed), `memory_check` (D7's positive probe, in the background: TEACHES / REDUNDANT / NO EFFECT), `memory_accept` (your yes, a clean lint and — if checked — TEACHES; versioned as a gated agentvcs patch when agentvcs is installed; a proposal made before another lesson was accepted is rebased onto the live memory, same id, when none of the statements or Index lines it touches changed — `memory_status` reports `rebased_from` and the new diff — and refused with `conflict` naming them when they did, since accepting would undo what came since; an edit whose `situations` hold a whole Index line (`→` or `[[`) is refused), `memory_reject` (your no, or a conflicting proposal closed), `memory_lint`, `memory_status`; `recipes_lint` and `plan_local` (a plan made by following the recipes with a local model on Ollama, `DIRECTOR_LOCAL_MODEL`, default `gemma4:12b-mlx`; free, and `abstain` when no recipe fits); `lanes_list`, `plan_propose`, `plan_status`, `delegate`, `lane_status`, `lane_fetch` (lanes, below); `journal_read` and `journal_note` (the episodic journal, below) |
 | status line and band (`hooks/ui.tsx`) | where that memory exists, the status line reads `director · 286 statements · 3 learned · 1 to decide · 4 to reflect`; when a plan waits, a band above the prompt shows each task with its lane (**Run**, **Move**, **Cancel**); when a lesson waits for a decision, it shows its edits and its check with **Diff**, **Accept** and **Reject** (Accept is your yes, through the same gate as `memory_accept`; it is offered only when the proposal lints clean and its check, if one ran, says TEACHES), and each delegation not yet brought back with **Status** and **Fetch**. What you press reaches the session with your next prompt. Needs a Claude Code with plugin UI modules; on older versions everything else works as before |
 | live activity (`hooks/ui.tsx`) | every tool call the session makes is shown as it runs, on its lane: the status line adds `frontier ▶ <what runs now> (12s…) │ local ▶ <plan_local or a delegation>`, and the band above the prompt shows **Director · activity** — the walk through the memory (`walk → Headroom`), the director's own tools, the journal's latest events and each lane's last step. `/director-activity` hides or shows the band; the status line always keeps the lanes |
+
+**What you see in Claude Code.** No other window: the director lives in the session. The status line names the memory
+and what waits for you; a band appears above the prompt only when something does. An illustration, not a capture:
+
+```
+╭─ Director · a plan to run ───────────────────────────────────────────╮
+│ Draft the 0.7 release note and summarise this week's internal log    │
+│ frontier  Draft the release note (public)                            │
+│ local     Summarise the week's log                          [Move]   │
+│ [Run]  [Cancel]                                                      │
+├─ Director · a lesson to decide ──────────────────────────────────────┤
+│ Screenshots are cropped before publishing                            │
+│ add Confidentiality#crop_screens · check: TEACHES                    │
+│ [Diff]  [Accept]  [Reject]                                           │
+╰──────────────────────────────────────────────────────────────────────╯
+> _
+  director · 291 statements · 3 learned · 1 to decide · 1 plan waiting
+```
+
+Nothing is delegated before **Run**; **Move** offers only a lane the task is cleared for; **Accept** appears only when
+the lesson lints clean and its check, if one ran, says TEACHES. What you press reaches the session with your next
+prompt (*"On the director's band, the person: moved task t2 from local to frontier"*). The memory is found at
+`$DIRECTOR_MEMORY`, else `.director/memory/` in the project, else `memory/`; with none, the plugin stays silent. To use a
+memory kept elsewhere: `DIRECTOR_MEMORY=~/path/to/memory claude`.
 
 **Measured [ran] 2026-10-17 ([P0](docs/BRIEF-P0.md)):** the walk through the plugin's hook plans D0's 14 situations
 at **0.929**, the same as the director driving Claude Code (T − P = 0.0; 27 of 28 plans cite the statements they

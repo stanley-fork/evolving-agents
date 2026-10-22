@@ -21,7 +21,7 @@ claude plugin test . && claude plugin validate .           # the band: 6 pass
   without plugin UI modules ignores the `modules` key in `hooks/hooks.json` and still runs the SessionStart hook. If
   you have an older Claude Code at hand, open a session with the plugin and confirm the walk still reaches the context.
 
-## 1. D16, the directory of lanes (tonight)
+## 1. D16, the directory of lanes — **done 2026-10-19: DIRECTORY LOSES** (see the brief's Outcome)
 
 [BRIEF-D16](BRIEF-D16.md), **cap US$75**. Its "Run" box lists the inputs to prepare first, in order: the fact sheet,
 the bank (18 cases, then a read-through), arms P and D, the parity check, and `d16/run_d16.py` in `d15/`'s shape. Then
