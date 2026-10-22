@@ -20,6 +20,7 @@ published as flat. Built steps link to their brief. Dates are not promised; orde
 | ✔ | **P0 · inside Claude Code, as a plugin** | `/plugin install director --marketplace EvolvingAgentsLabs/evolving-agents`: a hook puts the walk into the session you already use, `/director:reflect` and an MCP server carry the gated learning. D0's 14 situations through the plugin: **0.929**, the same as the standalone director — [brief](packages/director/docs/BRIEF-P0.md) |
 | ✔ | **Local planning · D8–D15** | Can a small model on the user's machine plan from the memory? Walking it alone: no — precise (~0.9) but reaching too little ([D8](packages/director/docs/BRIEF-D8.md)–[D10](packages/director/docs/BRIEF-D10.md)); its plans 0.68 against Sonnet's 0.92, and a plan composed by code did not close the gap ([D11](packages/director/docs/BRIEF-D11.md), [D12](packages/director/docs/BRIEF-D12.md)). Retrieval in code, plan by Claude: 0.837 vs 0.892 at 17× less per plan, short of its gate by 0.005 ([D13](packages/director/docs/BRIEF-D13.md), [D14](packages/director/docs/BRIEF-D14.md)). **Following meta-recipes Claude writes, picking and answering yes/no only: gemma4:12b 0.806 vs 0.854, in ~10 s and at no cost; 4B and 2B not yet ([D15](packages/director/docs/BRIEF-D15.md)).** |
 | ✔ | **In the plugin: recipes, lanes, the band** | `/director:recipes` and `plan_local` bring D15 into the session; lanes send a task to a configured command lane, with confidential tasks refused by any lane not cleared for them — the frontier included — in code; a status line and a band above the prompt show what waits for the person: a lesson to accept or reject (through the same gate), a delegation to fetch — [README](packages/director/README.md#as-a-claude-code-plugin). Built and tested; not measured — nothing in it changes a plan |
+| ✔ | **The director with no person present** | `python -m director.headless`: a verifier's verdicts in the journal with a digest of each session; lessons consolidated by Claude Code and accepted by a declared policy (`verified`: only from sessions whose verifier passed; `all`: the ablation), `decided_by` recorded; the person's gate untouched. Built for director-bench; tested offline, not yet run live — [README](packages/director/README.md#without-a-person-directorheadless) |
 | ✔ | **The order of [EVOLUTION](docs/EVOLUTION.md), steps 1 and 4–6** | the memory in its own module, kept apart from the agent by a boundary test; plans that wait on the band (Run, Move, Cancel), each move logged for the next reflection; one episodic journal the reflection reads and planning never does; recipes stamped with the memory version they came from, reported stale after an accepted lesson. Built and tested; the measurements that need the private memory, and D16 and D17, are in the [RUNBOOK](packages/director/docs/RUNBOOK.md) |
 
 ## Measured flat — not built
@@ -30,7 +31,8 @@ published as flat. Built steps link to their brief. Dates are not promised; orde
 
 ## Next — in phases
 
-**Revised 2026-10-20.** Everything published so far rests on one number, D0's 0.929, measured on cases from the
+**Revised 2026-10-22:** phase 2′ (director-bench) added before phase 3; with Opus planning, phases 1 and 2 moved the
+director's case from one plan to many sessions. **Revised 2026-10-20.** Everything published so far rests on one number, D0's 0.929, measured on cases from the
 lab's own history and judged by the same provider that planned them. Before building on it, the next phase asks
 whether it holds outside those two conditions. The phases are ordered so that the cheapest measurement that could
 contradict us runs first; a phase that comes back flat stops the ones after it. The longer view (memory, the
@@ -60,6 +62,17 @@ sessions. That is the problem the episodic journal and the gated memory were bui
 | 2b | **The director on the same thread.** Only if 2a leaves room: the same probes with the director's journal and gated memory, judged blind. Brief first. | ≥ +0.15 over 2a's baseline — **[ran] 2026-10-21, THE LOOP WORKS:** after one reflection over the thread, 0.725 against 0.275 (Gemini 0.825 / 0.45); the lessons carry it: the walk without them 0.23, C1 − W +0.46 ([C1](packages/director/docs/BRIEF-C1.md)) |
 | 2c | **The same with Opus planning** (the person's model since 2026-10-21). | **[ran] 2026-10-21, DOES NOT ADD WITH OPUS:** Opus alone 0.80, with the director 0.85 (+0.05; Gemini +0.025), at 34 % less per plan ([C2](packages/director/docs/BRIEF-C2.md)). Next: D0's rules with an Opus planner, headroom first |
 | 2d | **D0 with Opus planning.** | **[ran] 2026-10-21, STOP:** Opus alone follows D0's rules 0.964 (Gemini 0.946); D0's gap was Sonnet's ([D0O](packages/director/docs/BRIEF-D0O.md)). Next: F1 with Opus |
+
+### Phase 2′ — between sessions, against Claude Code's own memory (director-bench)
+
+**Added 2026-10-22.** Phases 1 and 2 left one claim standing with Opus: what lasts beyond a session, and its cost.
+[director-bench](https://github.com/EvolvingAgentsLabs/director-bench) measures it in the open, independent of the
+director: chained headless sessions on recurring tasks, a verifier per task, only the memory store kept between them.
+
+| | step | how we will know |
+|---|---|---|
+| 2′a | **DB0 · the pilot.** One synthetic family, no memory / native memory / the director, 3 seeds, 90 sessions, cap US$150. | no-memory must repeat its own errors (RER ≥ 0.15) or there is nothing to measure, and the family is replaced; the seed spread sizes the full run — [brief](packages/director/docs/BRIEF-DB0.md) |
+| 2′b | **The full v0.** 4 families × 10 tasks × 5 configurations (no memory, native, director, both, director without verifier gating) × 5 seeds; one family chosen or reviewed by someone outside the lab, all frozen before the director is tuned. | the bench's `DECISION.md`, fixed before it runs: repeated errors −30 % against native memory (95 % CI excluding 0), success ≥ −2 pp, regressions ≤ +1 pp, memory-induced errors ≤ native, tokens ≤ +10 %, and the ablation worse. Go, iterate one cycle on the failing condition, or publish the bench itself as the contribution |
 
 ### Phase 3 — evolve components, not only the memory
 

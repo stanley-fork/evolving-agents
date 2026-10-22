@@ -12,15 +12,20 @@
 > statements; plans by walking it; delegates each step to a frontier model, a local model or another harness; and
 > learns from every task through a gated, versioned patch. It ships as a **Claude Code plugin** today and is built
 > to move, memory and gate unchanged, to **Anthropic's Managed Agents** and **Google's Antigravity agent** next.
+>
+> **What it is now, read off the measurements:** an **auditable external memory of how you work** — your methods
+> and operational knowledge, learned only through a gate, kept as plain files that travel to other models. Whether
+> it makes Claude Code better **from one session to the next** is measured next, in the open, by
+> [**director-bench**](#measured-next-between-sessions-director-bench).
 
 [![GitHub stars](https://img.shields.io/github/stars/EvolvingAgentsLabs/evolving-agents?style=social)](https://github.com/EvolvingAgentsLabs/evolving-agents/stargazers)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Roadmap](https://img.shields.io/badge/roadmap-D0%E2%80%93D16%20%C2%B7%20P0%20measured-8A9A6B)](ROADMAP.md)
+[![Roadmap](https://img.shields.io/badge/roadmap-D0%E2%80%93D16%20%C2%B7%20C0%E2%80%93C2%20measured%20%C2%B7%20DB0%20next-8A9A6B)](ROADMAP.md)
 
 **Contents** — [Your CLAUDE.md, actually followed](#your-claudemd-actually-followed) ·
-[Install](#install) · [From the SystemAgent to the director](#from-the-systemagent-to-the-director) ·
+[An auditable memory that travels](#an-auditable-memory-that-travels) · [Install](#install) · [From the SystemAgent to the director](#from-the-systemagent-to-the-director) ·
 [One harness today, three next](#one-harness-today-three-next) · [Measured](#measured) ·
-[What comes next](#what-comes-next) · [Earlier work in this repository](#earlier-work-in-this-repository)
+[Measured next: director-bench](#measured-next-between-sessions-director-bench) · [What comes next](#what-comes-next) · [Earlier work in this repository](#earlier-work-in-this-repository)
 
 ## Your CLAUDE.md, actually followed
 
@@ -32,8 +37,10 @@ memory, this is for you:
 > **Measured with Sonnet. With Opus 5.5 planning (2026-10-21) the gap is not there:** today's session alone follows
 > the same rules 0.964 of the time ([D0O](packages/director/docs/BRIEF-D0O.md)) and keeps a multi-day thread's
 > decisions 0.80 against the director's 0.85 ([C2](packages/director/docs/BRIEF-C2.md)). What the director still
-> showed with Opus is cost — 34 % less per plan in C2. Whether it helps the strongest model on harder, newer
-> situations is the next measurement; until then, read every number below as Sonnet's.
+> showed with Opus is cost — 34 % less per plan in C2. On situations from after the memory was frozen, Opus alone
+> still left room only under its own judge ([F1O](packages/director/docs/BRIEF-F1O.md)), and Gemini follows the same
+> rules written as plain notes 0.875 ([PG](packages/director/docs/BRIEF-PG.md)). Read every number below as Sonnet's;
+> what the director is for with the strongest models is the next section.
 
 - **it recalls the rule at the moment it applies** — and cites the statement it followed in every step of its plan;
 - **it learns from your corrections** — each lesson proposed, checked against what it already knew, and kept only
@@ -42,6 +49,24 @@ memory, this is for you:
   next one like it there;
 - **rules that must hold are code, not requests** — a task marked confidential never leaves for a lane not cleared
   for it, the frontier included.
+
+## An auditable memory that travels
+
+What survives the move to Opus is not recall inside one plan — the model already does that — but what lasts and can
+be checked:
+
+- **Auditable.** Every lesson is a diff of When / Do / Because statements, with two probes of its own, a lint, an
+  optional check that it changes the plan (TEACHES, REDUNDANT, NO EFFECT) and a decision: your yes, or — when no
+  person is present — a declared policy, recorded as `decided_by` in the journal. Every accepted edit is an
+  [agentvcs](https://github.com/EvolvingAgentsLabs/agentvcs) patch you can diff, blame, bisect and revert.
+- **Yours, by domain.** What it learns is your methodology and operational knowledge: your decisions (a model, a
+  cap, "from now on …"), and the methods a task reached only after failed attempts, each step with the check that
+  caught the failure. Which lessons get in is decided by you, or by a verifier of your domain (tests, a build):
+  `director.headless` accepts lessons drawn only from sessions whose verifier passed.
+- **Portable.** The memory is Markdown. Another provider's model follows it as plain notes (Gemini, 0.875 — PG);
+  the walk ships as a Claude Code plugin today; the Managed Agents and Antigravity lanes are planned, not built.
+- **Cheaper.** With Opus planning, 34 % less per plan for the same score (C2); a local model plans from recipes the
+  memory compiles, at no cost (D15).
 
 ## Install
 
@@ -120,7 +145,7 @@ memory is plain files — so moving is packaging, not a rewrite.
 | lane | harness | status |
 |---|---|---|
 | frontier | the Claude Code session you are in — the plugin | **built** — 0.929 ([P0](packages/director/docs/BRIEF-P0.md)) |
-| `claude -p` | Claude Code, headless | **built** |
+| `claude -p` | Claude Code, headless | **built** — and the director itself runs unattended: `python -m director.headless` records a verifier's verdicts and consolidates lessons by policy |
 | local | Ollama / llama.cpp; [lora-kernel](https://github.com/EvolvingAgentsLabs/lora-kernel)'s specialists | **built** — gemma4:12b plans from recipes at 0.806 vs 0.854, at no cost ([D15](packages/director/docs/BRIEF-D15.md)) |
 | command | anything with `submit` / `status` / `fetch` | **built** |
 | `anthropic-managed` | Anthropic **Managed Agents** | **planned** — P1 |
@@ -145,12 +170,30 @@ Every number has a brief written before it ran, with the condition that would ha
 published too — a small model walking the memory on its own did not plan well (D8–D12), and similarity search alone
 does not find the rules a case needs (D13). Briefs and runners: [`packages/director/docs/`](packages/director/docs/).
 
+## Measured next: between sessions (director-bench)
+
+Every number above is one planning call against a memory. The question that matters with the strongest models is
+different: **does Claude Code get better from one session to the next on the work you repeat, and does the memory
+ever make it worse?** [**director-bench**](https://github.com/EvolvingAgentsLabs/director-bench) measures that,
+independent of the director: chained headless sessions on recurring tasks, a binary verifier per task, the memory
+store the only thing kept between them. It compares Claude Code with no memory, with its native memory, with the
+director, with both, and with the director learning from every session instead of only the verified ones.
+
+- **Primary metric:** the repeated-error rate — failures whose signature already appeared earlier in the run. Also
+  success, tokens per successful task (consolidation included), turns, the learning slope, retention, regressions
+  against no memory, and errors the memory induced on a task where the convention changed.
+- **Win criteria fixed before it runs:** repeated errors −30 % against native memory (95 % CI excluding 0), success
+  not worse than −2 pp, regressions ≤ +1 pp, memory-induced errors no higher, tokens ≤ +10 %; and learning from
+  every session must do worse than learning from verified ones, or the gate is not what helps.
+- **First, a pilot** ([DB0](packages/director/docs/BRIEF-DB0.md)): one family, three configurations, three seeds,
+  90 sessions, to measure whether there is headroom and how noisy it is before the full 1,000-session run.
+
 ## What comes next
 
 [**ROADMAP.md**](ROADMAP.md) has the steps and how each will be judged; [docs/EVOLUTION.md §8](docs/EVOLUTION.md#8-the-order)
-orders the longer view: the memory model in code, the directory as data, component evolution (the promise of the
-name, still open), then the `anthropic-managed` and `antigravity` lanes, then one memory package that installs on
-every harness.
+orders the longer view: director-bench first (does the memory help between sessions, against Claude Code's own?),
+component evolution (the promise of the name, still open), then the `anthropic-managed` and `antigravity` lanes,
+then one memory package that installs on every harness. The directory as data was measured and not built (D16).
 
 **Built with**, from the same lab: [**lora-kernel**](https://github.com/EvolvingAgentsLabs/lora-kernel), the local
 lane — one small resident model, many specialists, a router that abstains to the frontier ·

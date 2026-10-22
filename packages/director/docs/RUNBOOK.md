@@ -1,7 +1,7 @@
 # Runbook: what runs on the lab's machine
 
 **Written 2026-10-19, at the hand-off from the cloud session to the user's machine; updated 2026-10-22** with what ran
-since (D16, phase 1, phase 2, the Opus checks, PG) and plugin 0.2.4. What is still open is in §2–§5. Everything that could be built and
+since (D16, phase 1, phase 2, the Opus checks, PG), plugin 0.2.5 and `director.headless` (DB0, the director-bench pilot, is next: §1c). What is still open is in §2–§5. Everything that could be built and
 tested without the lab's private memory is merged on `main`: EVOLUTION steps 1, 4, 5 and 6 are built; steps 2 and 3
 have their briefs. What is left needs the private memory (`~/.config/director/`), Ollama, or the user's spend, and is
 listed here in the order it should run. Each item names its brief, its cap and where its result goes.
@@ -10,7 +10,7 @@ listed here in the order it should run. Each item names its brief, its cap and w
 
 ```bash
 git pull origin main
-cd packages/director && python -m pytest tests -q          # 98 passed, 3 skipped (plugin 0.2.4, 2026-10-22)
+cd packages/director && python -m pytest tests -q          # 104 passed, 3 skipped (plugin 0.2.5, 2026-10-22)
 claude plugin test . && claude plugin validate .           # the band: 8 pass
 ```
 
@@ -60,6 +60,14 @@ outside the lab's own history and outside one provider's judgement? Each step ne
   across one real multi-day thread, answered by Claude Code with its own memory. Phase 2 stops if it scores ≥ 0.85.
 
 D17 below waits for 1a and 1b: its guard uses the same judge.
+
+## 1c. DB0, the director-bench pilot — **next; brief written 2026-10-22**
+
+[BRIEF-DB0](BRIEF-DB0.md), **cap US$150**. Runs from the
+[director-bench](https://github.com/EvolvingAgentsLabs/director-bench) repository, not from here. Before it: confirm
+C1's native-memory controls on the pinned Claude Code version (the bench refuses unresolved `TODO(confirm)` fields),
+freeze the family, and run `director.headless` once by hand on one real session (`outcome`, `consolidate`, read the
+proposal's diff). Results go in the bench's `results/` and in the brief as `## Result`.
 
 ## 2. D17, component evolution on the recipes — **not run; decide first**
 
