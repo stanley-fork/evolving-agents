@@ -152,11 +152,13 @@ def _usage(stdout: str) -> dict:
         except ValueError:
             continue
         u = r.get("usage") or {}
-        cache = int(u.get("cache_creation_input_tokens") or 0) + int(u.get("cache_read_input_tokens") or 0)
-        return {"input_tokens": int(u.get("input_tokens") or 0) + cache, "cache_tokens": cache,
+        # Counted the way director-bench counts a session: input plus cache writes; cache reads apart.
+        return {"input_tokens": int(u.get("input_tokens") or 0) + int(u.get("cache_creation_input_tokens") or 0),
+                "cache_read_tokens": int(u.get("cache_read_input_tokens") or 0),
                 "output_tokens": int(u.get("output_tokens") or 0), "cost_usd": float(r.get("total_cost_usd") or 0),
                 "turns": r.get("num_turns"), "error": bool(r.get("is_error"))}
-    return {"input_tokens": 0, "cache_tokens": 0, "output_tokens": 0, "cost_usd": 0.0, "turns": None, "error": True}
+    return {"input_tokens": 0, "cache_read_tokens": 0, "output_tokens": 0, "cost_usd": 0.0, "turns": None,
+            "error": True}
 
 
 def _check(memory: Path, pid: str) -> dict:
@@ -174,7 +176,8 @@ def consolidate(store: Path, policy: str, check: bool = False, claude: str = "cl
     m = memory_of(store)
     st = state_dir(m)
     found = sessions(store, policy)
-    usage = {"input_tokens": 0, "cache_tokens": 0, "output_tokens": 0, "cost_usd": 0.0, "turns": 0, "error": False}
+    usage = {"input_tokens": 0, "cache_read_tokens": 0, "output_tokens": 0, "cost_usd": 0.0, "turns": 0,
+             "error": False}
     out = {"policy": policy, "sessions": len(found), "accepted": [], "refused": []}
     if found:
         before = {p["id"] for p in gate.waiting(m)[0]}
@@ -197,6 +200,10 @@ def consolidate(store: Path, policy: str, check: bool = False, claude: str = "cl
                 out["accepted"].append(rec["id"])
             except gate.GateError as e:
                 out["refused"].append({"id": rec["id"], "why": str(e)})
+                try:                                  # closed, so it does not wait for a decision forever
+                    gate.reject(m, rec["id"])
+                except gate.GateError:
+                    pass
     journal.reflected(st, f"headless ({policy}): {len(found)} session(s), {len(out['accepted'])} lesson(s) kept")
     return {**out, **usage}
 
