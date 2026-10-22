@@ -1,31 +1,46 @@
 # director
 
-**A meta-agent that keeps the lab's operational memory — how we work — and uses it to plan, delegate and
-improve.** It walks the memory as a trajectory (page → atomic statement → link → statement) to plan a task,
-delegates each step to Claude Code (frontier) or to local models, and proposes edits to the memory after
-each task, gated and versioned, so the way of working is learned, recalled, refined and reproduced.
+**Evolving Agents' SystemAgent, rebuilt on what we measured.** The director keeps a team's operational memory —
+how it works — as small, linked, verifiable statements; plans a task by walking it (page → statement → link →
+statement), citing what each step follows; delegates each step to Claude Code, to a local model or to another
+harness; and after each task proposes edits to the memory, gated and versioned, so the way of working is learned,
+recalled, refined and reproduced. It ships as a **Claude Code plugin** (this folder) and as a local harness with a
+two-lane interface; Anthropic's Managed Agents and Google's Antigravity agent are the next harnesses, planned.
 
-> **Status — 2026-10-14: D0–D3 built and measured [ran].** Planning by walking the compiled operational memory:
-> **0.929** against **0.589** for today's session ([D0](docs/BRIEF-D0.md)). Learning from tasks: held-out
-> lab-specific probes **0.0 → 0.781**, D0 kept at 0.964, the edit a gated agentvcs patch ([D2](docs/BRIEF-D2.md)).
-> Learning where work runs: after one lane move and one reflection, public-facing drafts went **0 → 6 / 6** to the
-> frontier while internal text stayed local ([D3](docs/BRIEF-D3.md)). The interface runs locally (below); the local
-> lane ran live on llama.cpp.
->
-> **2026-10-17: the guard, the plugin and local planning [ran].** Accept is guarded (D4–D7); the plugin carries the
-> walk at the same **0.929** ([P0](docs/BRIEF-P0.md)); and a local model can plan by following recipes Claude writes
-> from the memory: gemma4:12b at **0.806** against **0.854** for Sonnet walking with tools, in ~10 s and at no cost
-> ([D15](docs/BRIEF-D15.md), after D8–D14's flat and partial results, below).
+> **Status — 2026-10-20 [ran].** Planning by walking the compiled memory: **0.929** against **0.589** for today's
+> session ([D0](docs/BRIEF-D0.md)), and the same **0.929** through the plugin ([P0](docs/BRIEF-P0.md)). Learning from
+> tasks: held-out probes **0.0 → 0.781**, D0 kept at 0.964 ([D2](docs/BRIEF-D2.md)). Learning where work runs: **0 →
+> 6 / 6** after one move ([D3](docs/BRIEF-D3.md)). Accept guarded by a targeted guard and the lesson's own probes
+> ([D4–D7](docs/BRIEF-D6.md)). A local model plans by following recipes Claude writes: gemma4:12b at **0.806** against
+> **0.854**, in ~10 s and at no cost ([D15](docs/BRIEF-D15.md), after D8–D14's flat and partial results, below).
+> **Planned:** the `anthropic-managed` and `antigravity` lanes (P1, P2).
 >
 > **2026-10-19: the directory of lanes, published flat [ran].** Lane facts kept as one directory of data, cited by the
 > statements, route as well as the same facts in prose (0.880 vs 0.864, 15 cases) and leave D0 at 0.929 — but the plans
 > broke clearance more often (5 vs 1) and followed a lane going down below the bar (0.762 / 0.786 against 0.8 / 0.9):
 > **DIRECTORY LOSES**, so it is not built and the prose stays ([D16](docs/BRIEF-D16.md)). Next: component evolution on
 > the recipes ([D17](docs/BRIEF-D17.md)).
+>
+> **2026-10-21 — all of the above planned with Sonnet 5.5.** With Opus 5.5 planning, the session alone follows D0's
+> rules 0.964 ([D0O](docs/BRIEF-D0O.md)) and keeps a thread's decisions 0.80 vs the director's 0.85 ([C2](docs/BRIEF-C2.md));
+> the director's measured edge with Opus is cost (−34 % per plan). F1 with Opus is next.
 
 <p align="center">
   <img src="docs/img/results.png" alt="Three bar charts. D0, planning the team's way on 14 situations: today's session 0.589, today's session told to walk its files 0.768, the director 0.929. D2, learning from tasks on 8 held-out probes: before 0.0, after learning 0.781, and D0 re-checked afterwards 0.964. D3, learning the lane: public-facing drafts sent to the frontier before 0.0, after one move 1.0, and the internal control kept local 1.0." width="100%">
 </p>
+
+## Where it comes from
+
+![Left, a blueprint of an elaborate machine drawn only in outline and never built. Dashed ochre lines carry each of its parts across to the right, where the same parts stand real on one bench: a chart table of linked index cards with a red route, a card-catalogue drawer, two brass dispatch tubes leaving for a window, a small brass box with a lever, and a ledger whose lines end in wax seals.](../../docs/img/lineage.jpg)
+
+The Evolving Agents Toolkit (2025, [`legacy/eat/`](../../legacy/eat/)) had a SystemAgent, ArchitectZero, Smart
+Memory, a SmartLibrary and a SmartAgentBus, Firmware and an EvolutionStrategist — and three test functions. The
+director keeps each idea and pins it to a measurement: the SystemAgent plans by walking the memory and leaves the
+loop to the harness; ArchitectZero's design comes from the team's own rules; Smart Memory becomes linked When / Do /
+Because statements; the library and the bus become lanes; Firmware becomes rules enforced in code; evolution becomes
+a lesson that passes a gate and lands as an agentvcs patch. The table, piece by piece:
+[the repository's README](../../README.md#from-the-systemagent-to-the-director); the analysis:
+[`docs/EVOLUTION.md`](../../docs/EVOLUTION.md).
 
 ## How it works, in three pictures
 
@@ -73,6 +88,8 @@ Images: [`docs/img/`](docs/img/) — the plates' prompts are in the repository's
 | D15 | Claude writes meta-recipes from the memory; code runs them; the local model only picks a recipe and answers yes/no | **recipes work** with the 12B: 0.806 vs 0.854, 3 / 3 / 6 per case; not yet with 4B (0.58) or 2B (0.26) — [brief](docs/BRIEF-D15.md) |
 | D16 | the lanes' facts as one directory of data the statements cite, against the same facts in prose (EVOLUTION step 2) | **directory loses**: routes as well (0.880 vs 0.864) and D0 holds (0.929), but 5 clearance violations vs 1 and a lane going down followed at 0.762 / 0.786 against 0.8 / 0.9; not built — [brief](docs/BRIEF-D16.md) |
 | D17 | gated evolution of the recipes from D15's own runs (EVOLUTION step 3) | brief written; runs on the lab's machine (Ollama) — [brief](docs/BRIEF-D17.md) |
+| P1 | an `anthropic-managed` lane: Managed Agents behind `submit / status / fetch`, the memory mounted read-only, the walk as a skill, the gate over MCP | **planned** — D0 through it within 0.03 of 0.929; cost per plan published ([EVOLUTION §5](../../docs/EVOLUTION.md#5-agents-and-harnesses)) |
+| P2 | an `antigravity` lane: the same artifact on Google's harness | **planned** — the same bar, and D0's plans judged by the other provider |
 
 ## As a Claude Code plugin
 
@@ -86,11 +103,14 @@ only what it lacks:
 | piece | what it does |
 |---|---|
 | `/director:compile` | compiles your `CLAUDE.md` / `AGENTS.md`, auto-memory, agents and skills into `.director/memory/` (asks first; ~US$5 for ~60 files) |
-| `SessionStart` hook | where that memory exists, puts the walk (`DIRECTOR.md`) into the session: every plan walks the memory and cites what it follows; silent elsewhere |
-| `/director:reflect` | after a task, the session drafts the lesson as edits plus two probes; nothing touches the memory until you say yes |
+| `SessionStart` hook | where that memory exists, puts the walk (`DIRECTOR.md`) into the session: every plan walks the memory and cites what it follows; it also says how many of the person's messages and corrections no reflection has read yet, and when the session is running an older director than the one installed (restart Claude Code to load it; `claude --resume` keeps the conversation); silent elsewhere |
+| `UserPromptSubmit` hook | every message the person sends goes to the episodic journal as a `person` entry (keys scrubbed), so a decision made in passing is not lost before `/director:reflect` reads it; nothing reaches the memory except through the gate. If the installed director changes under a running session, the next prompt says so (restart; `claude --resume`), once per installed version per session |
+| `PreToolUse` hook (Bash) | the **public guard**: a `git commit`, `git push` or `gh pr`/`gh issue` text bound for a repository not listed as private is refused when what it publishes carries a term from a private list or something shaped like a key — enforced in code (`director/public_guard.py`; silent without its private config) |
+| `/director:reflect` | reads the journal since the last reflection and turns the person's **corrections and decisions** (a model, a cap, a tool, "from now on …") and the **methods** a task reached only after failed attempts (steps with the check that caught each failure, without that task's values) into edits plus two probes; nothing touches the memory until you say yes |
 | `/director:recipes` | writes (or rewrites) the meta-recipes a local model follows to plan from this memory (`recipes.json` beside the pages), then lints them and reports how much of the memory they cite (D15); stamps them with the memory version they were written from, so `recipes_lint`, `plan_local` and the status line say when an accepted lesson has made them stale |
-| MCP server `director` | `memory_propose` (a candidate copy, linted, diffed), `memory_check` (D7's positive probe, in the background: TEACHES / REDUNDANT / NO EFFECT), `memory_accept` (your yes, a clean lint and — if checked — TEACHES; versioned as a gated agentvcs patch when agentvcs is installed), `memory_lint`, `memory_status`; `recipes_lint` and `plan_local` (a plan made by following the recipes with a local model on Ollama, `DIRECTOR_LOCAL_MODEL`, default `gemma4:12b-mlx`; free, and `abstain` when no recipe fits); `lanes_list`, `plan_propose`, `plan_status`, `delegate`, `lane_status`, `lane_fetch` (lanes, below); `journal_read` and `journal_note` (the episodic journal, below) |
-| status line and band (`hooks/ui.tsx`) | where that memory exists, the status line reads `director · 286 statements · 3 learned · 1 to decide`; when a plan waits, a band above the prompt shows each task with its lane (**Run**, **Move**, **Cancel**); when a lesson waits for a decision, it shows its edits and its check with **Diff**, **Accept** and **Reject** (Accept is your yes, through the same gate as `memory_accept`; it is offered only when the proposal lints clean and its check, if one ran, says TEACHES), and each delegation not yet brought back with **Status** and **Fetch**. What you press reaches the session with your next prompt. Needs a Claude Code with plugin UI modules; on older versions everything else works as before |
+| MCP server `director` | `memory_propose` (a candidate copy, linted, diffed), `memory_check` (D7's positive probe, in the background: TEACHES / REDUNDANT / NO EFFECT), `memory_accept` (your yes, a clean lint and — if checked — TEACHES; versioned as a gated agentvcs patch when agentvcs is installed; a proposal made before another lesson was accepted is rebased onto the live memory, same id, when none of the statements or Index lines it touches changed — `memory_status` reports `rebased_from` and the new diff — and refused with `conflict` naming them when they did, since accepting would undo what came since; an edit whose `situations` hold a whole Index line (`→` or `[[`) is refused), `memory_reject` (your no, or a conflicting proposal closed), `memory_lint`, `memory_status`; `recipes_lint` and `plan_local` (a plan made by following the recipes with a local model on Ollama, `DIRECTOR_LOCAL_MODEL`, default `gemma4:12b-mlx`; free, and `abstain` when no recipe fits); `lanes_list`, `plan_propose`, `plan_status`, `delegate`, `lane_status`, `lane_fetch` (lanes, below); `journal_read` and `journal_note` (the episodic journal, below) |
+| status line and band (`hooks/ui.tsx`) | where that memory exists, the status line reads `director · 286 statements · 3 learned · 1 to decide · 4 to reflect`; when a plan waits, a band above the prompt shows each task with its lane (**Run**, **Move**, **Cancel**); when a lesson waits for a decision, it shows its edits and its check with **Diff**, **Accept** and **Reject** (Accept is your yes, through the same gate as `memory_accept`; it is offered only when the proposal lints clean and its check, if one ran, says TEACHES), and each delegation not yet brought back with **Status** and **Fetch**. What you press reaches the session with your next prompt. Needs a Claude Code with plugin UI modules; on older versions everything else works as before |
+| live activity (`hooks/ui.tsx`) | every tool call the session makes is shown as it runs, on its lane: the status line adds `frontier ▶ <what runs now> (12s…) │ local ▶ <plan_local or a delegation>`, and the band above the prompt shows **Director · activity** — the walk through the memory (`walk → Headroom`), the director's own tools, the journal's latest events and each lane's last step. `/director-activity` hides or shows the band; the status line always keeps the lanes |
 
 **What you see in Claude Code.** No other window: the director lives in the session. The status line names the memory
 and what waits for you; a band appears above the prompt only when something does. An illustration, not a capture:
@@ -130,6 +150,13 @@ puts each task with its lane on the band, where they press **Run**, **Move** (th
 delegation until it is fetched. **A confidential task — flagged, or with an input under a
 `confidential_paths` folder — is refused by every lane without `"confidential_ok": true`, the frontier included**:
 enforced in code (`director/lanes.py`), not only as a learned statement.
+
+**Other harnesses, next.** Claude Code is one harness; Managed Agents and the Antigravity agent are the same kind,
+hosted. All three load `SKILL.md` and call MCP servers and the memory is plain files, so a managed lane is an adapter
+behind the same three commands — the memory mounted read-only, lessons returned through the gate, and no cloud lane
+cleared for confidential work unless you clear it (P1, P2 above).
+
+![The chart table, a brass gate and a sealed ledger. Three glass-fronted, locked card drawers travel from it: to a writing desk close by, joined by a solid green cord, and to two distant buildings on hills joined only by dashed ochre lines. From each place a single index card returns to the brass gate.](../../docs/img/harnesses.jpg)
 
 Not in the plugin: the targeted guard (its cases are this lab's; a project has none until it has run some),
 lora-kernel's local lane and the two-lane web interface — those stay in `director.server` below; the band carries

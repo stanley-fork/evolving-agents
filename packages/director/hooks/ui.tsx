@@ -4,17 +4,19 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { Snapshot } from '../types'
+import type { Snapshot, Step } from '../types'
 
 const snap = atom({ plugin: 'director', key: 'snap' } as const, null)
 const diff = atom({ plugin: 'director', key: 'diff' } as const, null)
 const busy = atom({ plugin: 'director', key: 'busy' } as const, null)
 const message = atom({ plugin: 'director', key: 'message' } as const, null)
 const notes = atom({ plugin: 'director', key: 'notes' } as const, [] as string[])
+const steps = atom({ plugin: 'director', key: 'steps' } as const, [] as Step[])
+const verbose = atom({ plugin: 'director', key: 'verbose' } as const, true)
 
 const TOOL_PREFIX = 'mcp__plugin_director_director__'
 
-export function statusText(s: Snapshot | null): string | undefined {
+export function statusText(s: Snapshot | null, live: Step[] = [], now = Date.now()): string | undefined {
   if (!s || !s.memory) return undefined
   if (s.error) return `director · ${s.error.slice(0, 60)}`
   const n = s.statements ?? 0
@@ -26,12 +28,89 @@ export function statusText(s: Snapshot | null): string | undefined {
   const out = s.delegations?.length ?? 0
   if (out) parts.push(`${out} delegated`)
   if (s.recipes_stale) parts.push('recipes stale')
-  return parts.join(' · ')
+  if (s.to_reflect) parts.push(`${s.to_reflect} to reflect`)
+  const lanes = laneText(live, s, now)
+  return lanes ? `${parts.join(' · ')} │ ${lanes}` : parts.join(' · ')
+}
+
+const MEMORY_PATH = /\/\.director\/memory\/([^/]+?)\.md$/
+
+// One tool call, seen live: which lane it belongs to and a short label. The director's own steps are its MCP tools
+// and the walk (a read of one of its memory's pages); everything else the session does is the frontier lane, and a
+// plan made on the local model (plan_local) or a task sent to a lane other than the frontier is the local lane.
+export function classify(tool: string, args: Record<string, unknown>): { lane: Step['lane']; label: string } {
+  const str = (k: string) => (typeof args[k] === 'string' ? (args[k] as string) : '')
+  const path = str('file_path') || str('path')
+  const page = path.match(MEMORY_PATH)
+  if (page) return { lane: 'director', label: `walk → ${page[1]}` }
+  if ((tool === 'Grep' || tool === 'Glob') && path.includes('/.director/memory'))
+    return { lane: 'director', label: `search memory: ${str('pattern')}`.slice(0, 80) }
+  if (tool.startsWith(TOOL_PREFIX)) {
+    const name = tool.slice(TOOL_PREFIX.length)
+    if (name === 'plan_local') return { lane: 'local', label: `plan_local: ${str('request')}`.slice(0, 80) }
+    if (name === 'delegate') return { lane: 'local', label: `→ ${str('lane')}: ${str('task')}`.slice(0, 80) }
+    const detail = str('rationale') || str('kind') || str('id') || str('request')
+    return { lane: 'director', label: `${name}${detail ? `: ${detail}` : ''}`.slice(0, 80) }
+  }
+  const base = (f: string) => f.split('/').pop() || f
+  const label =
+    tool === 'Bash'
+      ? str('description') || str('command').split('\n')[0]
+      : tool === 'Read' || tool === 'Edit' || tool === 'Write'
+        ? `${tool} ${base(path)}`
+        : tool === 'Grep' || tool === 'Glob'
+          ? `${tool} ${str('pattern')}`
+          : tool === 'Agent'
+            ? `subagent: ${str('description')}`
+            : tool.startsWith('mcp__')
+              ? tool.split('__').slice(-1)[0]
+              : tool
+  return { lane: 'frontier', label: `${tool === 'Bash' ? '$ ' : ''}${label}`.slice(0, 80) }
+}
+
+function ago(step: Step, now: number): string {
+  const secs = Math.round(((step.ms ?? now - step.t) as number) / 1000)
+  return step.state === 'running' ? `${secs}s…` : step.state === 'error' ? 'failed' : `${secs}s`
+}
+
+// The status line's live half: what each lane is doing now, or did last.
+export function laneText(live: Step[], s: Snapshot | null, now = Date.now()): string {
+  const last = (lane: Step['lane']) => [...live].reverse().find(x => x.lane === lane)
+  const f = last('frontier')
+  const l = last('local')
+  const out = (s?.delegations ?? []).find(d => !d.done)
+  const local = l ? `${l.label} (${ago(l, now)})` : out ? `${out.lane}: ${out.id} (${out.status})` : 'idle'
+  if (!f && !l && !out) return ''
+  return `frontier ▶ ${f ? `${f.label} (${ago(f, now)})` : 'idle'} │ local ▶ ${local}`
 }
 
 type Result = { error?: string } & Record<string, unknown>
 
 let poll: { cancel: () => void } | null = null
+let tick: { cancel: () => void } | null = null
+
+// The status line again from what is already known (no subprocess): called on every step and, while a step runs,
+// every second, so the elapsed time moves.
+async function redraw($: EngineInterface): Promise<void> {
+  const live = await read($, steps)
+  $.ui.status(statusText(await read($, snap), live))
+  const running = live.some(x => x.state === 'running')
+  if (running && !tick) tick = $.clock.every(1_000, () => void redraw($))
+  else if (!running && tick) {
+    tick.cancel()
+    tick = null
+  }
+}
+
+async function record($: EngineInterface, step: Step): Promise<void> {
+  await update($, steps, list => [...list, step].slice(-40))
+  await redraw($)
+}
+
+async function finish($: EngineInterface, t: number, state: Step['state']): Promise<void> {
+  await update($, steps, list => list.map(x => (x.t === t ? { ...x, state, ms: Date.now() - x.t } : x)))
+  await redraw($)
+}
 
 async function run($: EngineInterface, args: string[]): Promise<Result> {
   const root = await $.session.root()
@@ -50,7 +129,7 @@ async function run($: EngineInterface, args: string[]): Promise<Result> {
 async function refresh($: EngineInterface): Promise<void> {
   const s = (await run($, ['status'])) as unknown as Snapshot
   await update($, snap, () => s)
-  $.ui.status(statusText(s))
+  $.ui.status(statusText(s, await read($, steps)))
   const checking = (s.proposals ?? []).some(p => p.check === 'RUNNING')
   if (checking && !poll) {
     poll = $.clock.every(20_000, () => void refresh($))
@@ -95,8 +174,21 @@ async function showDiff($: EngineInterface, id: string): Promise<void> {
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     const started = await next(e)
+    // A surface without slash commands still gets the status line and the band.
+    await $.command
+      .register({
+        name: 'director-activity',
+        description: "Show or hide the director's live activity above the prompt (the status line always shows the lanes)",
+      })
+      .catch(() => undefined)
     await refresh($)
     return started
+  })
+
+  on('command.run', { command: 'director-activity' }, async $ => {
+    const on_ = !(await read($, verbose))
+    await update($, verbose, () => on_)
+    return { text: `director activity above the prompt: ${on_ ? 'shown' : 'hidden'}` }
   })
 
   on('turn.complete', async ($, e, next) => {
@@ -105,10 +197,21 @@ export const register: Register = on => {
     return done
   })
 
+  // Every tool call, live: recorded on its lane when it starts and closed when it ends, so the status line and the band
+  // show what each lane is doing at every moment. The director's own tools also re-read its state.
   on('tool.call', async ($, e, next) => {
-    const result = await next(e)
-    if (e.tool.startsWith(TOOL_PREFIX)) void refresh($)
-    return result
+    const { lane, label } = classify(e.tool, e as unknown as Record<string, unknown>)
+    const t = Date.now()
+    await record($, { t, lane: e.agentId && lane === 'frontier' ? 'frontier' : lane, label: e.agentId ? `[subagent] ${label}` : label, state: 'running' })
+    try {
+      const result = await next(e)
+      await finish($, t, 'deny' in result && result.deny ? 'error' : result.isError ? 'error' : 'done')
+      if (e.tool.startsWith(TOOL_PREFIX)) void refresh($)
+      return result
+    } catch (err) {
+      await finish($, t, 'error')
+      throw err
+    }
   }).catch(($, e, next) => next(e))
 
   // What the person did on the band reaches the model with their next prompt, so the session's picture stays true.
@@ -124,7 +227,10 @@ export const register: Register = on => {
     const proposals = s?.proposals ?? []
     const delegations = s?.delegations ?? []
     const plans = s?.plans ?? []
-    if (e.props.hasSurvey || !s?.memory || (!proposals.length && !delegations.length && !plans.length)) return next(e)
+    const live = await read($, steps)
+    const showActivity = (await read($, verbose)) && (live.length > 0 || (s?.recent ?? []).length > 0)
+    if (e.props.hasSurvey || !s?.memory || (!proposals.length && !delegations.length && !plans.length && !showActivity))
+      return next(e)
 
     const { Box, Button, Text, Code } = $.ui.resolve(e)
     const shown = await read($, diff)
@@ -133,8 +239,38 @@ export const register: Register = on => {
     const p = proposals[0]
     const plan = plans[0]
 
+    const now = Date.now()
+    const directorSteps = live.filter(x => x.lane === 'director').slice(-5)
+    const journal = (s?.recent ?? []).slice(-3)
+    const laneLine = (lane: Step['lane']) => {
+      const x = [...live].reverse().find(y => y.lane === lane)
+      return x ? `${x.label} · ${ago(x, now)}` : 'idle'
+    }
+
     return (
       <Box flexDirection="column">
+        {showActivity && (
+          <Box flexDirection="column">
+            <Text bold>Director · activity</Text>
+            {directorSteps.map(x => (
+              <Text key={`step-${x.t}`} dimColor={x.state !== 'running'}>
+                {x.state === 'running' ? '▶ ' : x.state === 'error' ? '✗ ' : '✓ '}
+                {x.label}
+              </Text>
+            ))}
+            {journal.map(j => (
+              <Text key={`journal-${j.t}-${j.kind}`} dimColor>
+                · {j.kind}: {j.what}
+              </Text>
+            ))}
+            <Text>
+              <Text bold>frontier</Text> ▶ {laneLine('frontier')}
+            </Text>
+            <Text>
+              <Text bold>local</Text> ▶ {laneLine('local')}
+            </Text>
+          </Box>
+        )}
         {plan && (
           <Box flexDirection="column">
             <Text bold>Director · a plan to run{plans.length > 1 ? ` (1 of ${plans.length})` : ''}</Text>

@@ -299,7 +299,7 @@ ArchitectZero as a separate agent, now that harnesses decompose work with their 
 | 8 | **An `antigravity` lane.** The same artifact on Google's harness. | **P2**: the same bar; and D0's plans judged by the other provider, to measure self-preference |
 | 9 | **The memory package.** One export that installs on every harness above. | P0, P1 and P2 re-run from the same artifact |
 
-What runs next on the lab's machine, in order, is in [RUNBOOK](../packages/director/docs/RUNBOOK.md). Steps 1–6 order what exists and keep EAT's open promises, and need no new provider. Steps 7–9 are where the director stops being a Claude Code
+**2026-10-20:** steps 3 and 7–9 now wait for [ROADMAP](../ROADMAP.md#next--in-phases)'s phase 1, which checks D0's 0.929 against another provider's judge and against cases from after the memory was compiled. What runs next on the lab's machine, in order, is in [RUNBOOK](../packages/director/docs/RUNBOOK.md). Steps 1–6 order what exists and keep EAT's open promises, and need no new provider. Steps 7–9 are where the director stops being a Claude Code
 plugin and becomes what the SystemAgent meant to be: one orchestrator with one memory, over whichever agents do the
 work.
 

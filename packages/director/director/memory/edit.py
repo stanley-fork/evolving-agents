@@ -13,7 +13,8 @@ An edit (JSON):
 
 `modify` replaces the fields it gives of an existing statement; `add` refuses an id that exists. Each
 situation is matched to an existing Index line by its text (before the arrow); a match gets the link
-appended, a new situation becomes a new line.
+appended, a new situation becomes a new line. A situation is the text only: one holding `→` or `[[` (a whole
+Index line pasted in) rejects its edit, since it would become a second, broken line (`- X → [[A#b]] → [[A#b]]`).
 """
 
 from __future__ import annotations
@@ -23,6 +24,19 @@ import shutil
 from pathlib import Path
 
 from .format import LINK, NOT_PAGES, STMT, field, render, statements
+
+
+def situation_key(text: str) -> str:
+    """How a situation is matched to an Index line: its text before any arrow, trimmed, case-folded."""
+    return re.sub(r"\s*→.*$", "", text).strip().lower()
+
+
+def bad_situations(edit: dict) -> list[str]:
+    """The situations of an edit that are not situation text: not a string, empty, or holding `→` or `[[`."""
+    sits = edit.get("situations") or []
+    if not isinstance(sits, list):
+        return [repr(sits)]
+    return [repr(x) for x in sits if not isinstance(x, str) or not x.strip() or "→" in x or "[[" in x]
 
 
 def apply_edits(src: Path, edits: list[dict], dst: Path) -> dict:
@@ -36,6 +50,10 @@ def apply_edits(src: Path, edits: list[dict], dst: Path) -> dict:
             page, sid, op = e["page"], e["id"], e["op"]
             if not re.fullmatch(r"[A-Za-z0-9_]+", page) or not re.fullmatch(r"\w+", sid) or op not in ("add", "modify"):
                 raise ValueError("bad page, id or op")
+            bad = bad_situations(e)
+            if bad:
+                raise ValueError(f"situations must be the situation text only, not an Index line (no '→', no '[['): "
+                                 f"{', '.join(bad)}; pass e.g. 'about to commit a document' and the link is added")
             p = dst / f"{page}.md"
             text = p.read_text() if p.exists() else f"# {page}\n{(e.get('about') or page.replace('_', ' ')).strip()}\n"
             have = statements(text)
@@ -70,7 +88,7 @@ def index_add(index: Path, target: str, situations: list[str]) -> None:
     for sit in situations:
         sit = sit.strip().rstrip("→").strip()
         for i, l in enumerate(lines):
-            if l.startswith("- ") and re.sub(r"\s*→.*$", "", l[2:]).strip().lower() == sit.lower():
+            if l.startswith("- ") and situation_key(l[2:]) == sit.lower():
                 if f"[[{target}]]" not in l:
                     lines[i] = l.rstrip() + f", [[{target}]]"
                 break

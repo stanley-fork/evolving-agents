@@ -1,7 +1,7 @@
 import type { On } from 'claude-code'
 import { describe, expect, test } from 'claude-code/testing'
 
-import { runSummary, statusText } from './ui'
+import { classify, laneText, runSummary, statusText } from './ui'
 
 const SNAP = {
   memory: '/proj/.director/memory',
@@ -31,6 +31,7 @@ const BAND = {
 function fake(on: On, state: object, calls: string[][]) {
   on('session.root', () => ({ value: '/proj' }))
   on('session.start', ($, e) => ({ cwd: e.cwd }))
+  on('command.register', () => ({ value: undefined }))
   on('process.run', ($, e) => {
     const args = e.argv.slice(2)
     calls.push([...args])
@@ -76,6 +77,7 @@ describe('plans on the band', () => {
     expect(statusText({ ...PLAN, plans: [], recipes_stale: true })).toBe(
       'director · 10 statements · 0 learned · recipes stale',
     )
+    expect(statusText({ ...PLAN, plans: [], to_reflect: 3 })).toBe('director · 10 statements · 0 learned · 3 to reflect')
     expect(
       runSummary({
         results: [
@@ -154,5 +156,43 @@ describe('band', () => {
     expect(engineDrew).toBe(true)
     expect(await ui.find({ type: 'Text', text: /Director/ })).toBe(undefined)
     await ui.unmount()
+  })
+})
+
+
+describe('live activity', () => {
+  test('a tool call lands on its lane with a short label', () => {
+    expect(classify('Read', { file_path: '/p/.director/memory/Headroom.md' })).toEqual({ lane: 'director', label: 'walk → Headroom' })
+    expect(classify('Grep', { pattern: 'brief', path: '/p/.director/memory' }).lane).toBe('director')
+    expect(classify('mcp__plugin_director_director__memory_propose', { rationale: 'cap the key' })).toEqual({
+      lane: 'director',
+      label: 'memory_propose: cap the key',
+    })
+    expect(classify('mcp__plugin_director_director__plan_local', { request: 'draft the note' }).lane).toBe('local')
+    expect(classify('mcp__plugin_director_director__delegate', { lane: 'tower', task: 'correct ch. 1' })).toEqual({
+      lane: 'local',
+      label: '→ tower: correct ch. 1',
+    })
+    expect(classify('Bash', { command: 'pytest -q', description: 'Run the tests' })).toEqual({
+      lane: 'frontier',
+      label: '$ Run the tests',
+    })
+    expect(classify('Edit', { file_path: '/repo/README.md' })).toEqual({ lane: 'frontier', label: 'Edit README.md' })
+  })
+
+  test('the status line shows what each lane is doing, and stays as it was with nothing live', () => {
+    const now = 100_000
+    const live = [
+      { t: 90_000, lane: 'frontier' as const, label: '$ Run the tests', state: 'running' as const },
+      { t: 80_000, lane: 'local' as const, label: 'plan_local: draft', state: 'done' as const, ms: 4_000 },
+    ]
+    expect(laneText(live, null, now)).toBe('frontier ▶ $ Run the tests (10s…) │ local ▶ plan_local: draft (4s)')
+    expect(statusText({ memory: '/m', statements: 10, accepted: 0 }, live, now)).toBe(
+      'director · 10 statements · 0 learned │ frontier ▶ $ Run the tests (10s…) │ local ▶ plan_local: draft (4s)',
+    )
+    expect(statusText({ memory: '/m', statements: 10, accepted: 0 }, [], now)).toBe('director · 10 statements · 0 learned')
+    expect(laneText([], { memory: '/m', delegations: [{ id: 'ch-1', lane: 'tower', status: 'running', done: false }] }, now)).toBe(
+      'frontier ▶ idle │ local ▶ tower: ch-1 (running)',
+    )
   })
 })

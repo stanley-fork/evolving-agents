@@ -23,8 +23,13 @@ export type Snapshot = {
   delegations?: Delegation[]
   plans?: Plan[]
   recipes_stale?: boolean
+  to_reflect?: number
+  recent?: { t: string; kind: string; what: string }[]
   error?: string
 }
+
+/** One step seen live in this session: a tool call on a lane, or a step of the director's own. */
+export type Step = { t: number; lane: 'frontier' | 'local' | 'director'; label: string; state: 'running' | 'done' | 'error'; ms?: number }
 
 declare module 'claude-code' {
   interface PluginState {
@@ -34,6 +39,8 @@ declare module 'claude-code' {
       busy: string | null
       message: string | null
       notes: string[]
+      steps: Step[]
+      verbose: boolean
     }
   }
 }
