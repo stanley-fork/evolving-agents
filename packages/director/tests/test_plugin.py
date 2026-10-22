@@ -19,6 +19,7 @@ DIRECTOR_MD = (ROOT / "director" / "DIRECTOR.md").read_text()
 
 def hook(cwd: Path, env: dict | None = None) -> str:
     e = {k: v for k, v in os.environ.items() if k not in ("DIRECTOR_MEMORY", "CLAUDE_PROJECT_DIR")}
+    e["HOME"] = str(Path(__file__).parent / "no-home")      # never the machine's installed plugins
     e.update(env or {})
     p = subprocess.run([sys.executable, str(ROOT / "director" / "plugin_hook.py")], input=json.dumps({"cwd": str(cwd)}),
                        capture_output=True, text=True, env=e, check=True)
