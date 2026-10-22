@@ -1,0 +1,5 @@
+# Only the memory is shared through the repository; the journal, proposals and checks stay local.
+*
+!.gitignore
+!memory/
+!memory/**
