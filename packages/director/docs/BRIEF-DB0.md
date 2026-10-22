@@ -90,3 +90,20 @@ measurement: it checks the machinery and the family, and decides nothing about t
   (Claude Code refuses `bypassPermissions` as root unless `IS_SANDBOX=1`, which the first attempt hit). The director
   now reports tokens the way the bench counts a session (cache reads apart) and closes a proposal its policy refuses.
 - Spent about US$0.70 in total.
+
+## Second live check [ran] 2026-10-22 — rules that live in the repository are learned by reading
+
+The family was redesigned for headroom: eight house rules not in the README, enforced by `./tools/check` with terse
+messages and spread over thirteen rule modules (five disabled, as noise); a bare-`pytest` quirk; a repository of 168
+files and ~5.5k lines; 5.3 undocumented rules per task on average. C0 on four tasks (01, 02, 05, 08), seed 1,
+Sonnet 5.5: **4 / 4 first time, 5–7 turns, 0 tool errors**, US$0.08–0.12 per task. The trace shows why: in its
+second turn the session reads `tools/lint.toml` and the rule modules, in its third the rest of the checker, then
+writes code that passes. **A strong agent reads the checker before writing**, so a rule written anywhere in the
+repository is learned by reading, not by failing. Memory can only save those reading tokens there (H5 in
+[WHERE-IT-SHOULD-WIN](WHERE-IT-SHOULD-WIN.md)), not repeated errors.
+
+**What follows:** the knowledge memory exists for lives outside the repository — what a remote CI enforces, what
+reviewers ask for, what the team decided. The bench gets a **review round**: after the session, a remote CI with
+rules absent from the repository reports its failures, and the same session gets one round to fix them. Any memory
+(the native one included) can keep that feedback; with no memory it is met again on the next task. The headroom
+check is run again on that design before the pilot. Spent about US$0.40.

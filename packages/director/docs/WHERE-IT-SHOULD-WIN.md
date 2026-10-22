@@ -107,6 +107,9 @@ These are reasons to choose it at equal scores, not scores.
 - **One-off tasks.** A lesson pays only when its situation recurs.
 - **Conventions the model re-derives cheaply** from the code in front of it. The stronger the model, the more of
   them.
+- **Rules written anywhere in the repository.** Measured in DB0's second live check: Sonnet read the checker's rule
+  modules in its second turn and passed every task first time. What is in the repository is learned by reading;
+  memory only saves the reading.
 - **Short runs.** Native memory learns in the session; the director learns every second task. Over ten tasks,
   that lag costs it the early sessions.
 
@@ -114,8 +117,9 @@ These are reasons to choose it at equal scores, not scores.
 
 These are the properties a family needs for **any** memory to have something to learn. None of them is specific to
 the director:
-- rules learned by failing, consistent across tasks, not in the README, reported by the project's check with terse
-  messages;
+- rules learned by failing, consistent across tasks, **absent from the repository** — enforced by a remote CI or a
+  reviewer whose feedback reaches the session in a review round (rules kept in the repository are read, not
+  failed: DB0's second live check);
 - an environment quirk that costs turns;
 - a repository too large to read whole;
 - tasks of one kind that each touch a different subset of the rules;
