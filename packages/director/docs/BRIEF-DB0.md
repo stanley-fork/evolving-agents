@@ -63,3 +63,27 @@ real cost per session is one of its results.
 - Anything about teams, large repositories or one-off tasks (the bench's declared limits).
 - Whether a person's yes matters: C2 removes the person from the gate. The product keeps it; the bench measures the
   verifier as the gate instead, and says so.
+
+## First live smoke run [ran] 2026-10-22 — not the pilot; the family has no headroom
+
+Three tasks of `ledgerkit` (01, 02, 05), seed 1, Sonnet 5.5, Claude Code 2.1.308, C0 and C2. A smoke run, not a
+measurement: it checks the machinery and the family, and decides nothing about the director.
+
+| | passed | turns per task | tool errors | cost per task |
+|---|---|---|---|---|
+| C0 — no memory | 3 / 3 | 4, 4, 4 | 0 | US$0.058 |
+| C2 — the director (one consolidation after task 2) | 3 / 3 | 5, 5, 5 | 0 | US$0.098 (sessions US$0.063 + the consolidation spread over the 2 tasks it covers) |
+
+- **The family has no headroom.** C0 solved every task first time in four turns with no tool error: the repository is
+  small enough to read whole in one turn, and its README names the check command. Nothing repeats, so there is no
+  error rate to reduce — the brief's STOP case, met before the pilot spent anything. The family is redesigned before
+  the pilot runs: house rules discovered only by failing (enforced by the project's check with terse messages, not
+  documented in the README), a repository too large to read whole, and environment quirks that cost turns.
+- **The director's loop works live.** `outcome` recorded each verdict; after task 2, `consolidate --policy verified`
+  drew one lesson from the two passed sessions (a method for adding a command, each step with its check), accepted by
+  policy with `decided_by: policy:verified`; a first proposal with a lint problem was refused. Task 05's session read
+  the Index and the lesson before working. The leak audit found no verifier or reference text in the memory.
+- **Two fixes from it.** The bench now stops a run when a session never starts, instead of recording failed tasks
+  (Claude Code refuses `bypassPermissions` as root unless `IS_SANDBOX=1`, which the first attempt hit). The director
+  now reports tokens the way the bench counts a session (cache reads apart) and closes a proposal its policy refuses.
+- Spent about US$0.70 in total.

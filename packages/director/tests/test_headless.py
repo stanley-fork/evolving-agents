@@ -92,7 +92,8 @@ def test_verified_shows_the_reflection_only_the_passed_sessions_and_accepts_by_p
     assert "session 01" in sent[1] and "02-secret-fail" not in sent[1]
     assert "--plugin-dir" in sent and "memory_accept" not in sent[sent.index("--allowedTools") + 1]
     assert res["sessions"] == 1 and len(res["accepted"]) == 1 and res["refused"] == []
-    assert res["input_tokens"] == 1000 and res["output_tokens"] == 50 and res["cost_usd"] == 0.12
+    assert res["input_tokens"] == 100 and res["cache_read_tokens"] == 900                 # director-bench's count
+    assert res["output_tokens"] == 50 and res["cost_usd"] == 0.12
     assert "## #make_check" in (headless.memory_of(store) / "Checks.md").read_text()
     kept = journal.read(store / ".director", kinds=["lesson.accepted"])
     assert kept[-1]["decided_by"] == "policy:verified"
@@ -130,3 +131,19 @@ def test_the_cli_prints_one_json_line(tmp_path):
                         "--passed", "true"], cwd=ROOT, capture_output=True, text=True, check=True,
                        env={**os.environ, "PYTHONPATH": str(ROOT)})
     assert json.loads(p.stdout.strip().splitlines()[-1])["passed"] is True
+
+
+def test_a_proposal_the_policy_refuses_is_closed_not_left_waiting(tmp_path, monkeypatch):
+    store = tmp_path / "store"
+    m = Path(headless.init(store)["memory"])
+    headless.outcome(store, "01", True)
+    bad = {"op": "add", "page": "Checks", "about": "Checks.", "id": "x", "when": "w", "do": "d", "because": "b",
+           "links": ["Nowhere#missing"], "situations": ["about to run the tests"]}
+
+    def fake_run(*a, **k):
+        gate.propose(m, [bad], rationale="dangling link")
+        return subprocess.CompletedProcess(a, 0, stdout="{}", stderr="")
+    monkeypatch.setattr(headless.subprocess, "run", fake_run)
+    res = headless.consolidate(store, "verified")
+    assert res["accepted"] == [] and len(res["refused"]) == 1
+    assert gate.waiting(m)[0] == []
