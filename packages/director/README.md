@@ -23,7 +23,16 @@ two-lane interface; Anthropic's Managed Agents and Google's Antigravity agent ar
 >
 > **2026-10-21 — all of the above planned with Sonnet 5.5.** With Opus 5.5 planning, the session alone follows D0's
 > rules 0.964 ([D0O](docs/BRIEF-D0O.md)) and keeps a thread's decisions 0.80 vs the director's 0.85 ([C2](docs/BRIEF-C2.md));
-> the director's measured edge with Opus is cost (−34 % per plan). F1 with Opus is next.
+> the director's measured edge with Opus is cost (−34 % per plan). On situations from after the freeze, Opus alone
+> left room only under its own judge ([F1O](docs/BRIEF-F1O.md)); Gemini follows the same rules as plain notes at
+> 0.875 ([PG](docs/BRIEF-PG.md)).
+>
+> **2026-10-22 — what it is for now, and the next measurement.** With the strongest models the director is an
+> auditable, portable memory of how a team works, and the question moves from one plan to many sessions: does Claude
+> Code get better from one session to the next on recurring work, against its own native memory, without the memory
+> ever making it worse? That is measured by [director-bench](https://github.com/EvolvingAgentsLabs/director-bench),
+> an open benchmark independent of the director, after a pilot ([DB0](docs/BRIEF-DB0.md)). For it, the director runs
+> with no person present: [`director.headless`](#without-a-person-directorheadless).
 
 <p align="center">
   <img src="docs/img/results.png" alt="Three bar charts. D0, planning the team's way on 14 situations: today's session 0.589, today's session told to walk its files 0.768, the director 0.929. D2, learning from tasks on 8 held-out probes: before 0.0, after learning 0.781, and D0 re-checked afterwards 0.964. D3, learning the lane: public-facing drafts sent to the frontier before 0.0, after one move 1.0, and the internal control kept local 1.0." width="100%">
@@ -88,6 +97,8 @@ Images: [`docs/img/`](docs/img/) — the plates' prompts are in the repository's
 | D15 | Claude writes meta-recipes from the memory; code runs them; the local model only picks a recipe and answers yes/no | **recipes work** with the 12B: 0.806 vs 0.854, 3 / 3 / 6 per case; not yet with 4B (0.58) or 2B (0.26) — [brief](docs/BRIEF-D15.md) |
 | D16 | the lanes' facts as one directory of data the statements cite, against the same facts in prose (EVOLUTION step 2) | **directory loses**: routes as well (0.880 vs 0.864) and D0 holds (0.929), but 5 clearance violations vs 1 and a lane going down followed at 0.762 / 0.786 against 0.8 / 0.9; not built — [brief](docs/BRIEF-D16.md) |
 | D17 | gated evolution of the recipes from D15's own runs (EVOLUTION step 3) | brief written; runs on the lab's machine (Ollama) — [brief](docs/BRIEF-D17.md) |
+| H | the director with no person present: a verifier's verdicts in the journal, lessons consolidated and accepted by a declared policy (`verified`: only from sessions whose verifier passed; `all`: the ablation) | **built and tested offline**, not yet run live — [below](#without-a-person-directorheadless) |
+| DB0 | the director-bench pilot: one family, no memory / native memory / the director, 3 seeds, 90 sessions | **brief written** — headroom (no-memory repeats its errors) and spread before the full run — [brief](docs/BRIEF-DB0.md) |
 | P1 | an `anthropic-managed` lane: Managed Agents behind `submit / status / fetch`, the memory mounted read-only, the walk as a skill, the gate over MCP | **planned** — D0 through it within 0.03 of 0.929; cost per plan published ([EVOLUTION §5](../../docs/EVOLUTION.md#5-agents-and-harnesses)) |
 | P2 | an `antigravity` lane: the same artifact on Google's harness | **planned** — the same bar, and D0's plans judged by the other provider |
 
@@ -161,7 +172,33 @@ cleared for confidential work unless you clear it (P1, P2 above).
 Not in the plugin: the targeted guard (its cases are this lab's; a project has none until it has run some),
 lora-kernel's local lane and the two-lane web interface — those stay in `director.server` below; the band carries
 the interface's Accept / Reject into the session. Tests: `tests/test_plugin.py`, `tests/test_ui_state.py`,
-`tests/test_recipes.py`, `tests/test_lanes.py`, `tests/test_plans.py`, `tests/test_journal.py`, `tests/test_versions.py`; the band: `claude plugin test .`.
+`tests/test_recipes.py`, `tests/test_lanes.py`, `tests/test_plans.py`, `tests/test_journal.py`, `tests/test_versions.py`,
+`tests/test_headless.py`; the band: `claude plugin test .`.
+
+## Without a person: `director.headless`
+
+A benchmark run or a nightly job has no one to say yes. `director.headless` gives it the same gate with the decision
+declared instead of asked, and keeps everything in one **store** directory (`<store>/.director/memory`, the journal and
+the proposals), so a caller that keeps only that directory between sessions keeps the whole memory:
+
+```bash
+python -m director.headless init --memory STORE                       # an empty memory, once
+claude -p "<task>" --plugin-dir packages/director ...                 # the session, with DIRECTOR_MEMORY=STORE/.director/memory
+python -m director.headless outcome --memory STORE --task 03 --passed true --trace session.jsonl
+python -m director.headless consolidate --memory STORE --policy verified   # or --policy all; --check to require TEACHES
+```
+
+- `outcome` writes the verifier's verdict to the journal with a digest of the session's trace: its tool calls in
+  order, the tool errors it met, its final words, its turns.
+- `consolidate` runs the reflection with Claude Code on the sessions since the last one — under `verified` only those
+  whose verifier passed (the model never sees the others), under `all` every one — and each proposal it makes is
+  accepted by `gate.accept_by_policy`: clean lint and, with `--check`, TEACHES. The journal records
+  `decided_by: policy:verified` (or `all`); the last line printed carries the reflection's tokens and cost.
+- The person's gate is untouched: `memory_accept` still needs the user's yes, and `accept_by_policy` is reachable from
+  no MCP tool and no band (a test holds that line).
+
+Built and tested offline with a fake Claude Code (`tests/test_headless.py`); not yet run live — DB0 runs it first by
+hand on one real session.
 
 ## Running it (D1)
 
@@ -234,8 +271,9 @@ each accepted edit as an agentvcs patch (`vcs`), and the episodic journal (`jour
 corrections and outcomes (`journal_note`); `/director:reflect` reads it since its last `reflected` mark
 (`journal_read`), and nothing that plans ever does. It is standard library only, never calls a model, and imports
 nothing from the rest. Everything else is the agent that plans with it: `core` (the loop), `learn` (reflection),
-`guard`, `recipes`, `lanes`, and the interfaces (`server`, `mcp_server`, `ui_state`, `plugin_hook`). The MCP tools,
-the band and the web interface's Accept all go through `memory.gate`. `tests/test_memory_boundary.py` holds the line;
+`guard`, `recipes`, `lanes`, and the interfaces (`server`, `mcp_server`, `ui_state`, `plugin_hook`, `headless`). The MCP
+tools, the band and the web interface's Accept all go through `memory.gate`; only `headless` uses its unattended
+accept. `tests/test_memory_boundary.py` holds the line;
 the model behind it is [`docs/EVOLUTION.md`](../../docs/EVOLUTION.md) §4.
 
 ## Privacy

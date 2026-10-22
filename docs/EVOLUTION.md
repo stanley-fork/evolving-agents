@@ -313,9 +313,14 @@ ArchitectZero as a separate agent, now that harnesses decompose work with their 
 | 4 | **Plans on the band.** Each delegation shown with its lane before it runs: Run, Move lane, Cancel. | D3's result reproduced with moves made on the band — **built** 2026-10-19 (`plan_propose`, the band, moves logged for `/director:reflect`); the D3 reproduction is not yet run |
 | 5 | **The episodic journal.** One append-only file; `/director:reflect` reads it. | a lesson drafted from the journal passes D2's probes as one drafted from the session did — **built** 2026-10-19 (`.director/journal.jsonl`, `journal_read`, `journal_note`; `/director:reflect` reads it); the D2 comparison is not yet run |
 | 6 | **Views stamped with their memory version.** Recipes and baseline record it; lint flags a stale one. | a test: edit the memory, lint reports the recipes stale — **built** 2026-10-19: the guard's baseline was already stored under the memory's version; the recipes now carry `recipes.stamp.json`, and `recipes_lint`, `plan_local` and the status line report them stale |
+| 6b | **Between sessions, in the open: director-bench.** Chained headless sessions on recurring tasks, a binary verifier per task, the memory store the only thing kept; Claude Code with no memory, with its native memory, with the director, with both, and the director learning from every session instead of only verified ones (independent repository, any memory system can run it). The director runs it unattended: `director.headless` records verdicts and accepts lessons by policy. | the bench's pre-registered win criteria (repeated errors −30 % against native memory with a CI excluding 0, no worse on success, regressions, memory-induced errors or tokens; the ablation worse) — after the pilot **[DB0](../packages/director/docs/BRIEF-DB0.md)** shows headroom; `director.headless` **built** 2026-10-22, not yet run live |
 | 7 | **An `anthropic-managed` lane.** An adapter behind `submit / status / fetch`; the memory mounted read-only; the walk as a skill; the gate over MCP. | **P1**: D0 through it within 0.03 of 0.929; cost per plan published |
 | 8 | **An `antigravity` lane.** The same artifact on Google's harness. | **P2**: the same bar; and D0's plans judged by the other provider, to measure self-preference |
 | 9 | **The memory package.** One export that installs on every harness above. | P0, P1 and P2 re-run from the same artifact |
+
+**2026-10-22:** with Opus planning, the gap one plan can show is mostly gone (§2), so step 6b — whether the memory
+helps from one session to the next, against Claude Code's own memory, and never makes it worse — comes before steps
+3 and 7–9. A memory that cannot show that is not worth porting.
 
 **2026-10-20:** steps 3 and 7–9 now wait for [ROADMAP](../ROADMAP.md#next--in-phases)'s phase 1, which checks D0's 0.929 against another provider's judge and against cases from after the memory was compiled. What runs next on the lab's machine, in order, is in [RUNBOOK](../packages/director/docs/RUNBOOK.md). Steps 1–6 order what exists and keep EAT's open promises, and need no new provider. Steps 7–9 are where the director stops being a Claude Code
 plugin and becomes what the SystemAgent meant to be: one orchestrator with one memory, over whichever agents do the
@@ -325,6 +330,8 @@ work.
 
 - Should encyclopedic memory stay entirely in lora-kernel, or keep a small local cache the walk can cite offline?
 - Who owns a directory entry's reliability when two people's outcomes disagree: a merge rule, or a person?
-- Does a model other than Claude walk the memory as well? D15 says a 12B can follow recipes; nobody has asked whether
-  Gemini can walk.
+- Does a model other than Claude walk the memory as well? D15 says a 12B can follow recipes; PG says Gemini follows
+  the same rules as plain notes (0.875) without needing the walk. Whether it can walk is still unasked.
+- Is a domain verifier (tests, a build) as good a gate as a person's yes? `director.headless` makes the question
+  measurable; director-bench's ablation (A1) asks whether the gate helps at all.
 - At what point is `director/memory/` its own package: when lora-kernel imports it, or when a second team uses it?

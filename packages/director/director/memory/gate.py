@@ -8,6 +8,8 @@ person decides.
     status(memory, pid)                  the proposal, and the check's verdict once it lands
     accept(memory, pid, user_said_yes)   a person's yes, a clean lint and — if checked — TEACHES; the candidate
                                          becomes the live memory, versioned when agentvcs is installed
+    accept_by_policy(memory, pid, policy)  the same gate with no person present (`director.headless`); the journal
+                                         records `decided_by: policy:<name>`
     reject(memory, pid)                  marked rejected; the memory is unchanged
     stale(memory, rec)                   why a proposal no longer applies as it is: the live memory changed after it
                                          was made (its candidate is a whole copy, so accepting it would undo what came
@@ -275,14 +277,41 @@ def status(memory: Path, pid: str) -> dict:
 
 
 def accept(memory: Path, pid: str, user_said_yes: bool) -> dict:
+    if user_said_yes is not True:
+        _usable(proposal_dir(memory, pid))
+        raise GateError("accept only on the user's explicit yes to this diff (user_said_yes: true)")
+    return _accept(memory, pid, "person")
+
+
+def accept_by_policy(memory: Path, pid: str, policy: str, require_check: bool = False) -> dict:
+    """Unattended accept, for a run with no person present (`director.headless`, a benchmark). Never reachable from
+    the MCP tools or the band. The same gate otherwise — clean lint, TEACHES if a check ran — and the journal records
+    who decided: `policy:<name>`. `require_check` refuses a proposal whose check never ran."""
+    if policy not in POLICIES:
+        raise GateError(f"policy: one of {', '.join(POLICIES)}")
     d = proposal_dir(memory, pid)
+    _usable(d)
+    if require_check and _check(d) is None and not (d / "check.running").exists():
+        raise GateError("this policy requires a check, and none ran")
+    return _accept(memory, pid, f"policy:{policy}")
+
+
+# verified: lessons drawn only from sessions whose verifier passed; all: from every session (the ablation)
+POLICIES = ("verified", "all")
+
+
+def _usable(d: Path) -> dict:
     rec = _read(d)
     if rec["status"] != "proposed":
         raise GateError(f"proposal {rec['id']} is {rec['status']}")
     if rec["lint"] or not rec["applied"]:
         raise GateError("this proposal has lint problems or no edit applied; it cannot be accepted")
-    if user_said_yes is not True:
-        raise GateError("accept only on the user's explicit yes to this diff (user_said_yes: true)")
+    return rec
+
+
+def _accept(memory: Path, pid: str, decided_by: str) -> dict:
+    d = proposal_dir(memory, pid)
+    _usable(d)
     rb = rebase(memory, pid)
     if rb.get("stale"):
         raise GateError(rb["stale"])
@@ -319,7 +348,7 @@ def accept(memory: Path, pid: str, user_said_yes: bool) -> dict:
     rec.update(status="accepted", checked=check is not None, patch=patch, accepted=time.strftime("%Y-%m-%dT%H:%M:%S"))
     _write(d, rec)
     journal.append(state, "lesson.accepted", id=rec["id"], checked=check is not None, versioned=patch is not None,
-                   applied=rec["applied"])
+                   applied=rec["applied"], decided_by=decided_by)
     out = {"id": rec["id"], "status": "accepted", "checked": check is not None,
            "versioned": patch is not None, "patch": patch, "previous_memory": str(backup)}
     return {**out, "rebased_from": rec["rebased_from"]} if rec.get("rebased_from") else out
