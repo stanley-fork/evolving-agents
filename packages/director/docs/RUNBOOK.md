@@ -1,6 +1,7 @@
 # Runbook: what runs on the lab's machine
 
-**Written 2026-10-19, at the hand-off from the cloud session to the user's machine.** Everything that could be built and
+**Written 2026-10-19, at the hand-off from the cloud session to the user's machine; updated 2026-10-22** with what ran
+since (D16, phase 1, phase 2, the Opus checks, PG) and plugin 0.2.4. What is still open is in §2–§5. Everything that could be built and
 tested without the lab's private memory is merged on `main`: EVOLUTION steps 1, 4, 5 and 6 are built; steps 2 and 3
 have their briefs. What is left needs the private memory (`~/.config/director/`), Ollama, or the user's spend, and is
 listed here in the order it should run. Each item names its brief, its cap and where its result goes.
@@ -9,8 +10,8 @@ listed here in the order it should run. Each item names its brief, its cap and w
 
 ```bash
 git pull origin main
-cd packages/director && python -m pytest tests -q          # 90 passed expected (2026-10-21)
-claude plugin test . && claude plugin validate .           # the band: 6 pass
+cd packages/director && python -m pytest tests -q          # 98 passed, 3 skipped (plugin 0.2.4, 2026-10-22)
+claude plugin test . && claude plugin validate .           # the band: 8 pass
 ```
 
 - **The 3 skipped tests need the real agentvcs CLI** (the Rust one, from its own repository) on PATH or in `$AGENTVCS`.
@@ -28,7 +29,24 @@ the bank (18 cases, then a read-through), arms P and D, the parity check, and `d
 measurements 1–4 against the verdict table, unchanged. The result goes in the brief as `## Outcome`, flat if flat, and
 in EVOLUTION §8 step 2.
 
-## 1b. Phase 1 of the roadmap, before D17 (2026-10-20)
+## 1b. Phase 1 of the roadmap, before D17 — **done 2026-10-20/21**
+
+What ran, each with its brief and result:
+
+| step | verdict | in one line |
+|---|---|---|
+| 1a · another provider's judge | **HOLDS** ([J0](BRIEF-J0.md)) | Gemini gives +0.30 (Sonnet +0.34) |
+| 1b · held-out from the future | **HOLDS ON THE FUTURE** ([F1](BRIEF-F1.md)) | session 0.36, director 0.84 (Sonnet); +0.29 under Gemini |
+| 2a · headroom for multi-day coherence | **GO to 2b** ([C0](BRIEF-C0.md)) | today's session keeps 0.275 of a thread's decisions |
+| 2b · the director on the same thread | **THE LOOP WORKS** ([C1](BRIEF-C1.md)) | 0.275 → 0.725 with Sonnet; the lessons carry it |
+| 2c · the same with Opus | **DOES NOT ADD** ([C2](BRIEF-C2.md)) | Opus alone 0.80, with the director 0.85; −34 % per plan |
+| 2d · D0 with Opus | **STOP** ([D0O](BRIEF-D0O.md)) | Opus alone follows D0's rules at 0.964 |
+| F1 with Opus | **ROOM under Opus, none under Gemini** ([F1O](BRIEF-F1O.md)) | the director's arm could at best split the judges |
+| portability | **STOP, no headroom** ([PG](BRIEF-PG.md)) | Gemini follows the plain notes at 0.875 (floor 0.345) |
+
+**What it means for what is left:** the measured gap is Sonnet's; with Opus planning, what the director adds is cost
+and what lasts beyond one session (gated, versioned lessons that travel as plain notes). EVOLUTION §2 has the longer
+reading. The plan as first written follows.
 
 [ROADMAP](../../../ROADMAP.md#next--in-phases) now runs in phases, and phase 1 comes first: does D0's 0.929 hold
 outside the lab's own history and outside one provider's judgement? Each step needs a short brief first.
@@ -43,7 +61,11 @@ outside the lab's own history and outside one provider's judgement? Each step ne
 
 D17 below waits for 1a and 1b: its guard uses the same judge.
 
-## 2. D17, component evolution on the recipes
+## 2. D17, component evolution on the recipes — **not run; decide first**
+
+The person decides whether it still runs: its case was the local model's recipes (no cost per plan), which is the
+kind of edge that survives Opus, so it may still pay; but its guard and judge were written for Sonnet's numbers. If it
+runs, the brief stands as written.
 
 [BRIEF-D17](BRIEF-D17.md), **cap US$40**, needs Ollama with `gemma4:12b-mlx`. Episodes come from D15's runs on disk
 (`~/.config/director/d15/`). Arms R0, R1, RG and T on a new bank, and R1 and RG again on D15's bank. The result goes in
@@ -57,7 +79,7 @@ borrowed:
 
 | step | measure | borrowed from |
 |---|---|---|
-| 4 · plans on the band | after one move made **on the band** and one `/director:reflect`, public-facing drafts go to the frontier and internal text stays local | D3: same probes, same verdict table; only the move's origin changes |
+| 4 · plans on the band (plugin since 0.2.x) | after one move made **on the band** and one `/director:reflect`, public-facing drafts go to the frontier and internal text stays local | D3: same probes, same verdict table; only the move's origin changes |
 | 5 · the journal | a lesson drafted by `/director:reflect` from `journal_read` passes D2's held-out probes as well as one drafted from the session alone | D2's probes and judge |
 | 6 · stamped views | none needed: it is a lint (tests show a stale recipe set reported after an accepted lesson) | — |
 
