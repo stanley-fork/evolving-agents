@@ -8,6 +8,9 @@ director) measures exactly that: chained headless Claude Code sessions on recurr
 the memory store the only thing kept between sessions. Its full v0 is 1,000 sessions. DB0 is the pilot that decides
 whether the full run is worth its cost.
 
+What the director should win on, and where it should not, is argued in [WHERE-IT-SHOULD-WIN](WHERE-IT-SHOULD-WIN.md)
+(five hypotheses, each with the metric that would show it).
+
 ## What runs
 
 - **One family**: the bench's synthetic repository (`ledgerkit`, house conventions an agent without memory tends to
@@ -87,3 +90,50 @@ measurement: it checks the machinery and the family, and decides nothing about t
   (Claude Code refuses `bypassPermissions` as root unless `IS_SANDBOX=1`, which the first attempt hit). The director
   now reports tokens the way the bench counts a session (cache reads apart) and closes a proposal its policy refuses.
 - Spent about US$0.70 in total.
+
+## Second live check [ran] 2026-10-22 — rules that live in the repository are learned by reading
+
+The family was redesigned for headroom: eight house rules not in the README, enforced by `./tools/check` with terse
+messages and spread over thirteen rule modules (five disabled, as noise); a bare-`pytest` quirk; a repository of 168
+files and ~5.5k lines; 5.3 undocumented rules per task on average. C0 on four tasks (01, 02, 05, 08), seed 1,
+Sonnet 5.5: **4 / 4 first time, 5–7 turns, 0 tool errors**, US$0.08–0.12 per task. The trace shows why: in its
+second turn the session reads `tools/lint.toml` and the rule modules, in its third the rest of the checker, then
+writes code that passes. **A strong agent reads the checker before writing**, so a rule written anywhere in the
+repository is learned by reading, not by failing. Memory can only save those reading tokens there (H5 in
+[WHERE-IT-SHOULD-WIN](WHERE-IT-SHOULD-WIN.md)), not repeated errors.
+
+**What follows:** the knowledge memory exists for lives outside the repository — what a remote CI enforces, what
+reviewers ask for, what the team decided. The bench gets a **review round**: after the session, a remote CI with
+rules absent from the repository reports its failures, and the same session gets one round to fix them. Any memory
+(the native one included) can keep that feedback; with no memory it is met again on the next task. The headroom
+check is run again on that design before the pilot. Spent about US$0.40.
+
+## Third live check [ran] 2026-10-22 — with a review round there is headroom, and the director's loop shows
+
+The bench now has a review round: after the session a remote CI, with four rules found nowhere in the repository
+(a docs row whose since-column says `unreleased`, a release-bot changelog fragment with a heading, a packaging
+entry, a reviewer's test rule), reports its failures, and the same session gets one round to fix them. Same four
+tasks (01, 02, 05, 08), seed 1, Sonnet 5.5. A smoke run: one seed, four tasks, no interval means anything.
+
+| | first pass | passed after the round | repeated-error rate | cost per success |
+|---|---|---|---|---|
+| C0 — no memory | 0 / 4 | 2 / 4 | 58 % | US$0.44 |
+| C2 — the director, one consolidation after task 2 | 1 / 4 | 2 / 4 | 38 % | US$0.49 |
+
+- **Headroom: yes.** With no memory every task met CI's feedback, and the same three messages came back task after
+  task. DB0's STOP condition (RER < 0.15) is far from met.
+- **Two fixes before the director learned anything.** The repeated-error rate first read 0 %: each CI message named
+  its own command, so the same mistake on two tasks never matched. Each task's own names are now masked (signature
+  v2). Then the director's first run learned nothing: no session had passed, and `verified` read only passed
+  sessions, discarding the CI feedback the round exists to surface. `verified` now means what the verifier vouches
+  for: passed sessions whole, and of failed ones only CI's and review's own words, with which lines the fix made go
+  away — never a failed session's own steps.
+- **After that, the loop shows.** One lesson, drawn from two failed sessions' CI feedback: a docs row saying
+  `unreleased`, a fragment file, a heading line, checked before finishing. Accepted by policy. The two tasks after it
+  met one CI line between them where C0 met four, and task 08 passed first time. Three of the reflection's four
+  proposals were refused for lint problems before one passed: a cost to look at.
+- **What this does not show:** whether the director beats Claude Code's native memory (C1 has not run: its
+  consolidation cannot yet be triggered on demand), or anything with a confidence interval. Both are the pilot's.
+- **Cost revised:** about US$0.10–0.27 per session with Sonnet on this family. The 90-session pilot is nearer
+  US$25–40 than the US$60–150 first estimated; the cap stays.
+- Spent about US$2.30 across the three checks.

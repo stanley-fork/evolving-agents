@@ -5,12 +5,15 @@ caller that keeps only that directory between sessions keeps the whole memory.
     python -m director.headless init --memory STORE
         an empty memory (an Index with no statements), unless one is already there
     python -m director.headless outcome --memory STORE --task ID --passed true|false [--trace FILE]
-        a verifier's verdict on one session, with a digest of what the session did (from its stream-json trace),
-        written to the journal as an `outcome` entry with `source: verifier`
+                                        [--feedback FILE] [--final-feedback FILE]
+        a verifier's verdict on one session, with a digest of what the session did (from its stream-json trace)
+        and what CI or review told it (`CI ...` lines; a line gone from the final feedback was fixed), written to
+        the journal as an `outcome` entry with `source: verifier`
     python -m director.headless consolidate --memory STORE --policy verified|all [--check]
         the reflection without a person: Claude Code reads the sessions since the last reflection and proposes
         lessons through the gate; each new proposal is then accepted by the policy, not by a person
-          verified  only sessions whose verifier passed reach the reflection (the model never sees the others)
+          verified  what the verifier vouches for: passed sessions whole; of failed ones only CI's and review's own
+                    words and which lines the fix made go away (the model never sees a failed session's steps)
           all       every session reaches it (the ablation: no verifier gating)
         --check runs the positive probe on each proposal first and keeps only what TEACHES (its cost is not
         in the usage line: the probe calls are its own)
@@ -27,6 +30,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -39,6 +43,7 @@ PLUGIN_DIR = Path(__file__).resolve().parents[1]
 TOOLS = ["Read", "Grep", "Glob"] + [f"mcp__plugin_director_director__{t}" for t in
                                      ("memory_lint", "memory_propose", "memory_status")]
 DIGEST_CHARS = 6000
+CI_LINE = re.compile(r"^CI(?::| [^\s:]+:)")         # "CI LK-R01: …", "CI tools/check: …", "CI: …" — not a header
 
 
 def memory_of(store: Path) -> Path:
@@ -95,28 +100,68 @@ def digest(trace: Path) -> dict:
     return {"turns": turns, "steps": len(steps), "errors": len(errors), "text": text[-DIGEST_CHARS:]}
 
 
-def outcome(store: Path, task: str, passed: bool, trace: Path | None = None) -> dict:
+def ci_lines(path: Path | None) -> list[str]:
+    """The CI / review lines of a feedback file (`CI ...`), in order, without repeats."""
+    if not path or not Path(path).is_file():
+        return []
+    out: list[str] = []
+    for line in Path(path).read_text(encoding="utf-8", errors="replace").splitlines():
+        line = line.strip()
+        if CI_LINE.match(line) and line not in out:
+            out.append(journal.scrub(line)[:400])
+    return out
+
+
+def outcome(store: Path, task: str, passed: bool, trace: Path | None = None, feedback: Path | None = None,
+            final_feedback: Path | None = None) -> dict:
+    """`feedback`: what CI or a reviewer told the session (the review round); `final_feedback`: what CI says about
+    the final state when it still fails. A first line absent from the final ones was fixed, and the verifier says so."""
     d = digest(trace) if trace and Path(trace).is_file() else {"turns": None, "steps": 0, "errors": 0, "text": ""}
+    first, final = ci_lines(feedback), ci_lines(final_feedback)
+    resolved = [x for x in first if x not in final]
     st = state_dir(memory_of(store))
     journal.append(st, "outcome", source="verifier", task=task, passed=passed, turns=d["turns"], steps=d["steps"],
-                   errors=d["errors"], text=journal.scrub(d["text"]))
-    return {"task": task, "passed": passed, "turns": d["turns"], "errors": d["errors"]}
+                   errors=d["errors"], text=journal.scrub(d["text"]), ci=first, ci_final=final, ci_resolved=resolved)
+    return {"task": task, "passed": passed, "turns": d["turns"], "errors": d["errors"], "ci": len(first),
+            "ci_resolved": len(resolved)}
 
 
 # ------------------------------------------------------------------ the reflection, with no person
 
 def sessions(store: Path, policy: str) -> list[dict]:
-    """The verifier's outcomes since the last reflection that this policy lets the reflection see."""
-    out = [e for e in journal.since_reflection(state_dir(memory_of(store)))
-           if e.get("kind") == "outcome" and e.get("source") == "verifier"]
-    return [e for e in out if e.get("passed") is True] if policy == "verified" else out
+    """The verifier's outcomes since the last reflection, as this policy lets the reflection see them.
+
+    verified  what the verifier vouches for: a passed session whole; of a failed one, only what CI and review said
+              (their own words) and which of those lines the session's fix made go away — never the failed
+              session's own steps or conclusions, which nothing has checked
+    all       every session whole (the ablation)
+    """
+    out = []
+    for e in journal.since_reflection(state_dir(memory_of(store))):
+        if e.get("kind") != "outcome" or e.get("source") != "verifier":
+            continue
+        whole = policy == "all" or e.get("passed") is True
+        if whole or e.get("ci") or e.get("ci_final"):
+            out.append({**e, "show_steps": whole})
+    return out
 
 
 def prompt(found: list[dict], check: bool) -> str:
     parts = []
     for e in found:
         verdict = "PASSED" if e.get("passed") else "FAILED"
-        parts.append(f"### session {e.get('task')} — verifier {verdict}, {e.get('turns')} turns\n{e.get('text', '')}")
+        body = [f"### session {e.get('task')} — verifier {verdict}, {e.get('turns')} turns"]
+        if e.get("ci"):
+            fixed = set(e.get("ci_resolved") or [])
+            body.append("CI and review feedback during the session (their own words):")
+            body += [f"- {x}  [{'fixed: gone after the session addressed it' if x in fixed else 'still failing'}]"
+                     for x in e["ci"]]
+        if e.get("ci_final"):
+            body.append("CI on the final state (still failing):")
+            body += [f"- {x}" for x in e["ci_final"] if x not in (e.get("ci") or [])]
+        body.append(e.get("text", "") if e.get("show_steps", True) else
+                    "(the session's own steps are not shown: it failed, so nothing has checked them)")
+        parts.append("\n".join(body))
     return f"""You are the director's reflection, running with no person present. Coding sessions on one repository
 have ended; below is what each did and what an automatic verifier said. Turn what a future session on this
 repository would otherwise have to rediscover into lessons in the director's memory (the directory the director's
@@ -124,7 +169,9 @@ context names, with `Index.md`).
 
 What counts as a lesson: a **method** — the way this kind of task gets done in this repository, which the sessions
 reached only after attempts that failed (a command that turned out to be the wrong one, a convention a check
-enforced, a file that had to change too). Not the values of one task (its names, numbers, paths it created).
+enforced, a file that had to change too). A rule that CI or a reviewer stated is a lesson even when the session
+failed: their words are the evidence, and a line marked fixed shows what satisfied it. Not the values of one task
+(its names, numbers, paths it created).
 Check each against the memory first (Read/Grep it); drop what it already holds; modify a statement that covers it
 rather than adding a duplicate.
 
@@ -218,6 +265,8 @@ def main(argv: list[str] | None = None) -> int:
             s.add_argument("--task", required=True)
             s.add_argument("--passed", required=True, choices=["true", "false"])
             s.add_argument("--trace", type=Path)
+            s.add_argument("--feedback", type=Path, help="CI / review feedback the session was given")
+            s.add_argument("--final-feedback", type=Path, help="CI on the final state, when it still fails")
         if name == "consolidate":
             s.add_argument("--policy", required=True, choices=list(gate.POLICIES))
             s.add_argument("--check", action="store_true")
@@ -228,7 +277,7 @@ def main(argv: list[str] | None = None) -> int:
         res = init(a.memory)
     elif a.cmd == "outcome":
         init(a.memory)
-        res = outcome(a.memory, a.task, a.passed == "true", a.trace)
+        res = outcome(a.memory, a.task, a.passed == "true", a.trace, a.feedback, a.final_feedback)
     else:
         init(a.memory)
         res = consolidate(a.memory, a.policy, a.check, a.claude, a.max_turns)

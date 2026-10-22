@@ -75,7 +75,7 @@ def test_outcome_records_the_verdict_and_a_digest_of_the_session(tmp_path):
     store = tmp_path / "store"
     headless.init(store)
     res = headless.outcome(store, "03", False, write_trace(tmp_path / "t.jsonl"))
-    assert res == {"task": "03", "passed": False, "turns": 7, "errors": 1}
+    assert res == {"task": "03", "passed": False, "turns": 7, "errors": 1, "ci": 0, "ci_resolved": 0}
     [e] = journal.read(store / ".director", kinds=["outcome"])
     assert e["source"] == "verifier" and e["passed"] is False
     assert "Bash: pytest -q" in e["text"] and "use make check, not pytest" in e["text"] and "done:" in e["text"]
@@ -147,3 +147,24 @@ def test_a_proposal_the_policy_refuses_is_closed_not_left_waiting(tmp_path, monk
     res = headless.consolidate(store, "verified")
     assert res["accepted"] == [] and len(res["refused"]) == 1
     assert gate.waiting(m)[0] == []
+
+
+def test_verified_learns_from_ci_words_of_a_failed_session_but_not_its_steps(tmp_path, fake_claude):
+    # The first live run with a review round: no session passed, so a policy that read only passed sessions learned
+    # nothing. CI's own words are evidence; a failed session's steps are not.
+    exe, log = fake_claude
+    store = tmp_path / "store"
+    fb, final = tmp_path / "fb.txt", tmp_path / "final.txt"
+    fb.write_text("CI and code review (round 1):\n\nCI LK-R01: since must be 'unreleased'\n"
+                  "CI LK-R02: release bot: no changelog fragment for 'count'\n\nPlease address this feedback.")
+    final.write_text("CI LK-R02: release bot: CHANGELOG.d/count.md needs an '### Added' heading")
+    res = headless.outcome(store, "02", False, write_trace(tmp_path / "t.jsonl"), fb, final)
+    assert res["ci"] == 2 and res["ci_resolved"] == 2          # both first lines gone; a new one appeared
+    out = headless.consolidate(store, "verified", claude=str(exe))
+    sent = json.loads(log.read_text())[1]
+    assert out["sessions"] == 1
+    assert "since must be 'unreleased'  [fixed" in sent and "needs an '### Added' heading" in sent
+    assert "Bash: pytest -q" not in sent and "nothing has checked them" in sent
+    headless.outcome(store, "03", False, write_trace(tmp_path / "u.jsonl"))       # failed, nothing from CI
+    assert headless.sessions(store, "verified") == []
+    assert headless.sessions(store, "all")[0]["show_steps"] is True
