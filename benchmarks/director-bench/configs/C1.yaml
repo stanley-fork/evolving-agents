@@ -1,0 +1,31 @@
+# C1 — Claude Code + native Auto Memory + Auto Dream (the baseline to beat).
+#
+# Verified by reading the pinned binary (claude 2.1.308):
+#   settings `autoMemoryEnabled` (bool, default on), `autoMemoryDirectory` (path; honoured in
+#   user/--settings settings, ignored in a checked-in project settings file), `autoDreamEnabled`
+#   (bool, "overrides the server-side default"); env CLAUDE_CODE_DISABLE_AUTO_MEMORY turns it off.
+# NOT verified: how to run Auto Dream on demand in headless mode. In 2.1.308 it fires in the
+#   background inside a session, gated by a server-side flag and by minHours=24 / minSessions=5
+#   defaults (server-tunable). Chained runs finish in hours, so it may never fire. Until the
+#   owner confirms a trigger, consolidation stays a TODO and the runner refuses this config
+#   unless --allow-todo.
+name: C1
+description: Claude Code with native Auto Memory and Auto Dream.
+home_scope: run               # transcripts Auto Dream reviews live under CLAUDE_CONFIG_DIR: keep HOME
+version_cmd: "echo native"    # the native memory is versioned by the pinned claude_version
+session:
+  extra_args: []
+  env: {}
+  settings:
+    autoMemoryEnabled: true
+    autoMemoryDirectory: "${BENCH_MEMORY_DIR}/native-memory"
+    autoDreamEnabled: true
+hooks:
+  setup: []
+  pre_session: []
+  post_session: []
+consolidate:
+  # TODO(confirm with pinned version): a headless, on-demand way to run Auto Dream every 2 tasks
+  # (and its token usage as a final JSON line). Leave the command empty until confirmed.
+  command: null
+  every: 2

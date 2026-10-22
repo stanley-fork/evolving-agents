@@ -1,0 +1,7 @@
+#!/bin/sh
+cd "$(dirname "$0")/.." || exit 2
+PY="${PYTHON:-python3}"
+export PYTHONPATH="$PWD/src${PYTHONPATH:+:$PYTHONPATH}"
+"$PY" tools/lint.py; lint=$?
+"$PY" -m pytest -q -rf -p no:cacheprovider -o pythonpath=src; tests=$?
+[ "$lint" -eq 0 ] && [ "$tests" -eq 0 ]

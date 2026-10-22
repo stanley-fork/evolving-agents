@@ -1,0 +1,87 @@
+# ledgerkit (v0 family). Redesigned twice after live C0 checks (Sonnet 5.5, Claude Code 2.1.308):
+#  - DB0 smoke: the first version was readable whole in one turn, so no errors repeated;
+#  - second check: a strong agent reads tools/ before writing, so rules that live in the repo
+#    are learned by reading, never by failing.
+# The knowledge memory exists for lives OUTSIDE the repo (remote CI, reviewers, team decisions),
+# so this version splits the rules (any memory system can exploit them; none is designed around
+# one system):
+#  - local (./tools/check, readable): LK-L02 registry stale (run ./tools/regen), LK-L03 raw money,
+#    LK-L06 errors, LK-L12 direct io; plus behaviour: MUTATES = True for commands that change the
+#    ledger (cli.py saves only then). tools/lintrules/ has 11 modules, 7 disabled/legacy noise.
+#  - remote (verify/oracle.py only; nothing in the repo states them): LK-R01 docs/commands.md
+#    row (usage lists every --flag, new rows since 'unreleased'), LK-R02 release-bot change
+#    fragment CHANGELOG.d/<name>.md with ### Added|Changed|Fixed, LK-R03 packaging entry in
+#    ledgerkit.toml [commands], LK-R04 review: a cmd(<name>) test with ledger_factory and every
+#    new --flag tested. The data files exist as examples (docs rows, toml entries, empty
+#    CHANGELOG.d/), the rules do not.
+#  - review round: when the first attempt fails, the session is resumed once with the CI lines
+#    (`CI ...`); behaviour checks only say "CI: behaviour test <name> failed".
+#  - environment quirk: bare `pytest` fails ("No module named 'ledgerkit._compat'").
+#  - ~120 modules / ~4.5k src lines; 10 "add a command or an option" tasks; headroom.py prints the
+#    per-task local/remote matrix.
+#  - trap (09): the release bot now wants changes/<name>.toml (feedback names the new convention
+#    only when the old one is used). Retention (10): task 01 retold, on task 01's snapshot.
+# Declared bias: designed by the lab that builds director. The v0 plan still requires at least
+# one family chosen or reviewed by a third party.
+name: ledgerkit
+description: Synthetic personal-finance package with house rules learned by failing.
+schema: 1
+
+repo:
+  build: build_repo.py        # run as `python build_repo.py <dest>`; or `git: <url-or-path>`
+
+# task id -> git ref of its snapshot in the built repo
+snapshots:
+  "01": task-01
+  "02": task-02
+  "03": task-03
+  "04": task-04
+  "05": task-05
+  "06": task-06
+  "07": task-07
+  "08": task-08
+  "09": task-09
+  "10": task-10
+
+tasks: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10"]
+
+# Order per seed: `first` stays first (same cold start for every seed, and the retention
+# task is compared against it), the rest are permuted by seed, `last` closes the run in order.
+order:
+  first: ["01"]
+  last: ["09", "10"]
+
+feedback:
+  rounds: 1                   # review rounds: resume the session with the CI feedback (0 = off)
+
+budget:
+  max_turns: 60
+  max_tokens: 400000          # input + cache_creation + output (cache reads reported separately)
+  wall_seconds: 3600
+
+trap:
+  task: "09"
+  obsolete_marker: "CHANGELOG.d"
+
+retention:
+  task: "10"
+  of: "01"
+
+# Strings that exist only in verify/ and reference/. Any of them in a memory store = leak.
+leak_markers:
+  - "LKORACLE-7f3a9c"
+  - "BENCH-FAIL"
+
+# Each task's own names (the command it adds, its flags), masked as <task> in failure signatures, so the same
+# mistake on two tasks counts as a repeat (signature v2). Found necessary in the first live run with the review round.
+signature_terms:
+  "01": [balance]
+  "02": [count]
+  "03": [largest]
+  "04": [list, --memo, --limit, listing]
+  "05": [transfer]
+  "06": [average]
+  "07": [tag]
+  "08": [export, --out]
+  "09": [rename]
+  "10": [balance]

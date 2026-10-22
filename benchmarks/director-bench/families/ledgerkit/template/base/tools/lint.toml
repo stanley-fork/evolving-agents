@@ -1,0 +1,12 @@
+[rules]
+l02_registry = true
+l03_money = true
+l06_errors = true
+l07_stdout = false
+l08_linelen = false
+l09_doctag = false
+l10_imports = false
+l11_todo = false
+l12_storage = true
+l14_names = false
+l15_complexity = false

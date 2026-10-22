@@ -1,0 +1,27 @@
+# C3 — director + native Auto Memory (and Auto Dream) together.
+# Same environment requirements as C2 (DIRECTOR_PLUGIN_DIR, DIRECTOR_PYTHON, DIRECTOR_VERSION).
+# Native memory keys verified in claude 2.1.308 (see C1.yaml); the on-demand Auto Dream trigger
+# is not, so as in C1 the native consolidation is a TODO and the runner refuses without --allow-todo.
+name: C3
+description: Claude Code + director + native Auto Memory.
+home_scope: run
+version_cmd: 'printf "director=%s+native\n" "${DIRECTOR_VERSION}"'
+session:
+  extra_args: ["--plugin-dir", "${DIRECTOR_PLUGIN_DIR}"]
+  env:
+    DIRECTOR_MEMORY: "${BENCH_MEMORY_DIR}/.director/memory"
+  settings:
+    autoMemoryEnabled: true
+    autoMemoryDirectory: "${BENCH_MEMORY_DIR}/native-memory"
+    autoDreamEnabled: true
+hooks:
+  setup:
+    - '"${DIRECTOR_PYTHON:-python}" -m director.headless init --memory "${BENCH_MEMORY_DIR}"'
+  pre_session: []
+  post_session:
+    - '"${DIRECTOR_PYTHON:-python}" -m director.headless outcome --memory "${BENCH_MEMORY_DIR}" --task "${BENCH_TASK_ID}" --passed "${BENCH_PASSED}" --trace "${BENCH_TRACE}" --feedback "${BENCH_FEEDBACK}" --final-feedback "${BENCH_FINAL_FEEDBACK}"'
+consolidate:
+  command:
+    - '"${DIRECTOR_PYTHON:-python}" -m director.headless consolidate --memory "${BENCH_MEMORY_DIR}" --policy verified'
+    # TODO(confirm with pinned version): headless on-demand Auto Dream trigger, as in C1.
+  every: 2
