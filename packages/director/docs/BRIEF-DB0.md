@@ -49,7 +49,7 @@ than C2).
 2. **The family frozen** in the bench's repository (every verifier fails on its snapshot and passes on its reference
    solution; tested), and the leak audit clean: no verifier or reference text in any memory store.
 3. **C2's consolidation checked once by hand** on one real session: `outcome`, then `consolidate`, the proposal's diff
-   read by a person. Built and tested offline (`tests/test_headless.py`, a fake Claude Code), **not yet run live**.
+   read by a person. Built and tested offline (`tests/test_headless.py`, a fake Claude Code); **ran live once 2026-10-22** (below).
 
 ## Spend
 
