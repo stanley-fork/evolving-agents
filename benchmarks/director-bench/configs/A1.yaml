@@ -1,0 +1,29 @@
+# A1 — ablation: director WITHOUT verifier gating (consolidates every trajectory), native memory off.
+# Needs, in the environment of whoever runs the bench:
+#   DIRECTOR_PLUGIN_DIR  director's Claude Code plugin dir
+#   DIRECTOR_PYTHON      a python that can `import director` (default: python)
+#   DIRECTOR_VERSION     the director version/commit being measured (pinned in results)
+# director keeps its journal and proposals beside its memory, all inside the bench store:
+# the session sees DIRECTOR_MEMORY=<store>/.director/memory; the headless CLI takes the
+# store root (--memory <store>) and resolves <store>/.director/memory itself.
+name: A1
+description: director with --policy all (no verifier gating), native memory off.
+home_scope: task              # native memory is off; a fresh HOME per session guarantees it
+version_cmd: 'printf "%s\n" "${DIRECTOR_VERSION}"'
+session:
+  extra_args: ["--plugin-dir", "${DIRECTOR_PLUGIN_DIR}"]
+  env:
+    DIRECTOR_MEMORY: "${BENCH_MEMORY_DIR}/.director/memory"
+    CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1"   # verified in the pinned binary (2.1.308)
+  settings:
+    autoMemoryEnabled: false               # verified settings key in 2.1.308
+    autoDreamEnabled: false
+hooks:
+  setup:
+    - '"${DIRECTOR_PYTHON:-python}" -m director.headless init --memory "${BENCH_MEMORY_DIR}"'
+  pre_session: []
+  post_session:
+    - '"${DIRECTOR_PYTHON:-python}" -m director.headless outcome --memory "${BENCH_MEMORY_DIR}" --task "${BENCH_TASK_ID}" --passed "${BENCH_PASSED}" --trace "${BENCH_TRACE}" --feedback "${BENCH_FEEDBACK}" --final-feedback "${BENCH_FINAL_FEEDBACK}"'
+consolidate:
+  command: '"${DIRECTOR_PYTHON:-python}" -m director.headless consolidate --memory "${BENCH_MEMORY_DIR}" --policy all'
+  every: 2

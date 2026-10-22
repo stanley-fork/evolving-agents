@@ -1,0 +1,14 @@
+# Packaging metadata for the release pipeline.
+[package]
+name = "ledgerkit"
+console = "ledgerkit.cli:main"
+
+[commands]
+accounts = "ledgerkit.commands.accounts:run"
+add = "ledgerkit.commands.add:run"
+count = "ledgerkit.commands.count:run"
+export = "ledgerkit.commands.export:run"
+import = "ledgerkit.commands.import_:run"
+list = "ledgerkit.commands.listing:run"
+report = "ledgerkit.commands.report_:run"
+# LKORACLE-7f3a9c

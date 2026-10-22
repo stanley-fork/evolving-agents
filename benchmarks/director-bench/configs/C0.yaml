@@ -1,0 +1,21 @@
+# C0 — vanilla Claude Code, no memory (the floor).
+# Native Auto Memory is switched off, and HOME is fresh for every session, so nothing
+# native can carry over between tasks even if a default changes.
+name: C0
+description: Claude Code with no memory across sessions.
+home_scope: task              # task: fresh HOME/CLAUDE_CONFIG_DIR per session; run: HOME persists (part of the store)
+version_cmd: null             # prints the memory system version; null -> "none"
+session:
+  extra_args: []
+  env:
+    CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1"   # verified in the pinned binary (2.1.308)
+  settings:                                # passed with --settings <file>
+    autoMemoryEnabled: false               # verified settings key in 2.1.308
+    autoDreamEnabled: false                # verified settings key in 2.1.308
+hooks:
+  setup: []
+  pre_session: []
+  post_session: []
+consolidate:
+  command: null
+  every: 2

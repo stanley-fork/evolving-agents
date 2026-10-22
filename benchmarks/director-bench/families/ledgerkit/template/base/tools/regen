@@ -1,0 +1,11 @@
+#!/usr/bin/env python3
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "tools"))
+
+from lintrules import _regen  # noqa: E402
+
+path, names = _regen.write(ROOT)
+print(f"regen: {len(names)} commands -> {path.relative_to(ROOT)}")
