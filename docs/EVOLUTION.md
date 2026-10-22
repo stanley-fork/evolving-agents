@@ -53,6 +53,24 @@ The diagnosis is on record: an architecture written down and never pinned to any
 | Can a small local model plan? | not by walking (D8–D12); yes by following recipes Claude writes: 0.806 vs 0.854, at no cost | [D8](../packages/director/docs/BRIEF-D8.md)–[D15](../packages/director/docs/BRIEF-D15.md) |
 | Does storing raw traces help recall? | no measured advantage over naive matching | [PLAN.md, M2](../PLAN.md) |
 
+**Measured after this document was written (2026-10-19 → 21):**
+
+| question | answer | brief |
+|---|---|---|
+| Does D0's gap survive another provider's judge? | yes: Gemini gives +0.30 (Sonnet +0.34), the same order of arms | [J0](../packages/director/docs/BRIEF-J0.md) |
+| On situations from after the memory was compiled? | yes: today's session 0.36, the director 0.84 (Sonnet judge); +0.29 under Gemini | [F1](../packages/director/docs/BRIEF-F1.md) |
+| Does the director keep a multi-day thread's decisions? | with Sonnet planning, 0.275 → 0.725, and the accepted lessons carry the gain | [C0](../packages/director/docs/BRIEF-C0.md), [C1](../packages/director/docs/BRIEF-C1.md) |
+| And when Opus 5.5 plans? | the room closes: Opus alone follows D0's rules at 0.964 and keeps the thread's decisions at 0.80 against the director's 0.85; on new situations there is room under an Opus judge only. The edge measured with Opus is cost: 34 % less per plan | [D0O](../packages/director/docs/BRIEF-D0O.md), [C2](../packages/director/docs/BRIEF-C2.md), [F1O](../packages/director/docs/BRIEF-F1O.md) |
+| Does the memory carry to an agent that is not Claude? | yes, as plain notes: Gemini follows them at 0.875 against a floor of 0.345, which leaves no headroom for the structured walk | [PG](../packages/director/docs/BRIEF-PG.md) |
+| Do lane facts route better as a directory of data? | as well as prose (0.880 vs 0.864), but with more clearance violations and below the bar when a lane goes down: not built | [D16](../packages/director/docs/BRIEF-D16.md) |
+
+**What these change.** The gap D0 measured is the planner's, not the method's: real with Sonnet, on new situations
+and under another judge, and nearly closed when Opus plans. What the director still measurably adds with the
+strongest planner is cost, and with any planner it adds what no single session keeps: lessons that pass a gate, are
+versioned, and travel as plain notes to another agent. The steps below are read in that light: those that make the
+memory cheaper, portable or shared keep their place; those whose only case was recall with Sonnet wait for a
+measurement with the planner the person uses.
+
 Five principles follow from these, and the rest of this document leans on them:
 
 1. **Structure beats similarity.** Atomic statements, links inside them and an index of situations found what
@@ -290,8 +308,8 @@ ArchitectZero as a separate agent, now that harnesses decompose work with their 
 | | step | how we will know |
 |---|---|---|
 | 1 | **The memory model in code.** This document's §4 as the reference; a `director/memory/` module (format, lint, walk, gate, versioning) apart from the agent that plans and delegates. Kept in this package until a second repository needs it. | existing tests pass unchanged; no measurement needed — **built** 2026-10-19: 56 tests unchanged, a boundary test added |
-| 2 | **The directory as data.** `lanes.json`, lora-kernel's domains and the routing statements become one directory: domains, `confidential_ok`, region, cost, reliability with its evidence. Statements cite entries instead of describing them. | **D16** (brief first): the directory routes at least as well as the prose did, and D0 holds at 0.929 — **ran 2026-10-19, DIRECTORY LOSES** ([BRIEF-D16](../packages/director/docs/BRIEF-D16.md#outcome-ran-2026-10-19--directory-loses-by-the-table-it-routes-as-well-as-prose-but-does-not-yet-earn-the-rest)): lane accuracy 0.880 vs 0.864 for prose and D0 0.929, but 5 clearance violations vs 1 and a lane change followed at 0.762 / 0.786 against 0.8 / 0.9; not built, prose stays |
-| 3 | **Component evolution.** Skills, subagents, recipes and lane adapters change through the same gate as statements (§7). | **D17** (brief first): an evolved component beats its parent on held-out cases and the parent's own bank holds — **brief written** 2026-10-19 for the first component, the local model's recipes: [BRIEF-D17](../packages/director/docs/BRIEF-D17.md) |
+| 2 | **The directory as data.** `lanes.json`, lora-kernel's domains and the routing statements become one directory: domains, `confidential_ok`, region, cost, reliability with its evidence. Statements cite entries instead of describing them. | **D16** — **ran 2026-10-19: DIRECTORY LOSES** ([brief](../packages/director/docs/BRIEF-D16.md)): routes as well as prose, but more clearance violations and below the bar when a lane goes down; not built, routing stays in prose |
+| 3 | **Component evolution.** Skills, subagents, recipes and lane adapters change through the same gate as statements (§7). | **D17** (brief first): an evolved component beats its parent on held-out cases and the parent's own bank holds — **brief written** 2026-10-19 for the first component, the local model's recipes: [BRIEF-D17](../packages/director/docs/BRIEF-D17.md); not yet run, and whether it still pays when Opus plans is open (§2) |
 | 4 | **Plans on the band.** Each delegation shown with its lane before it runs: Run, Move lane, Cancel. | D3's result reproduced with moves made on the band — **built** 2026-10-19 (`plan_propose`, the band, moves logged for `/director:reflect`); the D3 reproduction is not yet run |
 | 5 | **The episodic journal.** One append-only file; `/director:reflect` reads it. | a lesson drafted from the journal passes D2's probes as one drafted from the session did — **built** 2026-10-19 (`.director/journal.jsonl`, `journal_read`, `journal_note`; `/director:reflect` reads it); the D2 comparison is not yet run |
 | 6 | **Views stamped with their memory version.** Recipes and baseline record it; lint flags a stale one. | a test: edit the memory, lint reports the recipes stale — **built** 2026-10-19: the guard's baseline was already stored under the memory's version; the recipes now carry `recipes.stamp.json`, and `recipes_lint`, `plan_local` and the status line report them stale |
