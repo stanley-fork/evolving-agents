@@ -18,6 +18,15 @@ A task in this session has ended. The user's correction, if they give one here: 
    - **methods** — a way of doing a kind of task that the session reached only after attempts that failed (an
      `outcome` or `correction` that lists what went wrong before it went right), and that the memory has no statement
      for: the next agent would rediscover it the same way. A method is a lesson even when the user corrected nothing.
+   - **scored failures** — when the task produced work that was scored (runs against a reference, tests, a checklist,
+     a review), read the per-item results, not only the person's corrections: learn from the failures of the agents
+     that did the work, not just from the experimenter's. For each item that failed in more than one run: if the runs
+     agree with each other and not with the reference, check the reference first; if the runs disagree because the
+     item has several defensible definitions, the team has never fixed one — propose a **convention** (When: the
+     quantity or choice is about to be fixed; Do: the definition, exactly; Because: the disagreement observed) and ask
+     the person to decide it. A convention is a decision, so the person's yes is what makes it one.
+   - **redundant lessons** — a lesson only teaches if the agent without the memory fails at it; where the plain runs
+     already did what a lesson says, say so instead of proposing more of the same.
    Check each against the memory first; drop what it already holds. If nothing is left, call `journal_note` with kind
    `reflected`, say so and stop.
 2. For each correction, decision or method left, decide what the memory (the directory the director's context names, with
