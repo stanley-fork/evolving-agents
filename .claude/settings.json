@@ -1,0 +1,10 @@
+{
+  "extraKnownMarketplaces": {
+    "evolvingagentslabs": {
+      "source": { "source": "github", "repo": "EvolvingAgentsLabs/evolving-agents" }
+    }
+  },
+  "enabledPlugins": {
+    "director@evolvingagentslabs": true
+  }
+}
