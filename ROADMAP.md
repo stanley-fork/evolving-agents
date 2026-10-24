@@ -4,6 +4,13 @@
   <img src="docs/img/roadmap.jpg" alt="A railway survey map: seven stations along one line across gentle hills. The first three, on the left, are fully drawn and coloured, joined by solid green track, each with a wax seal; the next four are pencil outlines joined by dashed ochre track, ending near a distant town. A surveyor's level stands where the built track ends." width="100%">
 </p>
 
+**In plain words.** Built: the director plans from your team's memory inside Claude Code, learns lessons only with
+your yes, keeps confidential work on machines you clear, and learns where you want each kind of task to run.
+Measured honestly: with the strongest models it no longer adds general good practice — its value is your own
+decisions, privacy and an auditable record. Next: whether an agent improves from one session to the next on
+recurring work (director-bench), whether the director can improve its own components, and the same memory on other
+agent platforms. The detail of every step follows.
+
 **Where it goes, and how each step will be judged.** Every step names its measurement before it is built, against
 the version it replaces — never against a frontier model — and a step whose measurement comes back flat is
 published as flat. Built steps link to their brief. Dates are not promised; order is.

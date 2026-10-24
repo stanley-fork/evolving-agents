@@ -1,38 +1,17 @@
 # director
 
-**Evolving Agents' SystemAgent, rebuilt on what we measured.** The director keeps a team's operational memory —
-how it works — as small, linked, verifiable statements; plans a task by walking it (page → statement → link →
-statement), citing what each step follows; delegates each step to Claude Code, to a local model or to another
-harness; and after each task proposes edits to the memory, gated and versioned, so the way of working is learned,
-recalled, refined and reproduced. It ships as a **Claude Code plugin** (this folder) and as a local harness with a
-two-lane interface; Anthropic's Managed Agents and Google's Antigravity agent are the next harnesses, planned.
+**The director remembers how your team works and makes every agent session work that way.** It keeps your
+decisions, conventions and methods as a small memory of linked rules (When / Do / Because); before an agent plans,
+it walks that memory and hands the agent the rules that apply, and the plan cites them; it sends each task to the
+right place — the frontier model, a model on your machine, another tool — and refuses to send confidential work
+anywhere you have not cleared; and after a task it turns your corrections into lessons that you accept or reject,
+each one a versioned change you can undo. It ships as a **Claude Code plugin** (this folder) and as a local harness
+with a two-lane interface.
 
-> **Status — 2026-10-20 [ran].** Planning by walking the compiled memory: **0.929** against **0.589** for today's
-> session ([D0](docs/BRIEF-D0.md)), and the same **0.929** through the plugin ([P0](docs/BRIEF-P0.md)). Learning from
-> tasks: held-out probes **0.0 → 0.781**, D0 kept at 0.964 ([D2](docs/BRIEF-D2.md)). Learning where work runs: **0 →
-> 6 / 6** after one move ([D3](docs/BRIEF-D3.md)). Accept guarded by a targeted guard and the lesson's own probes
-> ([D4–D7](docs/BRIEF-D6.md)). A local model plans by following recipes Claude writes: gemma4:12b at **0.806** against
-> **0.854**, in ~10 s and at no cost ([D15](docs/BRIEF-D15.md), after D8–D14's flat and partial results, below).
-> **Planned:** the `anthropic-managed` and `antigravity` lanes (P1, P2).
->
-> **2026-10-19: the directory of lanes, published flat [ran].** Lane facts kept as one directory of data, cited by the
-> statements, route as well as the same facts in prose (0.880 vs 0.864, 15 cases) and leave D0 at 0.929 — but the plans
-> broke clearance more often (5 vs 1) and followed a lane going down below the bar (0.762 / 0.786 against 0.8 / 0.9):
-> **DIRECTORY LOSES**, so it is not built and the prose stays ([D16](docs/BRIEF-D16.md)). Next: component evolution on
-> the recipes ([D17](docs/BRIEF-D17.md)).
->
-> **2026-10-21 — all of the above planned with Sonnet 5.5.** With Opus 5.5 planning, the session alone follows D0's
-> rules 0.964 ([D0O](docs/BRIEF-D0O.md)) and keeps a thread's decisions 0.80 vs the director's 0.85 ([C2](docs/BRIEF-C2.md));
-> the director's measured edge with Opus is cost (−34 % per plan). On situations from after the freeze, Opus alone
-> left room only under its own judge ([F1O](docs/BRIEF-F1O.md)); Gemini follows the same rules as plain notes at
-> 0.875 ([PG](docs/BRIEF-PG.md)).
->
-> **2026-10-22 — what it is for now, and the next measurement.** With the strongest models the director is an
-> auditable, portable memory of how a team works, and the question moves from one plan to many sessions: does Claude
-> Code get better from one session to the next on recurring work, against its own native memory, without the memory
-> ever making it worse? That is measured by [director-bench](https://github.com/EvolvingAgentsLabs/director-bench),
-> an open benchmark independent of the director, after a pilot ([DB0](docs/BRIEF-DB0.md)). For it, the director runs
-> with no person present: [`director.headless`](#without-a-person-directorheadless).
+**What to expect.** With today's strongest models the director does not add general good practice — the model
+already has it. It pays where the model cannot know: your own decisions and conventions, your privacy rules, and an
+auditable record of what was learned. Every measurement, the flat ones included, and the status history:
+[how it works, and what we measured](../../docs/DIRECTOR-EVIDENCE.md#status-history-of-the-package).
 
 <p align="center">
   <img src="docs/img/results.png" alt="Three bar charts. D0, planning the team's way on 14 situations: today's session 0.589, today's session told to walk its files 0.768, the director 0.929. D2, learning from tasks on 8 held-out probes: before 0.0, after learning 0.781, and D0 re-checked afterwards 0.964. D3, learning the lane: public-facing drafts sent to the frontier before 0.0, after one move 1.0, and the internal control kept local 1.0." width="100%">
@@ -48,7 +27,7 @@ director keeps each idea and pins it to a measurement: the SystemAgent plans by 
 loop to the harness; ArchitectZero's design comes from the team's own rules; Smart Memory becomes linked When / Do /
 Because statements; the library and the bus become lanes; Firmware becomes rules enforced in code; evolution becomes
 a lesson that passes a gate and lands as an agentvcs patch. The table, piece by piece:
-[the repository's README](../../README.md#from-the-systemagent-to-the-director); the analysis:
+[how it works](../../docs/DIRECTOR-EVIDENCE.md#from-the-systemagent-to-the-director); the analysis:
 [`docs/EVOLUTION.md`](../../docs/EVOLUTION.md).
 
 ## How it works, in three pictures

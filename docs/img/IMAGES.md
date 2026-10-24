@@ -242,3 +242,28 @@ returns along a thin line toward the brass gate, not to the drawers. Palette lim
 sage green, rust orange and ochre on parchment. Orderly, precise, quiet. Strictly no legible text, letters or
 numbers, no logos, no people or hands, no robots, no glow, no gradients, no 3D render, no photographic look.
 ```
+
+
+## `docs/img/what-it-does.jpg` — what the director does, in one plate (2026-10-24)
+
+- 1800 × 720 (5:2), JPEG, < 360 KB. Generated in ChatGPT. Used in: `README.md` (§ What it does), the website home
+  (`#featured`, as `assets/img/director/what-it-does.jpg`).
+- Reads left to right: a team's rule (a card from the catalogue drawer) pinned to the step of the plan where it
+  applies; a blank card set apart (a choice the memory does not hold); two tubes — the frontier through the window,
+  and a padlocked cabinet in the room that alone receives the sealed envelope (confidential work); the ledger's fresh
+  seal (a lesson kept with the person's yes).
+
+```
+Create an image. A wide 5:2 plate in the style of a 19th-century natural-history and engineering engraving: fine
+sepia ink linework with a muted, transparent watercolour wash on warm, slightly textured parchment paper (#F3EBDD),
+soft even daylight, generous empty margins. Palette only: sepia ink, slate blue #5B7186, sage green #8A9A6B, rust
+orange #B5603A, ochre #C9A54A. Scene, read left to right: on the left, a small card-catalogue drawer of cream index
+cards joined by thin ink threads (a team's rulebook); one card is lifted out and carried by a thin red-pencil line to
+the centre. In the centre, a writing desk where an open work plan lies; the lifted card is pinned to one line of the
+plan, and a second, blank card lies beside the plan, set apart (a decision still to be made). On the right, two brass
+dispatch tubes leave the desk: one goes out through a tall arched window toward a distant domed building on a hill;
+the other goes to a sturdy closed wooden cabinet with a brass padlock in the same room, and a small sealed envelope
+travels only along this second tube. In the foreground, a ledger whose lines end in small wax seals, one seal freshly
+pressed. No legible text, no letters or numbers, no logos, no people or hands, no robots, no glow, no gradients, no
+3D render, no photographic look.
+```
